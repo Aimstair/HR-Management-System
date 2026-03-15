@@ -16,7 +16,7 @@ import EmployeeEvaluations from './pages/employee/EmployeeEvaluations';
 
 // Page imports - HR Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminEmployees from './pages/admin/AdminEmployees';
+import AdminEmployees from './pages/admin/employees';
 import AdminOrganization from './pages/admin/AdminOrganization';
 import AdminRequests from './pages/admin/AdminRequests';
 import AdminShifts from './pages/admin/AdminShifts';

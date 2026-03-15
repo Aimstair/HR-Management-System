@@ -1,8 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card } from '../../../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import React, { useMemo, useState } from 'react';
+import { Check, X } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -13,374 +21,383 @@ import {
 } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
-import { toast } from 'sonner';
-import { Check, X, FileText } from 'lucide-react';
-import { RequestType, RequestStatus } from '../../types/index';
+import { RequestStatus, RequestType } from '../../types';
 
-interface AdminRequest {
+type ManagedRequestStatus =
+  | RequestStatus.PENDING
+  | RequestStatus.APPROVED
+  | RequestStatus.REJECTED;
+
+type StatusFilter = 'all' | ManagedRequestStatus;
+
+interface UnifiedAdminRequest {
   id: string;
-  employeeId: string;
   employeeName: string;
   department: string;
   type: RequestType;
-  status: RequestStatus;
-  submittedDate: string;
+  dateSubmitted: string;
+  status: ManagedRequestStatus;
   details: string;
-  amount?: number;
-  receiptUrl?: string;
 }
 
-const requestsData: AdminRequest[] = [
+const REQUEST_TYPE_MENU: readonly { value: RequestType; label: string }[] = [
+  { value: RequestType.LEAVE, label: 'Leave' },
+  { value: RequestType.EXPENSE, label: 'Expense' },
+  { value: RequestType.WFH, label: 'WFH' },
+  { value: RequestType.FUNDS, label: 'Funds' },
+  { value: RequestType.UNDERTIME, label: 'Undertime' },
+  { value: RequestType.OVERTIME, label: 'Overtime' },
+  { value: RequestType.ATTENDANCE_ADJUSTMENT, label: 'Attendance Adjustments' },
+  { value: RequestType.SHIFT_SWAP, label: 'Shift Swap' },
+];
+
+const STATUS_MENU: readonly { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: RequestStatus.PENDING, label: 'Pending' },
+  { value: RequestStatus.APPROVED, label: 'Approved' },
+  { value: RequestStatus.REJECTED, label: 'Rejected' },
+];
+
+const initialRequests: UnifiedAdminRequest[] = [
   {
-    id: '1',
-    employeeId: 'EMP001',
+    id: 'REQ-1001',
     employeeName: 'John Smith',
     department: 'Science',
     type: RequestType.LEAVE,
+    dateSubmitted: '2026-03-12',
     status: RequestStatus.PENDING,
-    submittedDate: '2024-03-10',
-    details: 'Annual leave request for March 15-20',
+    details: 'Annual leave from 2026-03-20 to 2026-03-22 for family event.',
   },
   {
-    id: '2',
-    employeeId: 'EMP002',
+    id: 'REQ-1002',
     employeeName: 'Sarah Johnson',
     department: 'Mathematics',
-    type: RequestType.EXPENSE,
-    status: RequestStatus.PENDING,
-    submittedDate: '2024-03-08',
-    details: 'Conference registration expenses',
-    amount: 500,
-    receiptUrl: 'receipt-001.pdf',
+    type: RequestType.LEAVE,
+    dateSubmitted: '2026-03-08',
+    status: RequestStatus.APPROVED,
+    details: 'Sick leave for 2026-03-09 with medical certificate attached.',
   },
   {
-    id: '3',
-    employeeId: 'EMP003',
+    id: 'REQ-1003',
     employeeName: 'Michael Chen',
     department: 'Science',
-    type: RequestType.WFH,
-    status: RequestStatus.APPROVED,
-    submittedDate: '2024-03-05',
-    details: 'Work from home request for March 12',
+    type: RequestType.EXPENSE,
+    dateSubmitted: '2026-03-10',
+    status: RequestStatus.PENDING,
+    details: 'Expense reimbursement amount PHP 4,350 for lab consumables.',
   },
   {
-    id: '4',
-    employeeId: 'EMP004',
+    id: 'REQ-1004',
     employeeName: 'Emma Davis',
     department: 'English',
-    type: RequestType.OVERTIME,
-    status: RequestStatus.PENDING,
-    submittedDate: '2024-03-03',
-    details: '4 hours overtime on March 8',
-  },
-  {
-    id: '5',
-    employeeId: 'EMP005',
-    employeeName: 'Robert Wilson',
-    department: 'History',
-    type: RequestType.FUNDS,
+    type: RequestType.EXPENSE,
+    dateSubmitted: '2026-03-04',
     status: RequestStatus.REJECTED,
-    submittedDate: '2024-02-28',
-    details: 'Project funding request for research materials',
-    amount: 1200,
+    details: 'Expense claim amount PHP 1,200 missing official receipt copy.',
   },
   {
-    id: '6',
-    employeeId: 'EMP001',
-    employeeName: 'John Smith',
-    department: 'Science',
-    type: RequestType.UNDERTIME,
-    status: RequestStatus.APPROVED,
-    submittedDate: '2024-02-25',
-    details: '2 hours undertime on February 24',
-  },
-  {
-    id: '7',
-    employeeId: 'EMP006',
+    id: 'REQ-1005',
     employeeName: 'Lisa Anderson',
     department: 'Mathematics',
-    type: RequestType.ATTENDANCE_ADJUSTMENT,
+    type: RequestType.WFH,
+    dateSubmitted: '2026-03-11',
     status: RequestStatus.PENDING,
-    submittedDate: '2024-03-11',
-    details: 'Mark as present for March 7 - System error',
+    details: 'WFH request for 2026-03-18 due to building maintenance at branch.',
   },
   {
-    id: '8',
-    employeeId: 'EMP007',
+    id: 'REQ-1006',
+    employeeName: 'Robert Wilson',
+    department: 'History',
+    type: RequestType.WFH,
+    dateSubmitted: '2026-03-06',
+    status: RequestStatus.APPROVED,
+    details: 'WFH approved for 2026-03-07 while awaiting internet restoration.',
+  },
+  {
+    id: 'REQ-1007',
     employeeName: 'James Martinez',
     department: 'Science',
-    type: RequestType.SHIFT_SWAP,
+    type: RequestType.FUNDS,
+    dateSubmitted: '2026-03-05',
     status: RequestStatus.PENDING,
-    submittedDate: '2024-03-09',
-    details: 'Swap shift with colleague for March 15',
+    details: 'Funds request PHP 25,000 for regional robotics competition kits.',
+  },
+  {
+    id: 'REQ-1008',
+    employeeName: 'Ava Reyes',
+    department: 'Admin',
+    type: RequestType.FUNDS,
+    dateSubmitted: '2026-02-28',
+    status: RequestStatus.REJECTED,
+    details: 'Department funds request lacked vendor quotations and itemization.',
+  },
+  {
+    id: 'REQ-1009',
+    employeeName: 'Daniel Cruz',
+    department: 'Science',
+    type: RequestType.UNDERTIME,
+    dateSubmitted: '2026-03-13',
+    status: RequestStatus.PENDING,
+    details: 'Undertime for 1.5 hours on 2026-03-12 for urgent clinic visit.',
+  },
+  {
+    id: 'REQ-1010',
+    employeeName: 'Nina Patel',
+    department: 'HR',
+    type: RequestType.UNDERTIME,
+    dateSubmitted: '2026-03-02',
+    status: RequestStatus.APPROVED,
+    details: 'Undertime on 2026-03-01 for processing government IDs renewal.',
+  },
+  {
+    id: 'REQ-1011',
+    employeeName: 'Carlos Mendoza',
+    department: 'Operations',
+    type: RequestType.OVERTIME,
+    dateSubmitted: '2026-03-14',
+    status: RequestStatus.PENDING,
+    details: 'Overtime request 3 hours on 2026-03-14 for quarter-end reporting.',
+  },
+  {
+    id: 'REQ-1012',
+    employeeName: 'Grace Lim',
+    department: 'Finance',
+    type: RequestType.OVERTIME,
+    dateSubmitted: '2026-03-01',
+    status: RequestStatus.APPROVED,
+    details: 'Overtime 2 hours approved for payroll reconciliation support.',
+  },
+  {
+    id: 'REQ-1013',
+    employeeName: 'Patricia Gomez',
+    department: 'Registrar',
+    type: RequestType.ATTENDANCE_ADJUSTMENT,
+    dateSubmitted: '2026-03-09',
+    status: RequestStatus.PENDING,
+    details: 'Attendance correction to Present for 2026-03-08 due to biometric outage.',
+  },
+  {
+    id: 'REQ-1014',
+    employeeName: 'Victor Santos',
+    department: 'Registrar',
+    type: RequestType.ATTENDANCE_ADJUSTMENT,
+    dateSubmitted: '2026-03-03',
+    status: RequestStatus.REJECTED,
+    details: 'Late tag removal denied due to no supporting gate log.',
+  },
+  {
+    id: 'REQ-1015',
+    employeeName: 'Helena Torres',
+    department: 'Operations',
+    type: RequestType.SHIFT_SWAP,
+    dateSubmitted: '2026-03-12',
+    status: RequestStatus.PENDING,
+    details: 'Swap 2026-03-17 morning shift with Ian Flores (evening shift).',
+  },
+  {
+    id: 'REQ-1016',
+    employeeName: 'Ian Flores',
+    department: 'Operations',
+    type: RequestType.SHIFT_SWAP,
+    dateSubmitted: '2026-03-07',
+    status: RequestStatus.APPROVED,
+    details: 'Shift swap approved for 2026-03-09 due to training assignment.',
   },
 ];
 
+const statusBadgeClass: Record<ManagedRequestStatus, string> = {
+  [RequestStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  [RequestStatus.APPROVED]: 'bg-green-100 text-green-800 border-green-200',
+  [RequestStatus.REJECTED]: 'bg-red-100 text-red-800 border-red-200',
+};
+
+const statusLabel: Record<ManagedRequestStatus, string> = {
+  [RequestStatus.PENDING]: 'PENDING',
+  [RequestStatus.APPROVED]: 'APPROVED',
+  [RequestStatus.REJECTED]: 'REJECTED',
+};
+
 const AdminRequests: React.FC = () => {
-  const [requests, setRequests] = useState<AdminRequest[]>(requestsData);
-  const [selectedRequest, setSelectedRequest] = useState<AdminRequest | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<RequestType>(RequestType.LEAVE);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [requests, setRequests] = useState<UnifiedAdminRequest[]>(initialRequests);
 
-  const handleApprove = (id: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: RequestStatus.APPROVED } : req
-      )
+  const requestTypeLabel = (type: RequestType): string => {
+    const match = REQUEST_TYPE_MENU.find((item) => item.value === type);
+    return match ? match.label : 'Request';
+  };
+
+  const requestsByType = useMemo(() => {
+    return requests.filter((request) => request.type === activeTab);
+  }, [requests, activeTab]);
+
+  const visibleRequests = useMemo(() => {
+    if (statusFilter === 'all') {
+      return requestsByType;
+    }
+
+    return requestsByType.filter((request) => request.status === statusFilter);
+  }, [requestsByType, statusFilter]);
+
+  const handleStatusUpdate = (
+    id: UnifiedAdminRequest['id'],
+    nextStatus: Extract<ManagedRequestStatus, RequestStatus.APPROVED | RequestStatus.REJECTED>,
+  ): void => {
+    let updatedRequest: UnifiedAdminRequest | null = null;
+
+    setRequests((currentRequests) =>
+      currentRequests.map((request) => {
+        if (request.id !== id || request.status !== RequestStatus.PENDING) {
+          return request;
+        }
+
+        updatedRequest = { ...request, status: nextStatus };
+        return updatedRequest;
+      }),
     );
-    toast.success('Request approved');
-  };
 
-  const handleReject = (id: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: RequestStatus.REJECTED } : req
-      )
+    if (!updatedRequest) {
+      return;
+    }
+
+    const actionLabel = nextStatus === RequestStatus.APPROVED ? 'approved' : 'rejected';
+    toast.success(
+      `${requestTypeLabel(updatedRequest.type)} request ${updatedRequest.id} ${actionLabel}.`,
     );
-    toast.success('Request rejected');
   };
 
-  const openDetails = (request: AdminRequest) => {
-    setSelectedRequest(request);
-    setIsDialogOpen(true);
-  };
-
-  const getStatusBadge = (status: RequestStatus) => {
-    const variants: Record<RequestStatus, string> = {
-      [RequestStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [RequestStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-      [RequestStatus.REJECTED]: 'bg-red-100 text-red-800',
-      [RequestStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
-    };
-    return variants[status];
-  };
-
-  const getStatusLabel = (status: RequestStatus) => {
-    const labels: Record<RequestStatus, string> = {
-      [RequestStatus.APPROVED]: 'Approved',
-      [RequestStatus.PENDING]: 'Pending',
-      [RequestStatus.REJECTED]: 'Rejected',
-      [RequestStatus.CANCELLED]: 'Cancelled',
-    };
-    return labels[status];
-  };
-
-  const filterRequests = (status: RequestStatus | 'all') => {
-    return status === 'all'
-      ? requests
-      : requests.filter((req) => req.status === status);
-  };
-
-  const renderTable = (data: AdminRequest[]) => (
-    <div className="rounded-lg border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead>Employee Name</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Request Type</TableHead>
-            <TableHead>Date Submitted</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                No requests found
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.map((request) => (
-              <TableRow key={request.id} className="cursor-pointer hover:bg-slate-50">
-                <TableCell
-                  className="font-medium"
-                  onClick={() => openDetails(request)}
-                >
-                  {request.employeeName}
-                </TableCell>
-                <TableCell onClick={() => openDetails(request)}>
-                  {request.department}
-                </TableCell>
-                <TableCell
-                  className="capitalize"
-                  onClick={() => openDetails(request)}
-                >
-                  {request.type.replace('_', ' ')}
-                </TableCell>
-                <TableCell onClick={() => openDetails(request)}>
-                  {request.submittedDate}
-                </TableCell>
-                <TableCell onClick={() => openDetails(request)}>
-                  <Badge className={getStatusBadge(request.status)}>
-                    {getStatusLabel(request.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {request.status === RequestStatus.PENDING && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1 bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-                        onClick={() => handleApprove(request.id)}
-                      >
-                        <Check className="h-3 w-3" />
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
-                        onClick={() => handleReject(request.id)}
-                      >
-                        <X className="h-3 w-3" />
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
+  const pendingCount = requestsByType.filter(
+    (request) => request.status === RequestStatus.PENDING,
+  ).length;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Request Management</h1>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">Admin Requests Inbox</h1>
+        <p className="text-sm text-muted-foreground">
+          Review and resolve employee requests by type and status.
+        </p>
+      </div>
+
+      <div className="rounded-lg border p-3">
+        <div className="flex flex-wrap gap-2">
+          {REQUEST_TYPE_MENU.map((menu) => (
+            <Button
+              key={menu.value}
+              variant={activeTab === menu.value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setActiveTab(menu.value);
+                setStatusFilter('all');
+              }}
+            >
+              {menu.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       <Card>
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 rounded-none border-b">
-            <TabsTrigger value="all">All Requests</TabsTrigger>
-            <TabsTrigger value={RequestStatus.PENDING}>Pending</TabsTrigger>
-            <TabsTrigger value={RequestStatus.APPROVED}>Approved</TabsTrigger>
-            <TabsTrigger value={RequestStatus.REJECTED}>Rejected</TabsTrigger>
-          </TabsList>
+        <CardHeader>
+          <CardTitle>{requestTypeLabel(activeTab)} Requests</CardTitle>
+          <CardDescription>
+            {requestsByType.length} total, {pendingCount} pending action.
+          </CardDescription>
+        </CardHeader>
 
-          <div className="p-6">
-            <TabsContent value="all" className="mt-0">
-              {renderTable(filterRequests('all'))}
-            </TabsContent>
-            <TabsContent value={RequestStatus.PENDING} className="mt-0">
-              {renderTable(filterRequests(RequestStatus.PENDING))}
-            </TabsContent>
-            <TabsContent value={RequestStatus.APPROVED} className="mt-0">
-              {renderTable(filterRequests(RequestStatus.APPROVED))}
-            </TabsContent>
-            <TabsContent value={RequestStatus.REJECTED} className="mt-0">
-              {renderTable(filterRequests(RequestStatus.REJECTED))}
-            </TabsContent>
+        <CardContent className="space-y-4">
+          <Tabs
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-4">
+              {STATUS_MENU.map((status) => (
+                <TabsTrigger key={status.value} value={status.value}>
+                  {status.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead className="w-[180px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {visibleRequests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No requests found for this filter.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  visibleRequests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <p className="font-medium">{request.employeeName}</p>
+                          <p className="text-xs text-muted-foreground">{request.department}</p>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>{request.dateSubmitted}</TableCell>
+
+                      <TableCell>
+                        <Badge className={statusBadgeClass[request.status]}>
+                          {statusLabel[request.status]}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <p className="max-w-[520px] text-sm text-muted-foreground whitespace-normal">
+                          {request.details}
+                        </p>
+                      </TableCell>
+
+                      <TableCell>
+                        {request.status === RequestStatus.PENDING ? (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                              onClick={() => handleStatusUpdate(request.id, RequestStatus.APPROVED)}
+                            >
+                              <Check className="h-4 w-4" />
+                              Approve
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                              onClick={() => handleStatusUpdate(request.id, RequestStatus.REJECTED)}
+                            >
+                              <X className="h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-        </Tabs>
+        </CardContent>
       </Card>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
-            <DialogDescription>
-              Complete information about this request
-            </DialogDescription>
-          </DialogHeader>
-          {selectedRequest && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Employee Name
-                  </p>
-                  <p className="text-base font-semibold">
-                    {selectedRequest.employeeName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Department
-                  </p>
-                  <p className="text-base font-semibold">
-                    {selectedRequest.department}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Request Type
-                  </p>
-                  <p className="text-base font-semibold capitalize">
-                    {selectedRequest.type.replace('_', ' ')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Status
-                  </p>
-                  <Badge className={getStatusBadge(selectedRequest.status)}>
-                    {getStatusLabel(selectedRequest.status)}
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Date Submitted
-                </p>
-                <p className="text-base font-semibold">
-                  {selectedRequest.submittedDate}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Details
-                </p>
-                <p className="text-base">{selectedRequest.details}</p>
-              </div>
-
-              {selectedRequest.amount && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Amount Requested
-                  </p>
-                  <p className="text-base font-semibold">
-                    ${selectedRequest.amount.toFixed(2)}
-                  </p>
-                </div>
-              )}
-
-              {selectedRequest.receiptUrl && (
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() =>
-                      console.log(
-                        `View receipt: ${selectedRequest.receiptUrl}`
-                      )
-                    }
-                  >
-                    <FileText className="h-4 w-4" />
-                    View Receipt
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
