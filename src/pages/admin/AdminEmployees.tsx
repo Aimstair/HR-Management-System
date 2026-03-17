@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Card,
@@ -458,6 +458,10 @@ const AdminEmployees: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Button variant="outline" size="icon">
+              <Search className="h-4 w-4" />
+            </Button>
+
             <Input
               placeholder="Search by name or email"
               value={searchTerm}

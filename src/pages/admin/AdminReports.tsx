@@ -1,285 +1,326 @@
-'use client';
-
 import React, { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CalendarRange, MessageSquareText } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../../components/ui/table';
-import { Badge } from '../../../components/ui/badge';
+import { Download, Plus, Table2, BarChart3, Filter } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
+import EmployeeListPanel from './reports/components/EmployeeListPanel';
+import DtrTable from './reports/components/DtrTable';
+import EditAttendanceDialog from './reports/components/EditAttendanceDialog';
+import AddTimeDialog from './reports/components/AddTimeDialog';
+import ExportDialog from './reports/components/ExportDialog';
+import GraphsPanel from './reports/components/GraphsPanel';
+import DateFilterDialog from './reports/components/DateFilterDialog';
+import { campuses, dtrEntries, reportEmployees } from './reports/mockData';
+import type {
+  AddTimeFormValues,
+  DtrEntry,
+  DtrFilterState,
+  ExportRangeMode,
+  GraphFilterState,
+  GraphFilterMode,
+  ReportEmployee,
+} from './reports/types';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
+  buildGraphData,
+  computeLateMinutes,
+  computeWorkMinutes,
+  downloadCsv,
+  filterDtrByRange,
+  formatDate,
+  formatDateTime,
+  formatDuration,
+  toCsv,
+} from './reports/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
 
-type AttendanceIssueStatus = 'Late' | 'Absent';
+const defaultDtrFilter: DtrFilterState = {
+  mode: 'last30',
+  month: '',
+  rangeStart: '',
+  rangeEnd: '',
+};
 
-interface AttendanceReportRow {
-  id: string;
-  employeeName: string;
-  department: string;
-  date: string;
-  status: AttendanceIssueStatus;
-  remarks: string;
-}
-
-interface FinancialReportRow {
-  department: string;
-  totalRequested: number;
-}
-
-interface EvaluationReportRow {
-  id: string;
-  professorName: string;
-  subject: string;
-  averageScore: number;
-}
-
-const attendanceRows: AttendanceReportRow[] = [
-  {
-    id: 'ATT-001',
-    employeeName: 'John Smith',
-    department: 'Science',
-    date: '2026-03-11',
-    status: 'Late',
-    remarks: '14 minutes late due to heavy traffic.',
-  },
-  {
-    id: 'ATT-002',
-    employeeName: 'Sarah Johnson',
-    department: 'Mathematics',
-    date: '2026-03-11',
-    status: 'Absent',
-    remarks: 'No check-in record and no leave request filed.',
-  },
-  {
-    id: 'ATT-003',
-    employeeName: 'Michael Chen',
-    department: 'Science',
-    date: '2026-03-10',
-    status: 'Late',
-    remarks: '9 minutes late.',
-  },
-  {
-    id: 'ATT-004',
-    employeeName: 'Emma Davis',
-    department: 'English',
-    date: '2026-03-09',
-    status: 'Absent',
-    remarks: 'Absent, pending attendance adjustment.',
-  },
-  {
-    id: 'ATT-005',
-    employeeName: 'Carlos Mendoza',
-    department: 'Operations',
-    date: '2026-03-08',
-    status: 'Late',
-    remarks: '22 minutes late due to transport disruption.',
-  },
-];
-
-const financialRows: FinancialReportRow[] = [
-  { department: 'Science', totalRequested: 64200 },
-  { department: 'Mathematics', totalRequested: 35800 },
-  { department: 'English', totalRequested: 18400 },
-  { department: 'Operations', totalRequested: 42100 },
-  { department: 'Registrar', totalRequested: 22600 },
-  { department: 'Finance', totalRequested: 27800 },
-];
-
-const evaluationRows: EvaluationReportRow[] = [
-  { id: 'EVAL-001', professorName: 'Dr. Robert Wilson', subject: 'World History', averageScore: 4.9 },
-  { id: 'EVAL-002', professorName: 'Prof. Sarah Johnson', subject: 'Advanced Mathematics', averageScore: 4.8 },
-  { id: 'EVAL-003', professorName: 'Dr. Michael Chen', subject: 'Physics', averageScore: 4.7 },
-  { id: 'EVAL-004', professorName: 'Prof. Emma Davis', subject: 'English Literature', averageScore: 4.6 },
-  { id: 'EVAL-005', professorName: 'Dr. John Martinez', subject: 'Chemistry', averageScore: 4.5 },
-];
+const defaultGraphFilter: GraphFilterState = {
+  mode: 'last30',
+  month: '',
+  campus: 'all',
+};
 
 const AdminReports: React.FC = () => {
-  const [selectedProfessor, setSelectedProfessor] = useState<EvaluationReportRow | null>(null);
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState<boolean>(false);
+  const { user } = useAuth();
+  const isHr = user?.role === UserRole.HR;
 
-  const rankedEvaluations = useMemo(() => {
-    return [...evaluationRows].sort((a, b) => b.averageScore - a.averageScore);
-  }, []);
+  const [employees] = useState<ReportEmployee[]>(reportEmployees);
+  const [entries, setEntries] = useState<DtrEntry[]>(dtrEntries);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(employees[0]?.id ?? null);
+  const [dtrFilter, setDtrFilter] = useState<DtrFilterState>(defaultDtrFilter);
+  const [graphFilter, setGraphFilter] = useState<GraphFilterState>(defaultGraphFilter);
+  const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
 
-  const openFeedbackDialog = (professor: EvaluationReportRow): void => {
-    setSelectedProfessor(professor);
-    setIsFeedbackDialogOpen(true);
+  const [editEntry, setEditEntry] = useState<DtrEntry | null>(null);
+  const [isAddTimeOpen, setIsAddTimeOpen] = useState<boolean>(false);
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState<boolean>(false);
+  const [isCurrentExportOpen, setIsCurrentExportOpen] = useState<boolean>(false);
+  const [isBulkExportOpen, setIsBulkExportOpen] = useState<boolean>(false);
+
+  const selectedEmployee = useMemo(() => {
+    return employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
+  }, [employees, selectedEmployeeId]);
+
+  const selectedEmployeeEntries = useMemo(() => {
+    return entries.filter((entry) => entry.employeeId === selectedEmployeeId);
+  }, [entries, selectedEmployeeId]);
+
+  const filteredEntries = useMemo(() => {
+    return filterDtrByRange(selectedEmployeeEntries, dtrFilter);
+  }, [dtrFilter, selectedEmployeeEntries]);
+
+  const graphData = useMemo(() => {
+    return buildGraphData(employees, entries, graphFilter);
+  }, [employees, entries, graphFilter]);
+
+  const dtrFilterLabel = useMemo(() => {
+    if (dtrFilter.mode === 'month' && dtrFilter.month) {
+      const [year, month] = dtrFilter.month.split('-').map(Number);
+      if (!year || !month) {
+        return 'Month not set';
+      }
+      return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(
+        new Date(year, month - 1, 1),
+      );
+    }
+
+    if (dtrFilter.mode === 'range' && dtrFilter.rangeStart && dtrFilter.rangeEnd) {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return `${formatter.format(new Date(dtrFilter.rangeStart))} to ${formatter.format(new Date(dtrFilter.rangeEnd))}`;
+    }
+
+    if (dtrFilter.mode === 'range') {
+      return 'Date range not set';
+    }
+
+    if (dtrFilter.mode === 'month') {
+      return 'Month not set';
+    }
+
+    return 'Last 30 Days';
+  }, [dtrFilter]);
+
+  const applyEditAttendance = (
+    entryId: string,
+    payload: Pick<DtrEntry, 'shift' | 'timeIn' | 'timeOut'>,
+  ): void => {
+    setEntries((current) =>
+      current.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              shift: payload.shift,
+              timeIn: payload.timeIn,
+              timeOut: payload.timeOut,
+              date: payload.timeIn.slice(0, 10),
+            }
+          : entry,
+      ),
+    );
+    toast.success('Attendance entry updated.');
+  };
+
+  const addTime = (values: AddTimeFormValues): void => {
+    const newEntry: DtrEntry = {
+      id: `DTR-${Date.now()}`,
+      employeeId: values.employeeId,
+      date: values.start.slice(0, 10),
+      shift: 'Flexible',
+      timeIn: values.start,
+      timeOut: values.end,
+    };
+
+    setEntries((current) => [newEntry, ...current]);
+    toast.success(`Time added. Agenda: ${values.agenda || 'N/A'}`);
+  };
+
+  const exportCurrentCsv = (mode: ExportRangeMode, month: string, start: string, end: string): void => {
+    if (!selectedEmployee) {
+      return;
+    }
+
+    const filterState: DtrFilterState =
+      mode === 'month'
+        ? { mode: 'month', month, rangeStart: '', rangeEnd: '' }
+        : { mode: 'range', month: '', rangeStart: start, rangeEnd: end };
+
+    const currentEntries = filterDtrByRange(
+      entries.filter((entry) => entry.employeeId === selectedEmployee.id),
+      filterState,
+    );
+
+    const csv = toCsv(
+      ['Date', 'Shift', 'Time In', 'Time Out', 'Late', 'Work Hours'],
+      currentEntries.map((entry) => [
+        formatDate(entry.date),
+        entry.shift,
+        formatDateTime(entry.timeIn),
+        formatDateTime(entry.timeOut),
+        formatDuration(computeLateMinutes(entry)),
+        formatDuration(computeWorkMinutes(entry)),
+      ]),
+    );
+
+    downloadCsv(`${selectedEmployee.fullName.replace(/\s+/g, '_')}_attendance.csv`, csv);
+    toast.success('Current employee CSV exported.');
+  };
+
+  const exportBulkCsv = (mode: ExportRangeMode, month: string, start: string, end: string): void => {
+    const filterState: DtrFilterState =
+      mode === 'month'
+        ? { mode: 'month', month, rangeStart: '', rangeEnd: '' }
+        : { mode: 'range', month: '', rangeStart: start, rangeEnd: end };
+
+    const filtered = filterDtrByRange(entries, filterState);
+
+    const csv = toCsv(
+      ['Employee', 'Department', 'Position', 'Date', 'Shift', 'Time In', 'Time Out', 'Late', 'Work Hours'],
+      filtered.map((entry) => {
+        const employee = employees.find((item) => item.id === entry.employeeId);
+        return [
+          employee?.fullName ?? 'Unknown',
+          employee?.department ?? 'Unknown',
+          employee?.position ?? 'Unknown',
+          formatDate(entry.date),
+          entry.shift,
+          formatDateTime(entry.timeIn),
+          formatDateTime(entry.timeOut),
+          formatDuration(computeLateMinutes(entry)),
+          formatDuration(computeWorkMinutes(entry)),
+        ];
+      }),
+    );
+
+    downloadCsv('attendance_bulk_export.csv', csv);
+    toast.success('Bulk export generated.');
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">Admin Reports Hub</h1>
-        <p className="text-sm text-muted-foreground">
-          Unified analytics for attendance, financial requests, and faculty performance.
-        </p>
+    <div className="space-y-4">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Attendance Report</h1>
+          <p className="text-sm text-muted-foreground">
+            Employee attendance list, DTR details, export tools, and analytics.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant={viewMode === 'table' ? 'default' : 'outline'} onClick={() => setViewMode('table')}>
+            <Table2 className="h-4 w-4" />
+            Table Mode
+          </Button>
+          <Button variant={viewMode === 'graph' ? 'default' : 'outline'} onClick={() => setViewMode('graph')}>
+            <BarChart3 className="h-4 w-4" />
+            Graph Mode
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="attendance" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="evaluations">Evaluations</TabsTrigger>
-        </TabsList>
+      {viewMode === 'table' ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
+          <EmployeeListPanel
+            employees={employees}
+            selectedEmployeeId={selectedEmployeeId}
+            onSelectEmployee={setSelectedEmployeeId}
+          />
 
-        <TabsContent value="attendance" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance & Tardiness</CardTitle>
-              <CardDescription>
-                Employees flagged as late or absent for selected reporting periods.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                <CalendarRange className="h-4 w-4" />
-                Date Range Picker placeholder (From Date - To Date)
-              </div>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className='relative'>
+                <CardTitle>DTR Controls</CardTitle>
+                <CardDescription>Filter date scope and manage attendance records.</CardDescription>
 
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Remarks</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attendanceRows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.employeeName}</TableCell>
-                        <TableCell>{row.department}</TableCell>
-                        <TableCell>{row.date}</TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              row.status === 'Late'
-                                ? 'bg-secondary/20 text-secondary-foreground border-secondary/40'
-                                : 'bg-destructive/10 text-destructive border-destructive/20'
-                            }
-                          >
-                            {row.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{row.remarks}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                <div className="flex flex-wrap gap-2 absolute right-4 top-0">
+                  <Button type="button" variant="outline" onClick={() => setIsDateFilterOpen(true)}>
+                    <Filter className="h-4 w-4" />
+                    {dtrFilterLabel}
+                  </Button>
 
-        <TabsContent value="financial" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Analytics</CardTitle>
-              <CardDescription>
-                Total funds and expense requests grouped by department.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[360px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={financialRows}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="department" />
-                    <YAxis />
-                    <Tooltip formatter={(value: number) => `PHP ${value.toLocaleString()}`} />
-                    <Bar dataKey="totalRequested" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  {isHr ? (
+                    <Button type="button" onClick={() => setIsAddTimeOpen(true)} disabled={!selectedEmployee}>
+                      <Plus className="h-4 w-4" />
+                      Add Time
+                    </Button>
+                  ) : null}
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <Button type="button" variant="outline" size="icon">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => setIsCurrentExportOpen(true)}>Export CSV (Current Employee)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIsBulkExportOpen(true)}>Bulk Export (All Employee)</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+            </Card>
 
-        <TabsContent value="evaluations" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Faculty Evaluations</CardTitle>
-              <CardDescription>
-                Ranked faculty list by average student evaluation score.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Professor Name</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Average Score</TableHead>
-                      <TableHead className="w-[160px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rankedEvaluations.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.professorName}</TableCell>
-                        <TableCell>{row.subject}</TableCell>
-                        <TableCell>{row.averageScore.toFixed(1)} / 5.0</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" onClick={() => openFeedbackDialog(row)}>
-                            <MessageSquareText className="h-4 w-4" />
-                            View Feedback
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Feedback Details</DialogTitle>
-            <DialogDescription>
-              {selectedProfessor
-                ? `Feedback breakdown for ${selectedProfessor.professorName} (${selectedProfessor.subject}).`
-                : 'No professor selected.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Dummy modal content: qualitative student feedback comments and category scores
-            will be displayed here in a future iteration.
+            <DtrTable entries={filteredEntries} isHr={isHr} onEditEntry={(entry) => setEditEntry(entry)} />
           </div>
+        </div>
+      ) : (
+        <GraphsPanel
+          campuses={campuses}
+          graphMode={graphFilter.mode}
+          graphMonth={graphFilter.month}
+          graphCampus={graphFilter.campus}
+          data={graphData}
+          onChangeMode={(value) => setGraphFilter((current) => ({ ...current, mode: value as GraphFilterMode }))}
+          onChangeMonth={(value) => setGraphFilter((current) => ({ ...current, month: value }))}
+          onChangeCampus={(value) => setGraphFilter((current) => ({ ...current, campus: value }))}
+        />
+      )}
 
-          <DialogFooter>
-            <Button onClick={() => setIsFeedbackDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditAttendanceDialog
+        open={Boolean(editEntry) && isHr}
+        entry={editEntry}
+        onClose={() => setEditEntry(null)}
+        onSave={applyEditAttendance}
+      />
+
+      <AddTimeDialog
+        open={isAddTimeOpen && isHr}
+        employee={selectedEmployee}
+        onClose={() => setIsAddTimeOpen(false)}
+        onAddTime={addTime}
+      />
+
+      <DateFilterDialog
+        open={isDateFilterOpen}
+        filter={dtrFilter}
+        filterLabel={dtrFilterLabel}
+        onClose={() => setIsDateFilterOpen(false)}
+        onApply={setDtrFilter}
+      />
+
+      <ExportDialog
+        open={isCurrentExportOpen}
+        title="Export Current Employee CSV"
+        onClose={() => setIsCurrentExportOpen(false)}
+        onExport={exportCurrentCsv}
+      />
+
+      <ExportDialog
+        open={isBulkExportOpen && isHr}
+        title="Bulk Export (All Employee)"
+        onClose={() => setIsBulkExportOpen(false)}
+        onExport={exportBulkCsv}
+      />
     </div>
   );
 };
