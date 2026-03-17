@@ -6,6 +6,8 @@ import {
   FileText,
   Calendar,
   BarChart3,
+  ChevronDown,
+  ChevronRight,
   UserCog,
   BookOpen,
   Building2,
@@ -30,6 +32,7 @@ interface NavItem {
 const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [isReportsOpen, setIsReportsOpen] = React.useState<boolean>(location.pathname.startsWith('/admin/reports'));
 
   if (!user) return null;
 
@@ -95,17 +98,12 @@ const Sidebar: React.FC = () => {
             icon: <Calendar className="w-5 h-5" />,
             requiredRole: [UserRole.HR],
           },
-          {
-            label: 'Reports',
-            href: '/admin/reports',
-            icon: <BarChart3 className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
-          },
         ]
       : []),
   ];
 
   const isActive = (href: string): boolean => location.pathname === href;
+  const isReportsActive = location.pathname.startsWith('/admin/reports');
 
   return (
     <aside className="w-64 bg-primary text-primary-foreground border-r border-primary/70 flex flex-col h-screen">
@@ -132,6 +130,52 @@ const Sidebar: React.FC = () => {
             <span>{item.label}</span>
           </Link>
         ))}
+
+        {user.role === UserRole.HR ? (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setIsReportsOpen((current) => !current)}
+              className={cn(
+                'flex w-full items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm font-medium',
+                isReportsActive
+                  ? 'bg-accent text-accent-foreground shadow-sm'
+                  : 'text-primary-foreground/85 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+              )}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="flex-1 text-left">Report</span>
+              {isReportsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+
+            {isReportsOpen ? (
+              <div className="space-y-1 pl-8">
+                <Link
+                  to="/admin/reports/attendance"
+                  className={cn(
+                    'block rounded-md px-3 py-2 text-sm transition-colors',
+                    isActive('/admin/reports/attendance')
+                      ? 'bg-secondary/25 text-secondary-foreground'
+                      : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                  )}
+                >
+                  Attendance Report
+                </Link>
+                <Link
+                  to="/admin/reports/tardiness"
+                  className={cn(
+                    'block rounded-md px-3 py-2 text-sm transition-colors',
+                    isActive('/admin/reports/tardiness')
+                      ? 'bg-secondary/25 text-secondary-foreground'
+                      : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                  )}
+                >
+                  Tardiness Report
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </nav>
 
       {/* User Section & Logout */}
