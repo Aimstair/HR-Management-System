@@ -257,9 +257,9 @@ const initialEmployees: EmployeeRecord[] = [
 ];
 
 const statusBadgeClass: Record<EmployeeStatus, string> = {
-  Active: 'bg-green-100 text-green-800 border-green-200',
-  'On Leave': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  Inactive: 'bg-slate-100 text-slate-700 border-slate-200',
+  Active: 'bg-primary/10 text-primary border-primary/20',
+  'On Leave': 'bg-secondary/20 text-secondary-foreground border-secondary/40',
+  Inactive: 'bg-muted text-muted-foreground border-border',
 };
 
 const getDefaultValues = (): EmployeeFormValues => ({
@@ -622,7 +622,7 @@ const AdminEmployees: React.FC = () => {
                 {...register('name', { required: 'Name is required', minLength: 2 })}
                 placeholder="Enter full name"
               />
-              {errors.name && <p className="text-xs text-red-600">{errors.name.message}</p>}
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -639,7 +639,7 @@ const AdminEmployees: React.FC = () => {
                 })}
                 placeholder="name@school.edu"
               />
-              {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">

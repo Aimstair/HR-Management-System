@@ -206,9 +206,9 @@ const initialRequests: UnifiedAdminRequest[] = [
 ];
 
 const statusBadgeClass: Record<ManagedRequestStatus, string> = {
-  [RequestStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  [RequestStatus.APPROVED]: 'bg-green-100 text-green-800 border-green-200',
-  [RequestStatus.REJECTED]: 'bg-red-100 text-red-800 border-red-200',
+  [RequestStatus.PENDING]: 'bg-secondary/20 text-secondary-foreground border-secondary/40',
+  [RequestStatus.APPROVED]: 'bg-primary/10 text-primary border-primary/20',
+  [RequestStatus.REJECTED]: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const statusLabel: Record<ManagedRequestStatus, string> = {
@@ -369,7 +369,7 @@ const AdminRequests: React.FC = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                              className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/20"
                               onClick={() => handleStatusUpdate(request.id, RequestStatus.APPROVED)}
                             >
                               <Check className="h-4 w-4" />
@@ -379,7 +379,7 @@ const AdminRequests: React.FC = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                              className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
                               onClick={() => handleStatusUpdate(request.id, RequestStatus.REJECTED)}
                             >
                               <X className="h-4 w-4" />

@@ -56,13 +56,13 @@ const CampusGrid: React.FC<CampusGridProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((campus) => (
-          <Card key={campus.id} className="overflow-hidden">
-            <button type="button" className="w-full text-left" onClick={() => onSelectCampus(campus)}>
-              <img src={campus.picture} alt={campus.name} className="h-36 w-full object-cover" />
-              <CardHeader className="pb-2">
+          <Card key={campus.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow rounded-lg">
+            <button type="button" className="w-full text-left cursor-pointer" onClick={() => onSelectCampus(campus)}>
+              <img src={campus.picture} alt={campus.name} className="h-36 w-full object-cover  cursor-pointer" />
+              <CardHeader className="pb-2 mt-4">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{campus.name}</CardTitle>
-                  <Badge className={campus.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-zinc-100 text-zinc-700'}>
+                  <Badge className={campus.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}>
                     {campus.status}
                   </Badge>
                 </div>

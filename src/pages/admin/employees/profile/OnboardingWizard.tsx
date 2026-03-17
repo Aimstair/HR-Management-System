@@ -351,7 +351,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     <p>{values.email} | {values.phone}</p>
                     <p>{values.bankName} - {values.accountNumber}</p>
                   </div>
-                  <p className="flex items-center gap-2 text-sm text-emerald-600">
+                  <p className="flex items-center gap-2 text-sm text-primary">
                     <CheckCircle2 className="h-4 w-4" />
                     Review complete. Submit to finish onboarding.
                   </p>

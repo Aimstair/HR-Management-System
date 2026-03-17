@@ -47,13 +47,13 @@ const SchoolGrid: React.FC<SchoolGridProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filtered.map((school) => (
-          <button key={school.id} type="button" className="text-left" onClick={() => onSelectSchool(school)}>
+          <button key={school.id} type="button" className="text-left cursor-pointer hover:shadow-md transition-shadow rounded-lg" onClick={() => onSelectSchool(school)}>
             <Card className="h-full">
               <img src={school.picture} alt={school.name} className="h-32 w-full object-cover" />
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-base">{school.name}</CardTitle>
-                  <Badge className={school.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-zinc-100 text-zinc-700'}>
+                  <Badge className={school.status === 'Active' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}>
                     {school.status}
                   </Badge>
                 </div>

@@ -11,18 +11,18 @@ import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Badge } from '../../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../../components/ui/avatar';
-import type { EmployeeProfile } from './index';
+import type { EmployeeNode } from './types';
 
 interface EmployeeListProps {
-  employees: EmployeeProfile[];
+  employees: EmployeeNode[];
   onCreateEmployee: () => void;
   onSelectEmployee: (id: string) => void;
 }
 
-const statusClassMap: Record<EmployeeProfile['status'], string> = {
-  Active: 'bg-green-100 text-green-800 border-green-200',
-  'On Leave': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  Retired: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+const statusClassMap: Record<EmployeeNode['status'], string> = {
+  Active: 'bg-primary/10 text-primary border-primary/20',
+  'On Leave': 'bg-secondary/20 text-secondary-foreground border-secondary/40',
+  Retired: 'bg-muted text-muted-foreground border-border',
 };
 
 const getInitials = (name: string): string => {
@@ -97,7 +97,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({
                 onClick={() => onSelectEmployee(employee.id)}
                 className="text-left"
               >
-                <Card className="h-full transition-shadow hover:shadow-md">
+                <Card className="h-full transition-shadow hover:shadow-md cursor-pointer">
                   <CardContent className="space-y-4 pt-6">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">

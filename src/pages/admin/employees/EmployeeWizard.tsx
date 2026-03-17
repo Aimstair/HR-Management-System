@@ -19,7 +19,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../components/ui/select';
-import type { EmployeeProfile, EmployeeRole, EmployeeType } from './index';
+
+type EmployeeRole = 'Faculty' | 'Staff' | 'Chairman' | 'Dean' | 'HR Admin';
+type EmployeeType = 'Academic' | 'Non-Academic';
+
+interface EmployeeProfile {
+  id: string;
+  fullName: string;
+  jobTitle: string;
+  role: EmployeeRole;
+  employeeType: EmployeeType;
+  division: string;
+  department: string;
+  status: 'Active' | 'On Leave' | 'Retired';
+  dateOfBirth: string;
+  email: string;
+  phone: string;
+  address: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  leaveCredits: Array<{
+    id: string;
+    type: string;
+    date: string;
+    status: 'Pending' | 'Approved' | 'Rejected';
+  }>;
+  studyLoads: Array<{
+    id: string;
+    subject: string;
+    units: number;
+    schedule: string;
+  }>;
+}
 
 interface EmployeeWizardProps {
   onCancel: () => void;
@@ -401,7 +433,7 @@ const EmployeeWizard: React.FC<EmployeeWizardProps> = ({ onCancel, onCreated }) 
                   <p className="text-sm text-muted-foreground">{values.email} | {values.phone}</p>
                   <p className="text-sm text-muted-foreground">{values.bankName} - {values.accountNumber}</p>
                 </div>
-                <p className="flex items-center gap-2 text-sm text-emerald-600">
+                <p className="flex items-center gap-2 text-sm text-primary">
                   <CheckCircle2 className="h-4 w-4" />
                   Review complete. Submit to create this employee profile.
                 </p>

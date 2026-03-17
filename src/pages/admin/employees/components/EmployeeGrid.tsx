@@ -18,9 +18,9 @@ interface EmployeeGridProps {
 }
 
 const statusClassMap: Record<EmployeeNode['status'], string> = {
-  Active: 'bg-green-100 text-green-800 border-green-200',
-  'On Leave': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  Retired: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+  Active: 'bg-primary/10 text-primary border-primary/20',
+  'On Leave': 'bg-secondary/20 text-secondary-foreground border-secondary/40',
+  Retired: 'bg-muted text-muted-foreground border-border',
 };
 
 const getInitials = (name: string): string => {
@@ -65,7 +65,7 @@ const EmployeeGrid: React.FC<EmployeeGridProps> = ({
             key={employee.id}
             type="button"
             onClick={() => onSelectEmployee(employee.id)}
-            className="text-left"
+            className="text-left cursor-pointer hover:shadow-md transition-shadow rounded-lg"
           >
             <Card className="h-full transition-shadow hover:shadow-md">
               <CardHeader className="pb-2">

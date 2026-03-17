@@ -8,7 +8,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '../../../../components/ui/breadcrumb';
-import { Separator } from '../../../../components/ui/separator';
 import ViewHeader from './components/ViewHeader';
 import CampusGrid from './components/CampusGrid';
 import DepartmentGrid from './components/DepartmentGrid';
@@ -252,14 +251,14 @@ const AdminEmployeesPage: React.FC = () => {
   return (
     <div className="space-y-6">
 
-      <Breadcrumb>
+      <Breadcrumb className='border p-2 rounded-lg'>
         <BreadcrumbList>
           <BreadcrumbItem>
             {navState.level === 'campus' ? (
               <BreadcrumbPage>Home</BreadcrumbPage>
             ) : (
               <BreadcrumbLink asChild>
-                <button type="button" onClick={() => jumpToLevel('campus')}>Home</button>
+                <button type="button" className='cursor-pointer hover:underline' onClick={() => jumpToLevel('campus')}>Home</button>
               </BreadcrumbLink>
             )}
           </BreadcrumbItem>
@@ -272,7 +271,7 @@ const AdminEmployeesPage: React.FC = () => {
                   <BreadcrumbPage>{breadcrumbName.campus}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <button type="button" onClick={() => jumpToLevel('department')}>
+                    <button type="button" className='cursor-pointer hover:underline' onClick={() => jumpToLevel('department')}>
                       {breadcrumbName.campus}
                     </button>
                   </BreadcrumbLink>
@@ -291,6 +290,7 @@ const AdminEmployeesPage: React.FC = () => {
                   <BreadcrumbLink asChild>
                     <button
                       type="button"
+                      className='cursor-pointer hover:underline'
                       onClick={() => jumpToLevel(breadcrumbName.department === 'Teaching Faculties' ? 'school' : 'employee')}
                     >
                       {breadcrumbName.department}
@@ -309,7 +309,7 @@ const AdminEmployeesPage: React.FC = () => {
                   <BreadcrumbPage>{breadcrumbName.school}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <button type="button" onClick={() => jumpToLevel('employee')}>
+                    <button type="button" className='cursor-pointer hover:underline' onClick={() => jumpToLevel('employee')}>
                       {breadcrumbName.school}
                     </button>
                   </BreadcrumbLink>
@@ -328,8 +328,6 @@ const AdminEmployeesPage: React.FC = () => {
           ) : null}
         </BreadcrumbList>
       </Breadcrumb>
-
-      <Separator />
 
       {navState.level === 'campus' ? (
         <>

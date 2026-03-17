@@ -25,6 +25,34 @@ interface OrganizationTreeProps {
   onSelectEmployee?: (employeeId: string) => void;
 }
 
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const getAvatarFallback = (fullName: string): string => {
+  const initials = fullName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#e2e8f0"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#334155">${escapeHtml(initials || 'NA')}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
+const buildEmployeeCard = (employee: EmployeeNode, colorFill: string, colorStroke: string): string => {
+  const name = escapeHtml(employee.fullName);
+  const position = escapeHtml(employee.jobTitle || employee.role);
+  const avatar = escapeHtml(employee.avatarUrl || getAvatarFallback(employee.fullName));
+
+  return `<div style="display:flex;align-items:center;gap:10px;width:100%;height:100%;padding:8px 10px;border:1px solid ${colorStroke};border-radius:12px;background:${colorFill};box-sizing:border-box;font-family:Arial,sans-serif;"><img src="${avatar}" alt="${name}" style="width:42px;height:42px;border-radius:9999px;object-fit:cover;flex-shrink:0;border:1px solid #cbd5e1;"/><div style="min-width:0;"><div style="font-size:13px;font-weight:600;line-height:1.2;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div><div style="font-size:12px;line-height:1.25;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${position}</div></div></div>`;
+};
+
 const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   level,
   campus,
@@ -189,10 +217,13 @@ const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           id: nodeId,
           offsetX: x,
           offsetY: rowY,
-          width: 200,
-          height: 60,
-          style: { fill: colorFill, strokeColor: colorStroke, color: '#111827' },
-          annotations: [{ content: `${employee.fullName}<br/>${employee.role}` }],
+          width: 230,
+          height: 74,
+          style: { fill: 'transparent', strokeColor: 'transparent' },
+          shape: {
+            type: 'HTML',
+            content: buildEmployeeCard(employee, colorFill, colorStroke),
+          },
         });
 
         connectors.push({

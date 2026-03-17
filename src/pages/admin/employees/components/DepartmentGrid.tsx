@@ -52,7 +52,7 @@ const DepartmentGrid: React.FC<DepartmentGridProps> = ({
             <button
               key={department.id}
               type="button"
-              className="text-left"
+              className="text-left cursor-pointer hover:shadow-md transition-shadow rounded-lg"
               onClick={() => onSelectDepartment(department, targetLevel)}
             >
               <Card className="h-full">
@@ -60,7 +60,7 @@ const DepartmentGrid: React.FC<DepartmentGridProps> = ({
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{department.name}</CardTitle>
-                    <Badge className={department.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-zinc-100 text-zinc-700'}>
+                    <Badge className={department.status === 'Active' ? 'bg-primary text-primary' : 'bg-muted text-muted-foreground'}>
                       {department.status}
                     </Badge>
                   </div>

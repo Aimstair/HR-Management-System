@@ -99,11 +99,11 @@ const EmployeeAttendance: React.FC = () => {
 
   const getStatusBadge = (status: AttendanceStatus) => {
     const variants: Record<AttendanceStatus, string> = {
-      [AttendanceStatus.PRESENT]: 'bg-green-100 text-green-800',
-      [AttendanceStatus.ABSENT]: 'bg-red-100 text-red-800',
-      [AttendanceStatus.LATE]: 'bg-orange-100 text-orange-800',
-      [AttendanceStatus.EARLY_LEAVE]: 'bg-yellow-100 text-yellow-800',
-      [AttendanceStatus.ON_LEAVE]: 'bg-blue-100 text-blue-800',
+      [AttendanceStatus.PRESENT]: 'bg-primary/10 text-primary',
+      [AttendanceStatus.ABSENT]: 'bg-destructive/10 text-destructive',
+      [AttendanceStatus.LATE]: 'bg-secondary/20 text-secondary-foreground',
+      [AttendanceStatus.EARLY_LEAVE]: 'bg-secondary/20 text-secondary-foreground',
+      [AttendanceStatus.ON_LEAVE]: 'bg-muted text-muted-foreground',
     };
     return variants[status];
   };

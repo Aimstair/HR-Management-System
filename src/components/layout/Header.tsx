@@ -4,6 +4,7 @@ import { Bell, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
+import ThemeToggle from '../ThemeToggle';
 
 /**
  * Header Component
@@ -42,7 +43,7 @@ const Header: React.FC = () => {
         </p>
       </div>
 
-      {/* Right Section: Search + Notifications */}
+      {/* Right Section: Search + Actions + Profile */}
       <div className="flex items-center gap-4">
         {/* Search Bar */}
         <div className="hidden md:flex items-center">
@@ -65,6 +66,8 @@ const Header: React.FC = () => {
           <Bell className="w-5 h-5" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
         </Button>
+
+        <ThemeToggle />
       </div>
     </header>
   );

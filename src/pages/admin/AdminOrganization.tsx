@@ -170,12 +170,12 @@ const initialOrganization: DivisionNode[] = [
 ];
 
 const roleBadgeClass: Record<RoleType, string> = {
-  SYSTEM_ADMIN: 'bg-slate-100 text-slate-800',
-  HR_ADMIN: 'bg-amber-100 text-amber-800',
-  DEAN: 'bg-blue-100 text-blue-800',
-  CHAIRMAN: 'bg-violet-100 text-violet-800',
-  FACULTY: 'bg-emerald-100 text-emerald-800',
-  STAFF: 'bg-zinc-100 text-zinc-800',
+  SYSTEM_ADMIN: 'bg-muted text-muted-foreground',
+  HR_ADMIN: 'bg-secondary/20 text-secondary-foreground',
+  DEAN: 'bg-primary/10 text-primary',
+  CHAIRMAN: 'bg-secondary/20 text-secondary-foreground',
+  FACULTY: 'bg-primary/10 text-primary',
+  STAFF: 'bg-muted text-muted-foreground',
 };
 
 interface DepartmentDropItemProps {
@@ -204,7 +204,7 @@ const DepartmentDropItem: React.FC<DepartmentDropItemProps> = ({
       <p className="font-medium">{department.name}</p>
       <p className="text-xs opacity-80">{department.employees.length} members</p>
       {department.chairman && (
-        <Badge className="mt-2 bg-violet-100 text-violet-800">Chairman: {department.chairman}</Badge>
+        <Badge className="mt-2 bg-secondary/20 text-secondary-foreground">Chairman: {department.chairman}</Badge>
       )}
     </button>
   );

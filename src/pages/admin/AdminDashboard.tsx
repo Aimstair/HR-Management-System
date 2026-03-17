@@ -29,19 +29,19 @@ const kpiMetrics: KpiMetric[] = [
     label: 'Total Staff',
     value: 142,
     icon: Users,
-    accentClass: 'text-blue-600 bg-blue-100',
+    accentClass: 'text-primary bg-primary/10',
   },
   {
     label: 'Pending Requests',
     value: 15,
     icon: ClipboardList,
-    accentClass: 'text-amber-600 bg-amber-100',
+    accentClass: 'text-secondary-foreground bg-secondary/20',
   },
   {
     label: 'Absent Today',
     value: 4,
     icon: UserX,
-    accentClass: 'text-rose-600 bg-rose-100',
+    accentClass: 'text-destructive bg-destructive/10',
   },
 ];
 

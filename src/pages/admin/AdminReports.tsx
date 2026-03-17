@@ -177,8 +177,8 @@ const AdminReports: React.FC = () => {
                           <Badge
                             className={
                               row.status === 'Late'
-                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                : 'bg-red-100 text-red-800 border-red-200'
+                                ? 'bg-secondary/20 text-secondary-foreground border-secondary/40'
+                                : 'bg-destructive/10 text-destructive border-destructive/20'
                             }
                           >
                             {row.status}

@@ -108,11 +108,11 @@ const Sidebar: React.FC = () => {
   const isActive = (href: string): boolean => location.pathname === href;
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col h-screen">
+    <aside className="w-64 bg-primary text-primary-foreground border-r border-primary/70 flex flex-col h-screen">
       {/* Logo/Branding */}
-      <div className="p-6 border-b border-border">
-        <h1 className="text-2xl font-bold text-foreground">HR System</h1>
-        <p className="text-sm text-muted-foreground mt-1">{user.role.replace('ROLE_', '')}</p>
+      <div className="p-6 border-b border-primary/50">
+        <h1 className="text-2xl font-bold text-primary-foreground">HR System</h1>
+        <p className="text-sm text-primary-foreground/80 mt-1">{user.role.replace('ROLE_', '')}</p>
       </div>
 
       {/* Navigation Items */}
@@ -124,8 +124,8 @@ const Sidebar: React.FC = () => {
             className={cn(
               'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm font-medium',
               isActive(item.href)
-                ? 'bg-primary text-primary-foreground'
-                : 'text-foreground hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-accent text-accent-foreground shadow-sm'
+                : 'text-primary-foreground/85 hover:bg-primary-foreground/10 hover:text-primary-foreground'
             )}
           >
             {item.icon}
@@ -135,21 +135,21 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* User Section & Logout */}
-      <div className="border-t border-border p-4 space-y-4">
+      <div className="border-t border-primary/50 p-4 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
+          <div className="w-10 h-10 rounded-full bg-primary-foreground/15 flex items-center justify-center text-primary-foreground font-bold border border-primary-foreground/25">
             {user.firstName.charAt(0)}
             {user.lastName.charAt(0)}
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
+            <p className="text-sm font-semibold text-primary-foreground">{user.firstName} {user.lastName}</p>
+            <p className="text-xs text-primary-foreground/75">{user.email}</p>
           </div>
         </div>
         <Button
           onClick={logout}
-          variant="outline"
-          className="w-full justify-start gap-2"
+          variant="secondary"
+          className="w-full justify-start gap-2 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
           size="sm"
         >
           <LogOut className="w-4 h-4" />

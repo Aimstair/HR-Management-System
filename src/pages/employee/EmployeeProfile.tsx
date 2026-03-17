@@ -58,7 +58,7 @@ const EmployeeProfile: React.FC = () => {
           <Card className="p-6">
             <div className="flex items-start gap-6 mb-8">
               <Avatar className="h-24 w-24">
-                <AvatarFallback className="text-lg font-semibold bg-blue-100 text-blue-700">
+                <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
                   {getInitials(profileData.firstName, profileData.lastName)}
                 </AvatarFallback>
               </Avatar>
@@ -119,24 +119,24 @@ const EmployeeProfile: React.FC = () => {
           <Card className="p-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 rounded-lg bg-slate-50 border">
+                <div className="p-4 rounded-lg bg-muted/30 border">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Position</p>
                   <p className="text-lg font-semibold">{profileData.position}</p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-slate-50 border">
+                <div className="p-4 rounded-lg bg-muted/30 border">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Department</p>
                   <p className="text-lg font-semibold">{profileData.department}</p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-slate-50 border">
+                <div className="p-4 rounded-lg bg-muted/30 border">
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     School Branch
                   </p>
                   <p className="text-lg font-semibold">{profileData.schoolBranch}</p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-slate-50 border">
+                <div className="p-4 rounded-lg bg-muted/30 border">
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Join Date
                   </p>
@@ -150,12 +150,12 @@ const EmployeeProfile: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-blue-600 mt-1" />
+                  <Building2 className="h-5 w-5 text-primary mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-blue-900 mb-1">Manager</p>
-                    <p className="text-base font-semibold text-blue-900">
+                    <p className="text-sm font-medium text-foreground mb-1">Manager</p>
+                    <p className="text-base font-semibold text-foreground">
                       {profileData.manager}
                     </p>
                   </div>

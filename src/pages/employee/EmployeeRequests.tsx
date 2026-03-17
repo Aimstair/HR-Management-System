@@ -112,10 +112,10 @@ const EmployeeRequests: React.FC = () => {
 
   const getStatusBadge = (status: RequestStatus) => {
     const variants: Record<RequestStatus, string> = {
-      [RequestStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [RequestStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-      [RequestStatus.REJECTED]: 'bg-red-100 text-red-800',
-      [RequestStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
+      [RequestStatus.APPROVED]: 'bg-primary/10 text-primary',
+      [RequestStatus.PENDING]: 'bg-secondary/20 text-secondary-foreground',
+      [RequestStatus.REJECTED]: 'bg-destructive/10 text-destructive',
+      [RequestStatus.CANCELLED]: 'bg-muted text-muted-foreground',
     };
     return variants[status];
   };
