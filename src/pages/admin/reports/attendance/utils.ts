@@ -6,7 +6,7 @@ import type {
   EmployeeMetric,
   GraphFilterState,
   ReportEmployee,
-} from './attendance/types';
+} from './types';
 
 const SHIFT_START_MINUTES: Record<string, number> = {
   Morning: 8 * 60,

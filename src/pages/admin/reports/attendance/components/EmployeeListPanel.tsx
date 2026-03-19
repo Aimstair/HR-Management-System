@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
-import { Input } from '../../../../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../../../components/ui/avatar';
-import { Button } from '../../../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../../../components/ui/card';
+import { Input } from '../../../../../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '../../../../../../components/ui/avatar';
+import { Button } from '../../../../../../components/ui/button';
 import type { ReportEmployee } from '../types';
-import { ScrollArea } from '../../../../../components/ui/scroll-area';
+import { ScrollArea } from '../../../../../../components/ui/scroll-area';
 
 interface EmployeeListPanelProps {
   employees: ReportEmployee[];

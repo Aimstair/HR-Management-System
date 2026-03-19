@@ -11,7 +11,7 @@ interface TardinessLegendProps {
 
 const TardinessLegend: React.FC<TardinessLegendProps> = ({ activeStatuses, onToggle }) => {
   return (
-    <div className="flex flex-wrap gap-2 top-[40px] right-[130px] absolute">
+    <div className="flex flex-wrap gap-2">
       {LEGEND_ITEMS.map((item) => {
         const active = activeStatuses.has(item.key);
         const badgeColor = active ? item.badgeClass : 'bg-muted text-muted-foreground border-muted';

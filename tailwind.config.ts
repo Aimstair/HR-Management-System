@@ -53,7 +53,8 @@ const config = {
         sm: 'calc(var(--radius))',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
+        // sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
+        sans: ['Inter', ...defaultTheme.fontFamily.sans],
       },
       keyframes: {
         'accordion-down': {

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Card, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { dtrEntries, reportEmployees } from './reports/mockData';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { dtrEntries, reportEmployees } from './reports/attendance/mockData';
 import TardinessFilters from './reports/tardiness/components/TardinessFilters';
 import TardinessLegend from './reports/tardiness/components/TardinessLegend';
 import TardinessTable from './reports/tardiness/components/TardinessTable';
@@ -41,31 +41,25 @@ const AdminTardinessReport: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3 flex-col md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Tardiness Report</h1>
-          <p className="text-sm text-muted-foreground">
-            Monthly tardiness matrix with day-by-day status, summary badges, and color legend toggles.
-          </p>
-        </div>
-
-        <TardinessFilters
-        search={search}
-        month={month}
-        year={year}
-        onSearchChange={setSearch}
-        onMonthChange={setMonth}
-        onYearChange={setYear}
-        />
-      </div>
-
       <Card className='relative'>
-        <CardHeader>
-          <CardTitle>Legend Visibility</CardTitle>
-          <CardDescription>Click any legend badge to toggle its cell color visibility in the table.</CardDescription>
-        </CardHeader>
-        
-        <TardinessLegend activeStatuses={activeStatuses} onToggle={toggleStatus} />
+        <CardContent className='flex flex-col md:flex-row items-start'>
+          <TardinessFilters
+          search={search}
+          month={month}
+          year={year}
+          onSearchChange={setSearch}
+          onMonthChange={setMonth}
+          onYearChange={setYear}
+          />
+          
+          <div className='flex flex-col w-full gap-2 items-start justify-start'> 
+            <div>
+              <span className='text-[12px] p-0'>Click any legend badge to toggle its cell color visibility in the table.</span>
+            </div>
+
+            <TardinessLegend activeStatuses={activeStatuses} onToggle={toggleStatus} />
+          </div>
+        </CardContent>
       </Card>
 
       <Card className='p-0 relative'>

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Badge } from '../../../../../components/ui/badge';
+import { Button } from '../../../../../../components/ui/button';
+import { Badge } from '../../../../../../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../../../../components/ui/table';
+} from '../../../../../../components/ui/table';
 import {
   Pagination,
   PaginationContent,
@@ -17,10 +17,10 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from '../../../../../components/ui/pagination';
+} from '../../../../../../components/ui/pagination';
 import type { DtrEntry } from '../types';
 import { computeLateMinutes, computeWorkMinutes, formatDate, formatDateTime, formatDuration } from '../utils';
-import { Card } from '../../../../../components/ui/card';
+import { Card } from '../../../../../../components/ui/card';
 
 interface DtrTableProps {
   entries: DtrEntry[];

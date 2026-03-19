@@ -56,7 +56,7 @@ const CampusGrid: React.FC<CampusGridProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((campus) => (
-          <Card key={campus.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow rounded-lg">
+          <Card key={campus.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow rounded-sm">
             <button type="button" className="w-full text-left cursor-pointer" onClick={() => onSelectCampus(campus)}>
               <img src={campus.picture} alt={campus.name} className="h-36 w-full object-cover  cursor-pointer" />
               <CardHeader className="pb-2 mt-4">

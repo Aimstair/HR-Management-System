@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { CheckCircle2, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { CheckCircle2, ChevronLeft, ChevronRight, Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
 import { Button } from '../../../../../components/ui/button';
 import { Input } from '../../../../../components/ui/input';
 import { Label } from '../../../../../components/ui/label';
+import { Checkbox } from '../../../../../components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -37,21 +38,50 @@ interface OnboardingWizardProps {
 
 interface WizardValues {
   firstName: string;
+  middleName: string;
   lastName: string;
-  dateOfBirth: string;
+  birthDate: string;
+  phoneNumber: string;
+  presentAddress: string;
+  presentAddressZipCode: string;
+  permanentAddress: string;
+  permanentAddressZipCode: string;
+  profilePicture: string;
+
+  username: string;
+  email: string;
+  temporaryPassword: string;
+
+  idNumber: string;
+  position: string;
+  dateHired: string;
+  sssId: string;
+  pagIbigId: string;
+  tinNo: string;
+  philhealthNo: string;
+  role: EmployeeNode['role'];
+
   campusId: string;
   departmentId: string;
   schoolId: string;
-  role: EmployeeNode['role'];
-  email: string;
-  phone: string;
-  address: string;
-  bankName: string;
-  accountName: string;
-  accountNumber: string;
+
+  noLate: boolean;
+  noOvertime: boolean;
+  noNightDifferentialPay: boolean;
+  noMinimumHours: boolean;
+  noHolidayPay: boolean;
+  noPremiumOnOvertime: boolean;
+
+  bankAccounts: Array<{
+    bankName: string;
+    accountNo: string;
+  }>;
+
+  fundRequestLimit: number;
+  allowManyPendingFundRequests: boolean;
 }
 
-const steps = ['Personal', 'Placement', 'Contact & Financials', 'Review'];
+const steps = ['Personal', 'Credentials', 'Employment & Team', 'Privileges & Bank', 'Review'];
 
 const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   open,
@@ -64,22 +94,47 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const { control, register, watch, setValue, trigger, handleSubmit, reset } = useForm<WizardValues>({
     defaultValues: {
       firstName: '',
+      middleName: '',
       lastName: '',
-      dateOfBirth: '',
+      birthDate: '',
+      phoneNumber: '',
+      presentAddress: '',
+      presentAddressZipCode: '',
+      permanentAddress: '',
+      permanentAddressZipCode: '',
+      profilePicture: '',
+      username: '',
+      email: '',
+      temporaryPassword: 'Welcome123!',
+      idNumber: '',
+      position: '',
+      dateHired: '',
+      sssId: '',
+      pagIbigId: '',
+      tinNo: '',
+      philhealthNo: '',
+      role: 'Staff',
       campusId: campuses[0]?.id ?? '',
       departmentId: campuses[0]?.departments[0]?.id ?? '',
       schoolId: '',
-      role: 'Staff',
-      email: '',
-      phone: '',
-      address: '',
-      bankName: '',
-      accountName: '',
-      accountNumber: '',
+      noLate: false,
+      noOvertime: false,
+      noNightDifferentialPay: false,
+      noMinimumHours: false,
+      noHolidayPay: false,
+      noPremiumOnOvertime: false,
+      bankAccounts: [{ bankName: '', accountNo: '' }],
+      fundRequestLimit: 10000,
+      allowManyPendingFundRequests: false,
     },
   });
 
   const values = watch();
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'bankAccounts',
+  });
 
   const selectedCampus = useMemo(
     () => campuses.find((campus) => campus.id === values.campusId) ?? null,
@@ -115,10 +170,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     }
 
     if (!schoolOptions.some((school) => school.id === values.schoolId)) {
-      const nextSchoolId = schoolOptions[0]?.id ?? '';
-      if (values.schoolId !== nextSchoolId) {
-        setValue('schoolId', nextSchoolId);
-      }
+      setValue('schoolId', schoolOptions[0]?.id ?? '');
     }
   }, [schoolOptions, selectedDepartment, setValue, values.schoolId]);
 
@@ -130,17 +182,57 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   const validateStep = async (): Promise<boolean> => {
     if (step === 0) {
-      return trigger(['firstName', 'lastName', 'dateOfBirth']);
+      return trigger([
+        'firstName',
+        'lastName',
+        'birthDate',
+        'phoneNumber',
+        'presentAddress',
+        'presentAddressZipCode',
+        'permanentAddress',
+        'permanentAddressZipCode',
+      ]);
     }
+
     if (step === 1) {
-      if (selectedDepartment?.name === 'Teaching Faculties') {
-        return trigger(['campusId', 'departmentId', 'schoolId', 'role']);
-      }
-      return trigger(['campusId', 'departmentId', 'role']);
+      return trigger(['username', 'email', 'temporaryPassword']);
     }
+
     if (step === 2) {
-      return trigger(['email', 'phone', 'address', 'bankName', 'accountName', 'accountNumber']);
+      if (selectedDepartment?.name === 'Teaching Faculties') {
+        return trigger([
+          'idNumber',
+          'position',
+          'dateHired',
+          'sssId',
+          'pagIbigId',
+          'tinNo',
+          'philhealthNo',
+          'campusId',
+          'departmentId',
+          'schoolId',
+          'role',
+        ]);
+      }
+
+      return trigger([
+        'idNumber',
+        'position',
+        'dateHired',
+        'sssId',
+        'pagIbigId',
+        'tinNo',
+        'philhealthNo',
+        'campusId',
+        'departmentId',
+        'role',
+      ]);
     }
+
+    if (step === 3) {
+      return trigger(['fundRequestLimit', 'bankAccounts']);
+    }
+
     return true;
   };
 
@@ -155,27 +247,67 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   const submit = (data: WizardValues): void => {
     const id = `EMP-${Date.now().toString().slice(-6)}`;
-    const fullName = `${data.firstName} ${data.lastName}`.trim();
+    const fullName = [data.firstName, data.middleName, data.lastName].filter(Boolean).join(' ').trim();
     const schoolName = schoolOptions.find((school) => school.id === data.schoolId)?.name;
 
     const newEmployee: EmployeeNode = {
       id,
+      firstName: data.firstName,
+      middleName: data.middleName,
+      lastName: data.lastName,
       fullName,
-      jobTitle:
-        data.role === 'Faculty'
-          ? `Professor of ${schoolName ?? selectedDepartment?.name ?? 'Department'}`
-          : data.role === 'Dean'
-          ? `Dean, ${schoolName ?? 'School'}`
-          : `${data.role} - ${selectedDepartment?.name ?? 'Department'}`,
+      jobTitle: data.position,
       role: data.role,
-      email: data.email,
-      phone: data.phone,
       status: 'Active',
-      dateOfBirth: data.dateOfBirth,
-      address: data.address,
-      bankName: data.bankName,
-      accountName: data.accountName,
-      accountNumber: data.accountNumber,
+      profilePicture: data.profilePicture,
+      avatarUrl: data.profilePicture,
+
+      birthDate: data.birthDate,
+      dateOfBirth: data.birthDate,
+      phoneNumber: data.phoneNumber,
+      phone: data.phoneNumber,
+      presentAddress: data.presentAddress,
+      presentAddressZipCode: data.presentAddressZipCode,
+      permanentAddress: data.permanentAddress,
+      permanentAddressZipCode: data.permanentAddressZipCode,
+      address: data.presentAddress,
+
+      username: data.username,
+      email: data.email,
+      temporaryPassword: data.temporaryPassword,
+
+      idNumber: data.idNumber,
+      position: data.position,
+      dateHired: data.dateHired,
+      sssId: data.sssId,
+      pagIbigId: data.pagIbigId,
+      tinNo: data.tinNo,
+      philhealthNo: data.philhealthNo,
+
+      schoolName: schoolName ?? 'N/A',
+      departmentName: selectedDepartment?.name ?? 'N/A',
+
+      privileges: {
+        noLate: data.noLate,
+        noOvertime: data.noOvertime,
+        noNightDifferentialPay: data.noNightDifferentialPay,
+        noMinimumHours: data.noMinimumHours,
+        noHolidayPay: data.noHolidayPay,
+        noPremiumOnOvertime: data.noPremiumOnOvertime,
+      },
+
+      bankAccounts: data.bankAccounts.map((account, index) => ({
+        id: `${id}-BA${index + 1}`,
+        bankName: account.bankName,
+        accountNo: account.accountNo,
+      })),
+      bankName: data.bankAccounts[0]?.bankName || '',
+      accountName: fullName,
+      accountNumber: data.bankAccounts[0]?.accountNo || '',
+
+      fundRequestLimit: Number(data.fundRequestLimit) || 0,
+      allowManyPendingFundRequests: data.allowManyPendingFundRequests,
+
       leaveCredits: [],
       studyLoads: schoolName
         ? [
@@ -196,22 +328,22 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? closeWizard() : onOpenChange(nextOpen))}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Employee Onboarding Wizard</DialogTitle>
-          <DialogDescription>Complete each step and submit to create a new employee profile.</DialogDescription>
+          <DialogDescription>Provide all required employee details before creating the profile.</DialogDescription>
         </DialogHeader>
 
         <Card>
           <CardHeader>
             <CardTitle>Step {step + 1}: {steps[step]}</CardTitle>
             <CardDescription>Use Next/Prev to navigate through onboarding.</CardDescription>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {steps.map((label, index) => (
                 <div
                   key={label}
                   className={`rounded-md border px-2 py-2 text-center text-xs ${
-                    index <= step ? 'bg-primary text-primary-foreground border-primary' : 'text-muted-foreground'
+                    index <= step ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground'
                   }`}
                 >
                   {label}
@@ -224,15 +356,25 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             <form className="space-y-5" onSubmit={handleSubmit(submit)}>
               {step === 0 ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div className="space-y-2"><Label>First Name</Label><Input {...register('firstName', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Middle Name</Label><Input {...register('middleName')} /></div>
                     <div className="space-y-2"><Label>Last Name</Label><Input {...register('lastName', { required: true })} /></div>
                   </div>
-                  <div className="space-y-2"><Label>Date of Birth</Label><Input type="date" {...register('dateOfBirth', { required: true })} /></div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2"><Label>Birth Date</Label><Input type="date" {...register('birthDate', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Phone Number</Label><Input {...register('phoneNumber', { required: true })} /></div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2"><Label>Present Address</Label><Input {...register('presentAddress', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Present Address Zip Code</Label><Input {...register('presentAddressZipCode', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Permanent Address</Label><Input {...register('permanentAddress', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Permanent Address Zip Code</Label><Input {...register('permanentAddressZipCode', { required: true })} /></div>
+                  </div>
                   <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                    <p className="mb-2 font-medium">Avatar Upload Placeholder</p>
+                    <p className="mb-2 font-medium">Profile Picture</p>
                     <Button type="button" variant="outline" size="sm" disabled>
-                      <Upload className="h-4 w-4" /> Upload Avatar (Coming Soon)
+                      <Upload className="h-4 w-4" /> Upload Picture (Coming Soon)
                     </Button>
                   </div>
                 </div>
@@ -240,40 +382,62 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
               {step === 1 ? (
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Campus</Label>
-                    <Controller
-                      control={control}
-                      name="campusId"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full"><SelectValue placeholder="Select campus" /></SelectTrigger>
-                          <SelectContent>
-                            {campuses.map((campus) => (
-                              <SelectItem key={campus.id} value={campus.id}>{campus.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2"><Label>Username</Label><Input {...register('username', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Email</Label><Input type="email" {...register('email', { required: true })} /></div>
+                  </div>
+                  <div className="space-y-2"><Label>Temporary Password</Label><Input type="password" {...register('temporaryPassword', { required: true })} /></div>
+                </div>
+              ) : null}
+
+              {step === 2 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2"><Label>ID Number</Label><Input {...register('idNumber', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Position</Label><Input {...register('position', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Date Hired</Label><Input type="date" {...register('dateHired', { required: true })} /></div>
+                    <div className="space-y-2"><Label>SSS ID</Label><Input {...register('sssId', { required: true })} /></div>
+                    <div className="space-y-2"><Label>Pag-IBIG ID</Label><Input {...register('pagIbigId', { required: true })} /></div>
+                    <div className="space-y-2"><Label>TIN No</Label><Input {...register('tinNo', { required: true })} /></div>
+                    <div className="space-y-2"><Label>PhilHealth No</Label><Input {...register('philhealthNo', { required: true })} /></div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Controller
-                      control={control}
-                      name="departmentId"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full"><SelectValue placeholder="Select department" /></SelectTrigger>
-                          <SelectContent>
-                            {departments.map((department) => (
-                              <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Campus</Label>
+                      <Controller
+                        control={control}
+                        name="campusId"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="Select campus" /></SelectTrigger>
+                            <SelectContent>
+                              {campuses.map((campus) => (
+                                <SelectItem key={campus.id} value={campus.id}>{campus.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Department</Label>
+                      <Controller
+                        control={control}
+                        name="departmentId"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="Select department" /></SelectTrigger>
+                            <SelectContent>
+                              {departments.map((department) => (
+                                <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
                   </div>
 
                   {selectedDepartment?.name === 'Teaching Faculties' ? (
@@ -318,38 +482,81 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </div>
               ) : null}
 
-              {step === 2 ? (
+              {step === 3 ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2"><Label>Email</Label><Input type="email" {...register('email', { required: true })} /></div>
-                    <div className="space-y-2"><Label>Phone</Label><Input {...register('phone', { required: true })} /></div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[
+                      ['noLate', 'No Late'],
+                      ['noOvertime', 'No Overtime'],
+                      ['noNightDifferentialPay', 'No Night Differential Pay'],
+                      ['noMinimumHours', 'No Minimum Hours'],
+                      ['noHolidayPay', 'No Holiday Pay'],
+                      ['noPremiumOnOvertime', 'No Premium on Overtime'],
+                    ].map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-2 text-sm">
+                        <Controller
+                          control={control}
+                          name={key as keyof WizardValues}
+                          render={({ field }) => (
+                            <Checkbox checked={Boolean(field.value)} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                          )}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
                   </div>
-                  <div className="space-y-2"><Label>Address</Label><Input {...register('address', { required: true })} /></div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="space-y-2"><Label>Bank Name</Label><Input {...register('bankName', { required: true })} /></div>
-                    <div className="space-y-2"><Label>Account Name</Label><Input {...register('accountName', { required: true })} /></div>
-                    <div className="space-y-2"><Label>Account Number</Label><Input {...register('accountNumber', { required: true })} /></div>
+
+                  <div className="space-y-2">
+                    <Label>Bank Details</Label>
+                    <div className="space-y-2">
+                      {fields.map((field, index) => (
+                        <div key={field.id} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
+                          <Input {...register(`bankAccounts.${index}.bankName` as const, { required: true })} placeholder="Bank name" />
+                          <Input {...register(`bankAccounts.${index}.accountNo` as const, { required: true })} placeholder="Account no" />
+                          <Button type="button" variant="outline" size="icon" disabled={fields.length === 1} onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => append({ bankName: '', accountNo: '' })}>
+                      <Plus className="h-4 w-4" /> Add Bank Account
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2"><Label>Fund Request Limit</Label><Input type="number" {...register('fundRequestLimit', { required: true, valueAsNumber: true })} /></div>
+                    <label className="mt-8 flex items-center gap-2 text-sm">
+                      <Controller
+                        control={control}
+                        name="allowManyPendingFundRequests"
+                        render={({ field }) => (
+                          <Checkbox checked={Boolean(field.value)} onCheckedChange={(checked) => field.onChange(Boolean(checked))} />
+                        )}
+                      />
+                      <span>Allow Many Pending Fund Requests</span>
+                    </label>
                   </div>
                 </div>
               ) : null}
 
-              {step === 3 ? (
+              {step === 4 ? (
                 <div className="space-y-3">
                   <div className="rounded-md border p-3 text-sm">
-                    <p className="font-semibold">Personal</p>
-                    <p>{values.firstName} {values.lastName}</p>
-                    <p className="text-muted-foreground">DOB: {values.dateOfBirth || 'N/A'}</p>
+                    <p className="font-semibold">Personal Information</p>
+                    <p>{values.firstName} {values.middleName} {values.lastName}</p>
+                    <p className="text-muted-foreground">Birth Date: {values.birthDate || 'N/A'}</p>
+                    <p className="text-muted-foreground">Phone: {values.phoneNumber || 'N/A'}</p>
                   </div>
                   <div className="rounded-md border p-3 text-sm">
-                    <p className="font-semibold">Placement</p>
-                    <p>{selectedCampus?.name ?? 'N/A'}</p>
-                    <p>{selectedDepartment?.name ?? 'N/A'}</p>
-                    {values.schoolId ? <p>{schoolOptions.find((school) => school.id === values.schoolId)?.name}</p> : null}
+                    <p className="font-semibold">Employment & Team</p>
+                    <p>{values.position || 'N/A'} | {values.idNumber || 'N/A'}</p>
+                    <p className="text-muted-foreground">Role: {values.role}</p>
                   </div>
                   <div className="rounded-md border p-3 text-sm">
-                    <p className="font-semibold">Contact & Financials</p>
-                    <p>{values.email} | {values.phone}</p>
-                    <p>{values.bankName} - {values.accountNumber}</p>
+                    <p className="font-semibold">Credentials & Funds</p>
+                    <p>{values.username} | {values.email}</p>
+                    <p className="text-muted-foreground">Fund Request Limit: {values.fundRequestLimit || 0}</p>
                   </div>
                   <p className="flex items-center gap-2 text-sm text-primary">
                     <CheckCircle2 className="h-4 w-4" />

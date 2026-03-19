@@ -249,9 +249,9 @@ const AdminEmployeesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
 
-      <Breadcrumb className='border p-2 rounded-lg'>
+      <Breadcrumb className='border p-2 pl-4 rounded-sm'>
         <BreadcrumbList>
           <BreadcrumbItem>
             {navState.level === 'campus' ? (

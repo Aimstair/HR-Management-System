@@ -1,5 +1,5 @@
-import type { DtrEntry, ReportEmployee } from '../types';
-import { computeLateMinutes, computeWorkMinutes } from '../utils';
+import type { DtrEntry, ReportEmployee } from '../attendance/types';
+import { computeLateMinutes, computeWorkMinutes } from '../attendance/utils';
 import { HOLIDAY_DATES, LEAVE_DATES_BY_EMPLOYEE, LEGEND_ITEMS } from './mockData';
 import type { MonthDay, TardinessEmployeeRow, TardinessStatus } from './types';
 

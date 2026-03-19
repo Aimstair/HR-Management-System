@@ -27,7 +27,7 @@ interface TardinessTableProps {
   activeStatuses: Set<TardinessStatus>;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 11;
 
 const initials = (name: string): string => {
   const parts = name.split(' ').filter(Boolean);

@@ -10,11 +10,56 @@ export interface NavState {
 
 export type ActiveState = 'Active' | 'Inactive';
 
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountNo: string;
+}
+
+export interface EmployeePrivileges {
+  noLate: boolean;
+  noOvertime: boolean;
+  noNightDifferentialPay: boolean;
+  noMinimumHours: boolean;
+  noHolidayPay: boolean;
+  noPremiumOnOvertime: boolean;
+}
+
 export interface EmployeeNode {
   id: string;
   fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
   jobTitle: string;
   role: 'Faculty' | 'Staff' | 'Chairman' | 'Dean' | 'HR Admin';
+
+  profilePicture?: string;
+  birthDate: string;
+  phoneNumber: string;
+  presentAddress: string;
+  presentAddressZipCode: string;
+  permanentAddress: string;
+  permanentAddressZipCode: string;
+
+  username: string;
+  temporaryPassword: string;
+
+  idNumber: string;
+  position: string;
+  dateHired: string;
+  sssId: string;
+  pagIbigId: string;
+  tinNo: string;
+  philhealthNo: string;
+
+  schoolName: string;
+  departmentName: string;
+  privileges: EmployeePrivileges;
+  bankAccounts: BankAccount[];
+  fundRequestLimit: number;
+  allowManyPendingFundRequests: boolean;
+
   email: string;
   phone: string;
   status: 'Active' | 'On Leave' | 'Retired';

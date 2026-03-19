@@ -38,7 +38,7 @@ const TardinessFilters: React.FC<TardinessFiltersProps> = ({
   onYearChange,
 }) => {
   return (
-    <div className="flex flex-row gap-4">
+    <div className="flex flex-row gap-4 w-full">
       <div className="space-y-2">
         <Label>Search Employee</Label>
         <Input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search name" />

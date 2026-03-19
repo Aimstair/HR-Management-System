@@ -1,8 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Bell, Search } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { Input } from '../../../components/ui/input';
+import { Bell } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import ThemeToggle from '../ThemeToggle';
 
@@ -11,66 +9,117 @@ import ThemeToggle from '../ThemeToggle';
  * Displays page title, search bar, and notifications
  */
 const Header: React.FC = () => {
-  const { user } = useAuth();
   const location = useLocation();
 
   // Get page title from route
-  const getPageTitle = (): string => {
-    const routeMap: Record<string, string> = {
-      '/portal/dashboard': 'Dashboard',
-      '/portal/profile': 'My Profile',
-      '/portal/attendance': 'Attendance',
-      '/portal/requests': 'My Requests',
-      '/portal/evaluations': 'Evaluations',
-      '/admin/dashboard': 'Dashboard',
-      '/admin/employees': 'Employees',
-      '/admin/organization': 'Organization',
-      '/admin/requests': 'Request Management',
-      '/admin/shifts': 'Shift Management',
-      '/admin/reports': 'Reports & Analytics',
+    const getScreenMeta = (): { title: string; description: string } => {
+      const routeMap: Record<string, { title: string; description: string }> = {
+        '/portal/dashboard': {
+          title: 'Dashboard',
+          description: 'Overview of your attendance, requests, and performance updates.',
+        },
+        '/portal/profile': {
+          title: 'My Profile',
+          description: 'View and manage your personal and employment details.',
+        },
+        '/portal/attendance': {
+          title: 'Attendance',
+          description: 'Track your daily logs, schedules, and attendance history.',
+        },
+        '/portal/requests': {
+          title: 'My Requests',
+          description: 'Submit and monitor leave, adjustment, and other HR requests.',
+        },
+        '/portal/evaluations': {
+          title: 'Evaluations',
+          description: 'Review evaluation results and progress insights.',
+        },
+        '/admin/dashboard': {
+          title: 'Dashboard',
+          description: 'Campus-wide HR snapshot with key workforce indicators.',
+        },
+        '/admin/employees': {
+          title: 'Employees',
+          description: 'Manage employee records, assignments, and onboarding data.',
+        },
+        '/admin/organization': {
+          title: 'Organization',
+          description: 'View organizational structure by school, department, and campus.',
+        },
+        '/admin/requests': {
+          title: 'Request Management',
+          description: 'Review and process employee HR requests across campuses.',
+        },
+        '/admin/shifts': {
+          title: 'Shift Management',
+          description: 'Configure work shifts, schedules, and timing rules.',
+        },
+        '/admin/reports/attendance': {
+          title: 'Attendance Report',
+          description: 'Analyze attendance logs, DTR details, and attendance trends.',
+        },
+        '/admin/reports/tardiness': {
+          title: 'Tardiness Report',
+          description: 'Monitor daily punctuality statuses with monthly tardiness matrix.',
+        },
+        '/admin/reports': {
+          title: 'Reports',
+          description: 'Access attendance and tardiness reporting tools.',
+        },
+      };
+
+      if (location.pathname.startsWith('/admin/employees')) {
+        return {
+          title: 'Employees',
+          description: 'Manage employee records, assignments, and onboarding data.',
+        };
+      }
+
+      if (location.pathname.startsWith('/admin/reports/attendance')) {
+        return {
+          title: 'Attendance Report',
+          description: 'Analyze attendance logs, DTR details, and attendance trends.',
+        };
+      }
+
+      if (location.pathname.startsWith('/admin/reports/tardiness')) {
+        return {
+          title: 'Tardiness Report',
+          description: 'Monitor daily punctuality statuses with monthly tardiness matrix.',
+        };
+      }
+
+      return (
+        routeMap[location.pathname] || {
+          title: 'HR Management System',
+          description: 'Manage people operations, attendance, requests, and reports.',
+        }
+      );
     };
 
-    return routeMap[location.pathname] || 'HR Management System';
-  };
+    const { title, description } = getScreenMeta();
 
-  return (
-    <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-      {/* Page Title */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">{getPageTitle()}</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {user?.department} • {user?.schoolBranch}
-        </p>
-      </div>
-
-      {/* Right Section: Search + Actions + Profile */}
-      <div className="flex items-center gap-4">
-        {/* Search Bar */}
-        <div className="hidden md:flex items-center">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Search..."
-              className="pl-10"
-            />
-          </div>
+    return (
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
 
-        {/* Notification Bell */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+          </Button>
 
-        <ThemeToggle />
-      </div>
-    </header>
-  );
-};
+          <ThemeToggle />
+        </div>
+      </header>
+    );
+  };
 
 export default Header;

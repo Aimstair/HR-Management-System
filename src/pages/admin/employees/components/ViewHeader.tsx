@@ -34,7 +34,7 @@ const ViewHeader: React.FC<ViewHeaderProps> = ({
   onAddNew,
 }) => {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 rounded-sm border p-4 md:flex-row md:items-center md:justify-between">
       <div className="space-y-1">
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-xs text-muted-foreground">Search, filter status, switch view, or add new entries.</p>

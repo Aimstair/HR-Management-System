@@ -5,14 +5,14 @@ import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import EmployeeListPanel from './reports/components/EmployeeListPanel';
-import DtrTable from './reports/components/DtrTable';
-import EditAttendanceDialog from './reports/components/EditAttendanceDialog';
-import AddTimeDialog from './reports/components/AddTimeDialog';
-import ExportDialog from './reports/components/ExportDialog';
-import GraphsPanel from './reports/components/GraphsPanel';
-import DateFilterDialog from './reports/components/DateFilterDialog';
-import { campuses, dtrEntries, reportEmployees } from './reports/mockData';
+import EmployeeListPanel from './reports/attendance/components/EmployeeListPanel';
+import DtrTable from './reports/attendance/components/DtrTable';
+import EditAttendanceDialog from './reports/attendance/components/EditAttendanceDialog';
+import AddTimeDialog from './reports/attendance/components/AddTimeDialog';
+import ExportDialog from './reports/attendance/components/ExportDialog';
+import GraphsPanel from './reports/attendance/components/GraphsPanel';
+import DateFilterDialog from './reports/attendance/components/DateFilterDialog';
+import { campuses, dtrEntries, reportEmployees } from './reports/attendance/mockData';
 import type {
   AddTimeFormValues,
   DtrEntry,
@@ -21,7 +21,7 @@ import type {
   GraphFilterState,
   GraphFilterMode,
   ReportEmployee,
-} from './reports/types';
+} from './reports/attendance/types';
 import {
   buildGraphData,
   computeLateMinutes,
@@ -32,7 +32,7 @@ import {
   formatDateTime,
   formatDuration,
   toCsv,
-} from './reports/utils';
+} from './reports/attendance/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
 
 const defaultDtrFilter: DtrFilterState = {
