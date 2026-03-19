@@ -54,6 +54,10 @@ const Header: React.FC = () => {
           title: 'Shift Management',
           description: 'Configure work shifts, schedules, and timing rules.',
         },
+        '/admin/memo': {
+          title: 'Memo Management',
+          description: 'Create, filter, and review employee memos with acknowledgements.',
+        },
         '/admin/reports/attendance': {
           title: 'Attendance Report',
           description: 'Analyze attendance logs, DTR details, and attendance trends.',
@@ -86,6 +90,13 @@ const Header: React.FC = () => {
         return {
           title: 'Tardiness Report',
           description: 'Monitor daily punctuality statuses with monthly tardiness matrix.',
+        };
+      }
+
+      if (location.pathname.startsWith('/admin/memo')) {
+        return {
+          title: 'Memo Management',
+          description: 'Create, filter, and review employee memos with acknowledgements.',
         };
       }
 

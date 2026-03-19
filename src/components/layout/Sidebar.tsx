@@ -11,6 +11,7 @@ import {
   UserCog,
   BookOpen,
   Building2,
+  ScrollText,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -96,6 +97,12 @@ const Sidebar: React.FC = () => {
             label: 'Shifts',
             href: '/admin/shifts',
             icon: <Calendar className="w-5 h-5" />,
+            requiredRole: [UserRole.HR],
+          },
+          {
+            label: 'Memo',
+            href: '/admin/memo',
+            icon: <ScrollText className="w-5 h-5" />,
             requiredRole: [UserRole.HR],
           },
         ]

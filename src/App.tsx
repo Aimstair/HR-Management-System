@@ -22,6 +22,7 @@ import AdminRequests from './pages/admin/AdminRequests';
 import AdminShifts from './pages/admin/AdminShifts';
 import AdminReports from './pages/admin/AdminReports';
 import AdminTardinessReport from './pages/admin/AdminTardinessReport';
+import AdminMemo from './pages/admin/AdminMemo';
 
 /**
  * Protected Route Component
@@ -97,6 +98,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin/reports" element={<Navigate to="/admin/reports/attendance" replace />} />
         <Route path="/admin/reports/attendance" element={<AdminReports />} />
         <Route path="/admin/reports/tardiness" element={<AdminTardinessReport />} />
+        <Route path="/admin/memo" element={<AdminMemo />} />
       </Route>
 
       {/* ===== ROOT & FALLBACK ROUTES ===== */}
