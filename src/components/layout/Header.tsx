@@ -210,13 +210,15 @@ const Header: React.FC = () => {
     const { title, description } = getScreenMeta();
 
     return (
-      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+      <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">{title}</h2>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
 
         <div className="flex items-center gap-4">
+          <div id="header-actions" className="flex items-center gap-2" />
+
           <Button
             variant="ghost"
             size="icon"

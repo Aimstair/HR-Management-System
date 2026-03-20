@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { ScrollArea } from '../../../components/ui/scroll-area';
 
 /**
  * Main Layout component wrapping all authenticated routes
@@ -19,10 +20,12 @@ const Layout: React.FC = () => {
         <Header />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-4">
-            <Outlet />
-          </div>
+        <main className="flex-1 overflow-hidden z-10">
+          <ScrollArea className="h-full w-full p-4">
+            <div className="min-h-full w-full">
+              <Outlet />
+            </div>
+          </ScrollArea>
         </main>
       </div>
     </div>

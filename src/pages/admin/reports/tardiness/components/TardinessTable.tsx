@@ -27,7 +27,7 @@ interface TardinessTableProps {
   activeStatuses: Set<TardinessStatus>;
 }
 
-const PAGE_SIZE = 11;
+const PAGE_SIZE = 14;
 
 const initials = (name: string): string => {
   const parts = name.split(' ').filter(Boolean);
@@ -91,7 +91,7 @@ const TardinessTable: React.FC<TardinessTableProps> = ({ monthDays, rows, active
   );
 
   return (
-    <div className="relative overflow-hidden rounded-md">
+    <div className="relative overflow-hidden">
       <ScrollArea className="overflow-hidden">
         <Table className='z-40 rounded-none'>
           <TableHeader>

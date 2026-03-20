@@ -4,8 +4,13 @@ import type {
   FundRecord,
   GenericRequestRecord,
   LeaveRecord,
+  OvertimeRecord,
   ProcessorInfo,
   ReportEmployeeSummary,
+  ShiftAssignmentRecord,
+  TimeAdjustmentRecord,
+  UndertimeRecord,
+  WorkFromHomeRecord,
 } from './types';
 
 const employees = Array.from(
@@ -13,8 +18,16 @@ const employees = Array.from(
     campuses
       .flatMap((campus) =>
         campus.departments.flatMap((department) => [
-          ...(department.employees ?? []),
-          ...(department.schools?.flatMap((school) => school.employees) ?? []),
+          ...(department.employees ?? []).map((employee) => ({
+            ...employee,
+            sourceDepartment: department.name,
+          })),
+          ...(department.schools?.flatMap((school) =>
+            school.employees.map((employee) => ({
+              ...employee,
+              sourceDepartment: department.name,
+            })),
+          ) ?? []),
         ]),
       )
       .map((employee) => [employee.id, employee]),
@@ -31,6 +44,7 @@ export const reportEmployees: ReportEmployeeSummary[] = employees.slice(0, 18).m
   id: employee.id,
   fullName: employee.fullName,
   position: employee.position,
+  department: employee.sourceDepartment || 'General Affairs',
   avatarUrl: employee.profilePicture || employee.avatarUrl || 'https://picsum.photos/seed/default-employee/80/80',
   leaveFiledCount: 2 + (index % 6),
   expenseTotal: 2400 + index * 380,
@@ -132,6 +146,160 @@ export const fundRecords: FundRecord[] = employeeIds.slice(0, 12).map((employeeI
   };
 });
 
+export const overtimeRecords: OvertimeRecord[] = employeeIds.flatMap((employeeId, index) => {
+  const dayA = String((index % 24) + 1).padStart(2, '0');
+  const dayB = String(((index + 7) % 24) + 1).padStart(2, '0');
+
+  return [
+    {
+      id: `OT-${employeeId}-1`,
+      employeeId,
+      requestedAt: `2026-03-${dayA}T08:35:00`,
+      overtimeStart: `2026-03-${dayA}T17:30:00`,
+      overtimeEnd: `2026-03-${dayA}T20:00:00`,
+      tasksDone: 'Payroll validation and month-end reconciliation',
+      notes: 'Urgent completion for payroll cycle cutoff.',
+      status: index % 6 === 0 ? 'Unprocessed' : 'Approved',
+      processedBy: pickProcessor(index),
+    },
+    {
+      id: `OT-${employeeId}-2`,
+      employeeId,
+      requestedAt: `2026-02-${dayB}T09:05:00`,
+      overtimeStart: `2026-02-${dayB}T18:00:00`,
+      overtimeEnd: `2026-02-${dayB}T21:30:00`,
+      tasksDone: 'System testing and deployment checklist',
+      notes: 'Coordinated with IT for release sign-off.',
+      status: index % 5 === 0 ? 'Declined' : 'Approved',
+      processedBy: pickProcessor(index + 1),
+    },
+  ];
+});
+
+export const undertimeRecords: UndertimeRecord[] = employeeIds.flatMap((employeeId, index) => {
+  const dayA = String((index % 26) + 1).padStart(2, '0');
+  const dayB = String(((index + 5) % 26) + 1).padStart(2, '0');
+
+  return [
+    {
+      id: `UT-${employeeId}-1`,
+      employeeId,
+      requestedAt: `2026-03-${dayA}T08:10:00`,
+      specifiedDateTime: `2026-03-${dayA}T15:30:00`,
+      notes: 'Medical consultation in the afternoon.',
+      status: index % 4 === 0 ? 'Unprocessed' : 'Approved',
+      processedBy: pickProcessor(index + 1),
+    },
+    {
+      id: `UT-${employeeId}-2`,
+      employeeId,
+      requestedAt: `2026-02-${dayB}T09:25:00`,
+      specifiedDateTime: `2026-02-${dayB}T14:00:00`,
+      notes: 'Family emergency attendance.',
+      status: index % 7 === 0 ? 'Declined' : 'Approved',
+      processedBy: pickProcessor(index + 2),
+    },
+  ];
+});
+
+export const wfhRecords: WorkFromHomeRecord[] = employeeIds.flatMap((employeeId, index) => {
+  const dayA = String((index % 22) + 1).padStart(2, '0');
+  const dayB = String(((index + 10) % 22) + 1).padStart(2, '0');
+
+  return [
+    {
+      id: `WFH-${employeeId}-1`,
+      employeeId,
+      requestedAt: `2026-03-${dayA}T08:00:00`,
+      startAt: `2026-03-${dayA}T08:30:00`,
+      endAt: `2026-03-${dayA}T17:30:00`,
+      project: 'Curriculum portal enhancement',
+      location: 'Home Office - Quezon City',
+      notes: 'Stable connectivity and approved remote setup.',
+      status: index % 5 === 0 ? 'Unprocessed' : 'Approved',
+      processedBy: pickProcessor(index),
+    },
+    {
+      id: `WFH-${employeeId}-2`,
+      employeeId,
+      requestedAt: `2026-02-${dayB}T07:45:00`,
+      startAt: `2026-02-${dayB}T09:00:00`,
+      endAt: `2026-02-${dayB}T18:00:00`,
+      project: 'Budget consolidation support',
+      location: 'Remote - Laguna',
+      notes: 'Submitted progress updates by end of shift.',
+      status: index % 6 === 0 ? 'Declined' : 'Approved',
+      processedBy: pickProcessor(index + 1),
+    },
+  ];
+});
+
+export const timeAdjustmentRecords: TimeAdjustmentRecord[] = employeeIds.flatMap((employeeId, index) => {
+  const dayA = String((index % 24) + 1).padStart(2, '0');
+  const dayB = String(((index + 8) % 24) + 1).padStart(2, '0');
+
+  return [
+    {
+      id: `TA-${employeeId}-1`,
+      employeeId,
+      requestedAt: `2026-03-${dayA}T10:20:00`,
+      specifiedTimeIn: `2026-03-${dayA}T08:00:00`,
+      specifiedTimeOut: `2026-03-${dayA}T17:00:00`,
+      actualTimeOut: `2026-03-${dayA}T18:15:00`,
+      notes: 'Biometric sync delay caused inaccurate timeout.',
+      status: index % 4 === 0 ? 'Unprocessed' : 'Approved',
+      processedBy: pickProcessor(index + 2),
+    },
+    {
+      id: `TA-${employeeId}-2`,
+      employeeId,
+      requestedAt: `2026-02-${dayB}T09:40:00`,
+      specifiedTimeIn: `2026-02-${dayB}T08:15:00`,
+      specifiedTimeOut: `2026-02-${dayB}T17:15:00`,
+      actualTimeOut: `2026-02-${dayB}T16:55:00`,
+      notes: 'Manual correction due to gate-reader issue.',
+      status: index % 7 === 0 ? 'Declined' : 'Approved',
+      processedBy: pickProcessor(index),
+    },
+  ];
+});
+
+export const shiftAssignmentRecords: ShiftAssignmentRecord[] = employeeIds.flatMap((employeeId, index) => {
+  const dayA = String((index % 18) + 1).padStart(2, '0');
+  const dayB = String(((index + 6) % 18) + 1).padStart(2, '0');
+
+  return [
+    {
+      id: `SA-${employeeId}-1`,
+      employeeId,
+      requestedAt: `2026-03-${dayA}T09:15:00`,
+      shiftName: index % 2 === 0 ? 'Morning Shift' : 'Afternoon Shift',
+      shiftTime: index % 2 === 0 ? '06:00 AM - 03:00 PM' : '01:00 PM - 10:00 PM',
+      shiftDays: 'Mon, Tue, Wed, Thu, Fri',
+      effectiveOn: `2026-03-${dayA}T00:00:00`,
+      effectiveTo: `2026-04-${dayA}T23:59:00`,
+      notes: 'Realignment for departmental coverage.',
+      status: index % 5 === 0 ? 'Unprocessed' : 'Approved',
+      remarks: 'Schedule balancing with team availability.',
+      processedBy: pickProcessor(index + 1),
+    },
+    {
+      id: `SA-${employeeId}-2`,
+      employeeId,
+      requestedAt: `2026-02-${dayB}T08:50:00`,
+      shiftName: 'Flexible Shift',
+      shiftTime: '08:00 AM - 05:00 PM',
+      shiftDays: 'Tue, Wed, Thu, Fri, Sat',
+      effectiveOn: `2026-02-${dayB}T00:00:00`,
+      effectiveTo: `2026-03-${dayB}T23:59:00`,
+      notes: 'Requested to support weekend operations.',
+      status: index % 6 === 0 ? 'Declined' : 'Approved',
+      remarks: 'Pending alternate reliever assignment.',
+      processedBy: pickProcessor(index + 2),
+    },
+  ];
+});
+
 const makeGenericRecords = (prefix: string, title: string): GenericRequestRecord[] => {
   return employeeIds.flatMap((employeeId, index) => ({
     id: `${prefix}-${employeeId}-${index + 1}`,
@@ -144,9 +312,4 @@ const makeGenericRecords = (prefix: string, title: string): GenericRequestRecord
   }));
 };
 
-export const overtimeRecords = makeGenericRecords('OT', 'Overtime');
-export const undertimeRecords = makeGenericRecords('UT', 'Undertime');
-export const wfhRecords = makeGenericRecords('WFH', 'Work from Home');
-export const timeAdjustmentRecords = makeGenericRecords('TA', 'Time Adjustment');
-export const shiftAssignmentRecords = makeGenericRecords('SA', 'Shift Assignment');
 export const swapRequestRecords = makeGenericRecords('SWAP', 'Swap Request');

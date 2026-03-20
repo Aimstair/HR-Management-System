@@ -23,6 +23,7 @@ export interface ReportEmployeeSummary {
   id: string;
   fullName: string;
   position: string;
+  department: string;
   avatarUrl: string;
   leaveFiledCount: number;
   expenseTotal: number;
@@ -110,5 +111,67 @@ export interface GenericRequestRecord {
   filedAt: string;
   details: string;
   status: 'Approved' | 'Declined' | 'Unprocessed';
+  processedBy: ProcessorInfo;
+}
+
+export interface OvertimeRecord {
+  id: string;
+  employeeId: string;
+  requestedAt: string;
+  overtimeStart: string;
+  overtimeEnd: string;
+  tasksDone: string;
+  notes: string;
+  status: 'Approved' | 'Declined' | 'Unprocessed' | 'Cancelled';
+  processedBy: ProcessorInfo;
+}
+
+export interface UndertimeRecord {
+  id: string;
+  employeeId: string;
+  requestedAt: string;
+  specifiedDateTime: string;
+  notes: string;
+  status: 'Approved' | 'Declined' | 'Unprocessed';
+  processedBy: ProcessorInfo;
+}
+
+export interface WorkFromHomeRecord {
+  id: string;
+  employeeId: string;
+  requestedAt: string;
+  startAt: string;
+  endAt: string;
+  project: string;
+  location: string;
+  notes: string;
+  status: 'Approved' | 'Declined' | 'Unprocessed';
+  processedBy: ProcessorInfo;
+}
+
+export interface TimeAdjustmentRecord {
+  id: string;
+  employeeId: string;
+  requestedAt: string;
+  specifiedTimeIn: string;
+  specifiedTimeOut: string;
+  actualTimeOut: string;
+  notes: string;
+  status: 'Approved' | 'Declined' | 'Unprocessed';
+  processedBy: ProcessorInfo;
+}
+
+export interface ShiftAssignmentRecord {
+  id: string;
+  employeeId: string;
+  requestedAt: string;
+  shiftName: string;
+  shiftTime: string;
+  shiftDays: string;
+  effectiveOn: string;
+  effectiveTo: string;
+  notes: string;
+  status: 'Approved' | 'Declined' | 'Unprocessed';
+  remarks: string;
   processedBy: ProcessorInfo;
 }

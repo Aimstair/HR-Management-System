@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Badge } from '../../../../../../components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../../../components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '../../../../../../components/ui/card';
 import EmployeeListPanel from '../components/EmployeeListPanel';
 import GenericReportTable from '../components/GenericReportTable';
 import ProcessorAvatar from '../components/ProcessorAvatar';
 import ScopeFilterDialog from '../components/ScopeFilterDialog';
 import { reportEmployees } from '../mockData';
 import type { GenericRequestRecord, ScopeFilterState } from '../types';
-import { formatDateTime, isInScope } from '../utils';
+import { formatDateTime, formatReportRangeTitle, isInScope } from '../utils';
 
 interface GenericRequestReportPageProps {
   title: string;
@@ -38,6 +38,8 @@ const GenericRequestReportPage: React.FC<GenericRequestReportPageProps> = ({ tit
     [rows, scope, selectedEmployeeId],
   );
 
+  const reportLabel = useMemo(() => formatReportRangeTitle(scope, title), [scope, title]);
+
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
       <EmployeeListPanel
@@ -56,25 +58,29 @@ const GenericRequestReportPage: React.FC<GenericRequestReportPageProps> = ({ tit
         }}
       />
 
-      <Card className="h-[calc(100vh-220px)] min-h-[640px]">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description} {selectedEmployee ? `- ${selectedEmployee.fullName}` : ''}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description} {selectedEmployee ? `- ${selectedEmployee.fullName}` : ''}</CardDescription>
+            <CardDescription>{reportLabel}</CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card className="h-[calc(100vh-230px)] p-0 gap-0">
           <GenericReportTable
             rows={currentRows}
             emptyMessage={`No ${title.toLowerCase()} records for selected employee and filter.`}
             columns={[
               { id: 'type', label: 'Type', render: (row) => row.type },
               { id: 'filedAt', label: 'Date Filed', render: (row) => formatDateTime(row.filedAt) },
-              { id: 'details', label: 'Details', render: (row) => <span className="max-w-[280px] block truncate">{row.details}</span> },
+              { id: 'details', label: 'Details', render: (row) => <span className="max-w-70 block truncate">{row.details}</span> },
               { id: 'status', label: 'Status', render: (row) => <Badge variant="outline">{row.status}</Badge> },
               { id: 'processedBy', label: 'Processed By', render: (row) => <ProcessorAvatar processor={row.processedBy} /> },
             ]}
           />
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
 
       <ScopeFilterDialog
         open={isScopeOpen}

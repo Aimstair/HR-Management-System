@@ -5,9 +5,9 @@ import EmployeeListPanel from '../components/EmployeeListPanel';
 import GenericReportTable from '../components/GenericReportTable';
 import ProcessorAvatar from '../components/ProcessorAvatar';
 import ScopeFilterDialog from '../components/ScopeFilterDialog';
-import { expenseRecords, reportEmployees } from '../mockData';
+import { reportEmployees, shiftAssignmentRecords } from '../mockData';
 import type { ScopeFilterState } from '../types';
-import { formatCurrency, formatDateTime, formatReportRangeTitle, isInScope } from '../utils';
+import { formatDateTime, formatReportRangeTitle, isInScope } from '../utils';
 
 const defaultScope: ScopeFilterState = {
   mode: 'last30',
@@ -17,7 +17,7 @@ const defaultScope: ScopeFilterState = {
   rangeEnd: '',
 };
 
-const ExpenseReportPage: React.FC = () => {
+const ShiftAssignmentReportPage: React.FC = () => {
   const [scope, setScope] = useState<ScopeFilterState>(defaultScope);
   const [isScopeOpen, setIsScopeOpen] = useState<boolean>(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(reportEmployees[0]?.id || null);
@@ -28,37 +28,41 @@ const ExpenseReportPage: React.FC = () => {
   );
 
   const rows = useMemo(
-    () => expenseRecords.filter((item) => item.employeeId === selectedEmployeeId && isInScope(item.incurredAt, scope)),
+    () => shiftAssignmentRecords.filter((item) => item.employeeId === selectedEmployeeId && isInScope(item.requestedAt, scope)),
     [scope, selectedEmployeeId],
   );
 
-  const reportLabel = useMemo(() => formatReportRangeTitle(scope, 'Expense Report'), [scope]);
+  const reportLabel = useMemo(() => formatReportRangeTitle(scope, 'Shift Assignment Report'), [scope]);
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
       <EmployeeListPanel
-        title="Expense Report Employees"
-        metricLabel="Total Amount"
+        title="Shift Assignment Employees"
+        metricLabel="Assigned Shift Count"
         employees={reportEmployees}
         selectedEmployeeId={selectedEmployeeId}
         scope={scope}
         onSelectEmployee={setSelectedEmployeeId}
         onScopeChange={setScope}
         onOpenScopeModal={() => setIsScopeOpen(true)}
-        metricBuilder={(employee) => formatCurrency(employee.expenseTotal)}
+        metricBuilder={(employee) =>
+          String(shiftAssignmentRecords.filter((item) => item.employeeId === employee.id && isInScope(item.requestedAt, scope)).length)
+        }
         exportRowsBuilder={(employeeId) => {
-          const employeeRows = expenseRecords.filter((item) => item.employeeId === employeeId);
+          const employeeRows = shiftAssignmentRecords.filter((item) => item.employeeId === employeeId);
           return employeeRows.map((item) => [
-            item.type,
-            formatDateTime(item.incurredAt),
+            formatDateTime(item.requestedAt),
+            `${item.shiftName} (${item.shiftTime}) ${item.shiftDays}`,
+            formatDateTime(item.effectiveOn),
+            formatDateTime(item.effectiveTo),
             item.notes,
-            String(item.amount),
             item.status,
+            item.remarks,
           ]);
         }}
       />
 
-      <div className='flex flex-col gap-4'>
+      <div className="flex flex-col gap-4">
         <Card>
           <CardHeader className='gap-0'>
             <CardTitle>{reportLabel}</CardTitle>
@@ -68,16 +72,28 @@ const ExpenseReportPage: React.FC = () => {
           </CardHeader>
         </Card>
 
-        <Card className='h-[calc(100vh-230px)] p-0 gap-0'>
+        <Card className="h-[calc(100vh-230px)] p-0 gap-0">
           <GenericReportTable
             rows={rows}
-            emptyMessage="No expense records for selected employee and filter."
+            emptyMessage="No shift assignment records for selected employee and filter."
             columns={[
-              { id: 'type', label: 'Type', render: (row) => row.type },
-              { id: 'incurredAt', label: 'Date Incurred', render: (row) => formatDateTime(row.incurredAt) },
-              { id: 'notes', label: 'Notes', render: (row) => <span className="max-w-55 truncate block">{row.notes}</span> },
-              { id: 'amount', label: 'Amount', render: (row) => formatCurrency(row.amount) },
+              { id: 'requestedAt', label: 'Date Requested', render: (row) => formatDateTime(row.requestedAt) },
+              {
+                id: 'assignShift',
+                label: 'Assign Shift',
+                render: (row) => (
+                  <div className="text-sm">
+                    <p className="font-medium">{row.shiftName}</p>
+                    <p className="text-xs text-muted-foreground">{row.shiftTime}</p>
+                    <p className="text-xs text-muted-foreground">{row.shiftDays}</p>
+                  </div>
+                ),
+              },
+              { id: 'effectiveOn', label: 'Effective On', render: (row) => formatDateTime(row.effectiveOn) },
+              { id: 'effectiveTo', label: 'Effective To', render: (row) => formatDateTime(row.effectiveTo) },
+              { id: 'notes', label: 'Notes', render: (row) => <span className="max-w-56 block truncate">{row.notes}</span> },
               { id: 'status', label: 'Status', render: (row) => <Badge variant="outline">{row.status}</Badge> },
+              { id: 'remarks', label: 'Remarks', render: (row) => <span className="max-w-56 block truncate">{row.remarks}</span> },
               { id: 'processedBy', label: 'Processed By', render: (row) => <ProcessorAvatar processor={row.processedBy} /> },
             ]}
           />
@@ -95,4 +111,4 @@ const ExpenseReportPage: React.FC = () => {
   );
 };
 
-export default ExpenseReportPage;
+export default ShiftAssignmentReportPage;

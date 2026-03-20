@@ -204,10 +204,10 @@ export const getColumnsByCategory = (category: RequestCategory): ColumnDefinitio
         sortable: true,
         className: 'min-w-[260px] max-w-[260px]',
         render: (request) => (
-          <div className="space-y-0.5 text-[12px] leading-tight">
+          <div className="space-y-0.5 ext-[12px] leading-tight">
             <p className="truncate font-medium">{request.shiftName || 'N/A'}</p>
             <p className="truncate">{request.shiftTime || 'N/A'}</p>
-            <p className="truncate text-muted-foreground">{request.shiftDays || 'N/A'}</p>
+            {/* <p className="truncate text-muted-foreground text-[8px]">{request.shiftDays || 'N/A'}</p> */}
           </div>
         ),
         sortValue: (request) => request.shiftName || '',

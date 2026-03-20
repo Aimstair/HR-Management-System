@@ -28,7 +28,7 @@ interface DtrTableProps {
   onEditEntry: (entry: DtrEntry) => void;
 }
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 11;
 
 const DtrTable: React.FC<DtrTableProps> = ({ entries, isHr, onEditEntry }) => {
   const [page, setPage] = useState<number>(1);

@@ -119,12 +119,12 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
   };
 
   return (
-    <Card className="h-[calc(100vh-220px)] min-h-[640px]">
-      <CardHeader>
+    <Card className="h-[calc(100vh-120px)] min-h-[640px] gap-3">
+      <CardHeader className='pb-0'>
         <CardTitle>{title}</CardTitle>
         <CardDescription>Search, filter, and select an employee.</CardDescription>
       </CardHeader>
-      <CardContent className="h-full pb-4">
+      <CardContent className="h-full pt-0">
         <div className="flex flex-col gap-3 h-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -142,7 +142,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
                 }
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className='w-full'>
                 <SelectValue placeholder="Filter period" />
               </SelectTrigger>
               <SelectContent>
@@ -160,9 +160,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">Current: {scopeLabel}</p>
-
-          <div className="flex-1 overflow-hidden rounded-md border">
+          <div className="h-full overflow-hidden rounded-md border">
             <div className="h-full overflow-y-auto">
               <div className="divide-y">
                 {rows.map((employee) => {

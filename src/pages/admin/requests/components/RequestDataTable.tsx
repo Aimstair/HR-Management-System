@@ -27,8 +27,8 @@ interface RequestDataTableProps {
   onToggleOne: (id: string, checked: boolean) => void;
 }
 
-const PAGE_SIZE = 10;
-const ROW_HEIGHT_CLASS = 'h-[52px]';
+const PAGE_SIZE = 11;
+const ROW_HEIGHT_CLASS = 'h-[55px]';
 
 const RequestDataTable: React.FC<RequestDataTableProps> = ({
   columns,

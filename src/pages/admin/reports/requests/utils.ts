@@ -95,3 +95,46 @@ export const paginate = <T,>(items: T[], page: number, pageSize: number): { rows
     safePage,
   };
 };
+
+export const formatScopeLabel = (scope: ScopeFilterState): string => {
+  if (scope.mode === 'today') {
+    return 'Today';
+  }
+
+  if (scope.mode === 'last30') {
+    return 'Last 30 Days';
+  }
+
+  if (scope.mode === 'month') {
+    const month = Number.parseInt(scope.month, 10);
+    const year = Number.parseInt(scope.year, 10);
+    if (!Number.isNaN(month) && !Number.isNaN(year)) {
+      const monthName = new Date(year, month, 1).toLocaleString('en-US', { month: 'long' });
+      return `${monthName} ${year}`;
+    }
+    return 'Selected Month';
+  }
+
+  if (scope.rangeStart && scope.rangeEnd) {
+    return `${formatDateTime(scope.rangeStart)} - ${formatDateTime(scope.rangeEnd)}`;
+  }
+
+  return 'Custom Range';
+};
+
+export const formatReportRangeTitle = (scope: ScopeFilterState, reportName: string): string => {
+  return `${formatScopeLabel(scope)} ${reportName}`;
+};
+
+export const getDurationHours = (startIso: string, endIso: string): number => {
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+    return 0;
+  }
+  return (end - start) / (1000 * 60 * 60);
+};
+
+export const formatHours = (hours: number): string => {
+  return `${hours.toFixed(2)} hr`;
+};

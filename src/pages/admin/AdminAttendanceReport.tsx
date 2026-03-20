@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, Plus, Table2, BarChart3, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import EmployeeListPanel from './reports/attendance/components/EmployeeListPanel';
 import DtrTable from './reports/attendance/components/DtrTable';
@@ -64,6 +65,11 @@ const AdminReports: React.FC = () => {
   const [isDateFilterOpen, setIsDateFilterOpen] = useState<boolean>(false);
   const [isCurrentExportOpen, setIsCurrentExportOpen] = useState<boolean>(false);
   const [isBulkExportOpen, setIsBulkExportOpen] = useState<boolean>(false);
+  const [headerActionsEl, setHeaderActionsEl] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setHeaderActionsEl(document.getElementById('header-actions'));
+  }, []);
 
   const selectedEmployee = useMemo(() => {
     return employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
@@ -208,15 +214,10 @@ const AdminReports: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Attendance Report</h1>
-          <p className="text-sm text-muted-foreground">
-            Employee attendance list, DTR details, export tools, and analytics.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="relative">
+      {headerActionsEl
+        ? createPortal(
+          <div className="flex items-center gap-2">
           <Button variant={viewMode === 'table' ? 'default' : 'outline'} onClick={() => setViewMode('table')}>
             <Table2 className="h-4 w-4" />
             Table Mode
@@ -225,8 +226,10 @@ const AdminReports: React.FC = () => {
             <BarChart3 className="h-4 w-4" />
             Graph Mode
           </Button>
-        </div>
-      </div>
+          </div>,
+          headerActionsEl,
+        )
+        : null}
 
       {viewMode === 'table' ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">

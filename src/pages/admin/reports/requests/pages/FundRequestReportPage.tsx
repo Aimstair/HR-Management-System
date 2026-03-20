@@ -3,7 +3,7 @@ import { MoreHorizontal, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '../../../../../../components/ui/badge';
 import { Button } from '../../../../../../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../../../components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '../../../../../../components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,7 @@ import AddFundRequestDialog from '../components/fund/AddFundRequestDialog';
 import FundBreakdownDialog from '../components/fund/FundBreakdownDialog';
 import { fundRecords as initialFundRecords, reportEmployees } from '../mockData';
 import type { FundRecord, ScopeFilterState } from '../types';
-import { formatCurrency, formatDateTime, isInScope } from '../utils';
+import { formatCurrency, formatDateTime, formatReportRangeTitle, isInScope } from '../utils';
 
 const defaultScope: ScopeFilterState = {
   mode: 'last30',
@@ -54,6 +54,8 @@ const FundRequestReportPage: React.FC = () => {
     () => rows.reduce((sum, row) => sum + row.remainingPayable, 0),
     [rows],
   );
+
+  const reportLabel = useMemo(() => formatReportRangeTitle(scope, 'Fund Request Report'), [scope]);
 
   const appendPayment = (payment: FundRecord['payments'][number]): void => {
     if (!activeFund) {
@@ -91,7 +93,7 @@ const FundRequestReportPage: React.FC = () => {
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
       <EmployeeListPanel
         title="Fund Request Employees"
-        metricLabel="Total Amount"
+        metricLabel="Total"
         secondaryMetricLabel="Remaining"
         employees={reportEmployees}
         selectedEmployeeId={selectedEmployeeId}
@@ -114,23 +116,28 @@ const FundRequestReportPage: React.FC = () => {
         }}
       />
 
-      <Card className="h-[calc(100vh-220px)] min-h-[640px]">
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <CardTitle>Fund Request Report</CardTitle>
-              <CardDescription>
-                {selectedEmployee ? `${selectedEmployee.fullName} (${selectedEmployee.position})` : 'Select employee'}
-              </CardDescription>
+      <div className="flex flex-col gap-4">
+        <Card className='pb-4'>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle>{reportLabel}</CardTitle>
+                <CardDescription className='text-xl uppercase text-primary font-bold'>
+                  {selectedEmployee ? `${selectedEmployee.fullName} (${selectedEmployee.position})` : 'Select employee'}
+                </CardDescription>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">Total Remaining Payables: <strong>{formatCurrency(totalRemainingPayables)}</strong></p>
+
+              <Button onClick={() => setIsAddFundOpen(true)} disabled={!selectedEmployee}>
+                <Plus className="h-4 w-4" />
+                Add Fund Request
+              </Button>
             </div>
-            <Button onClick={() => setIsAddFundOpen(true)} disabled={!selectedEmployee}>
-              <Plus className="h-4 w-4" />
-              Add Fund Request
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">Total Remaining Payables: <strong>{formatCurrency(totalRemainingPayables)}</strong></p>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+        </Card>
+
+        <Card className="h-[calc(100vh-230px)] p-0 gap-0">
           <GenericReportTable
             rows={rows}
             emptyMessage="No fund request records for selected employee and filter."
@@ -188,7 +195,7 @@ const FundRequestReportPage: React.FC = () => {
                 render: (row) => {
                   const percent = row.amount > 0 ? (row.paidAmount / row.amount) * 100 : 0;
                   return (
-                    <div className="space-y-1 min-w-[180px]">
+                    <div className="space-y-1 min-w-45">
                       <p className="text-xs">Paid: {row.paidTerms}/{row.terms}</p>
                       <Progress value={Math.min(percent, 100)} className="h-2" />
                       <p className="text-xs text-muted-foreground">
@@ -241,8 +248,8 @@ const FundRequestReportPage: React.FC = () => {
               },
             ]}
           />
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
 
       <ScopeFilterDialog
         open={isScopeOpen}

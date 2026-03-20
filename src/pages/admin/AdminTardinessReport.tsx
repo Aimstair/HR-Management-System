@@ -41,7 +41,7 @@ const AdminTardinessReport: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <Card className='relative'>
+      <Card className='relative py-5'>
         <CardContent className='flex flex-col md:flex-row items-start'>
           <TardinessFilters
           search={search}

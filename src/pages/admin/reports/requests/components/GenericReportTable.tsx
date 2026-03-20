@@ -29,8 +29,8 @@ const GenericReportTable = <T,>({
   rows,
   columns,
   emptyMessage,
-  pageSize = 8,
-  fixedRows = 8,
+  pageSize = 10,
+  fixedRows = 10,
 }: GenericReportTableProps<T>): React.ReactElement => {
   const [page, setPage] = useState<number>(1);
 
@@ -42,12 +42,13 @@ const GenericReportTable = <T,>({
     }
   }, [page, safePage]);
 
-  const blankCount = Math.max(0, fixedRows - paginated.length);
+  const renderedDataRows = paginated.length === 0 ? 1 : paginated.length;
+  const blankCount = Math.max(0, fixedRows - renderedDataRows);
 
   return (
-    <div className="space-y-3">
-      <div className="h-[520px] overflow-hidden rounded-md border">
-        <Table>
+    <div className="flex flex-col gap-3">
+      <div className="overflow-hidden border-b">
+        <Table className=''>
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
@@ -58,13 +59,13 @@ const GenericReportTable = <T,>({
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-[80px] text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-14.5 text-center text-muted-foreground">
                   {emptyMessage}
                 </TableCell>
               </TableRow>
             ) : (
               paginated.map((row, index) => (
-                <TableRow key={`row-${index}`} className="h-[58px]">
+                <TableRow key={`row-${index}`} className="h-14.5">
                   {columns.map((column) => (
                     <TableCell key={`${column.id}-${index}`} className={column.className}>
                       {column.render(row)}
@@ -75,7 +76,7 @@ const GenericReportTable = <T,>({
             )}
 
             {Array.from({ length: blankCount }, (_, index) => (
-              <TableRow key={`blank-${index}`} className="h-[58px]">
+              <TableRow key={`blank-${index}`} className="h-14.5">
                 {columns.map((column) => (
                   <TableCell key={`blank-${column.id}-${index}`}> </TableCell>
                 ))}

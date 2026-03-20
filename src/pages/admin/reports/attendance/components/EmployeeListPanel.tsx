@@ -77,7 +77,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
           </Select>
         </div>
       </CardHeader>
-      <ScrollArea className="h-[420px]">
+      <ScrollArea className="h-[calc(100vh-310px)]">
         <CardContent className="space-y-2">
           {filtered.map((employee) => {
             const active = selectedEmployeeId === employee.id;
