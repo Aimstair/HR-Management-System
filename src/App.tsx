@@ -33,6 +33,7 @@ import WorkFromHomeReportPage from './pages/admin/reports/requests/pages/WorkFro
 import TimeAdjustmentReportPage from './pages/admin/reports/requests/pages/TimeAdjustmentReportPage';
 import ShiftAssignmentReportPage from './pages/admin/reports/requests/pages/ShiftAssignmentReportPage';
 import { swapRequestRecords } from './pages/admin/reports/requests/mockData';
+import FacultyEvaluationReportPage from './pages/admin/reports/evaluations/FacultyEvaluationReportPage';
 
 /**
  * Protected Route Component
@@ -108,6 +109,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin/reports" element={<Navigate to="/admin/reports/attendance" replace />} />
         <Route path="/admin/reports/attendance" element={<AdminReports />} />
         <Route path="/admin/reports/tardiness" element={<AdminTardinessReport />} />
+        <Route path="/admin/reports/evaluations" element={<FacultyEvaluationReportPage />} />
         <Route path="/admin/reports/requests" element={<Navigate to="/admin/reports/requests/leave" replace />} />
         <Route path="/admin/reports/requests/leave" element={<LeaveReportPage />} />
         <Route path="/admin/reports/requests/expense" element={<ExpenseReportPage />} />

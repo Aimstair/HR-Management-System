@@ -66,6 +66,10 @@ const Header: React.FC = () => {
           title: 'Tardiness Report',
           description: 'Monitor daily punctuality statuses with monthly tardiness matrix.',
         },
+        '/admin/reports/evaluations': {
+          title: 'Faculty Evaluation Report',
+          description: 'Review semester and career-level faculty evaluation scores by subject and section.',
+        },
         '/admin/reports': {
           title: 'Reports',
           description: 'Access attendance and tardiness reporting tools.',
@@ -126,6 +130,13 @@ const Header: React.FC = () => {
         return {
           title: 'Tardiness Report',
           description: 'Monitor daily punctuality statuses with monthly tardiness matrix.',
+        };
+      }
+
+      if (location.pathname.startsWith('/admin/reports/evaluations')) {
+        return {
+          title: 'Faculty Evaluation Report',
+          description: 'Review semester and career-level faculty evaluation scores by subject and section.',
         };
       }
 

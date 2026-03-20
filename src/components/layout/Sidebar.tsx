@@ -182,6 +182,17 @@ const Sidebar: React.FC = () => {
                 >
                   Tardiness Report
                 </Link>
+                <Link
+                  to="/admin/reports/evaluations"
+                  className={cn(
+                    'block rounded-md px-3 py-2 text-sm transition-colors',
+                    isActive('/admin/reports/evaluations')
+                      ? 'bg-secondary/25 text-secondary-foreground'
+                      : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                  )}
+                >
+                  Faculty Evaluation Report
+                </Link>
 
                 <button
                   type="button"

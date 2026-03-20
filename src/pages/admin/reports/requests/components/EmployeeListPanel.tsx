@@ -30,6 +30,7 @@ interface EmployeeListPanelProps {
   exportRowsBuilder: (employeeId: string) => string[][];
 }
 
+const FIXED_ROWS = 8;
 const PAGE_SIZE = 8;
 
 const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
@@ -117,6 +118,8 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
 
     downloadCsv(`${employee.fullName.replace(/\s+/g, '_')}_${title.replace(/\s+/g, '_')}.csv`, csv);
   };
+  
+  const blankCount = Math.max(0, FIXED_ROWS - rows.length);
 
   return (
     <Card className="h-[calc(100vh-120px)] min-h-[640px] gap-3">
@@ -170,7 +173,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
                       key={employee.id}
                       type="button"
                       onClick={() => onSelectEmployee(employee.id)}
-                      className={`w-full px-3 py-2 text-left transition-colors ${
+                      className={`w-full h-[69px] px-3 py-2 text-left transition-colors ${
                         isSelected ? 'bg-accent' : 'hover:bg-muted/50'
                       }`}
                     >
@@ -199,6 +202,10 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
                     </button>
                   );
                 })}
+
+                {Array.from({ length: blankCount }, (_, index) => (
+                  <div key={`blank-${index}`} className="h-[69px] border-t" />
+                ))}
               </div>
             </div>
           </div>
