@@ -119,7 +119,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
     downloadCsv(`${employee.fullName.replace(/\s+/g, '_')}_${title.replace(/\s+/g, '_')}.csv`, csv);
   };
   
-  const blankCount = Math.max(0, FIXED_ROWS - rows.length);
+  const blankCount = Math.max(0, FIXED_ROWS - rows  .length);
 
   return (
     <Card className="h-[calc(100vh-120px)] min-h-[640px] gap-3">
