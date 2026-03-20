@@ -34,6 +34,9 @@ const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isReportsOpen, setIsReportsOpen] = React.useState<boolean>(location.pathname.startsWith('/admin/reports'));
+  const [isRequestReportsOpen, setIsRequestReportsOpen] = React.useState<boolean>(
+    location.pathname.startsWith('/admin/reports/requests'),
+  );
 
   if (!user) return null;
 
@@ -179,6 +182,124 @@ const Sidebar: React.FC = () => {
                 >
                   Tardiness Report
                 </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRequestReportsOpen((current) => !current)}
+                  className={cn(
+                    'flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors',
+                    location.pathname.startsWith('/admin/reports/requests')
+                      ? 'bg-secondary/25 text-secondary-foreground'
+                      : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                  )}
+                >
+                  <span className="flex-1 text-left">Requests Report</span>
+                  {isRequestReportsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </button>
+
+                {isRequestReportsOpen ? (
+                  <div className="space-y-1 pl-4">
+                    <Link
+                      to="/admin/reports/requests/leave"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/leave')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Leave Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/expense"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/expense')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Expense Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/fund"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/fund')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Fund Request Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/overtime"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/overtime')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Overtime Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/undertime"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/undertime')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Undertime Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/wfh"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/wfh')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Work from Home Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/time-adjustment"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/time-adjustment')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Time Adjustment Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/shift-assignment"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/shift-assignment')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Shift Assignment Report
+                    </Link>
+                    <Link
+                      to="/admin/reports/requests/swap-request"
+                      className={cn(
+                        'block rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive('/admin/reports/requests/swap-request')
+                          ? 'bg-secondary/25 text-secondary-foreground'
+                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
+                      )}
+                    >
+                      Swap Request Report
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

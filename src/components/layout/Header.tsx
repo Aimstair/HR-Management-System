@@ -70,6 +70,42 @@ const Header: React.FC = () => {
           title: 'Reports',
           description: 'Access attendance and tardiness reporting tools.',
         },
+        '/admin/reports/requests/leave': {
+          title: 'Leave Report',
+          description: 'Review leave filings by employee with actions and add-leave workflow.',
+        },
+        '/admin/reports/requests/expense': {
+          title: 'Expense Report',
+          description: 'Review employee expense filings with totals and processing status.',
+        },
+        '/admin/reports/requests/fund': {
+          title: 'Fund Request Report',
+          description: 'Track fund requests, payables, deductions, and payment progress.',
+        },
+        '/admin/reports/requests/overtime': {
+          title: 'Overtime Report',
+          description: 'Monitor overtime request trends and processing outcomes.',
+        },
+        '/admin/reports/requests/undertime': {
+          title: 'Undertime Report',
+          description: 'Monitor undertime request filings and approvals.',
+        },
+        '/admin/reports/requests/wfh': {
+          title: 'Work from Home Report',
+          description: 'Track work-from-home request filings and statuses.',
+        },
+        '/admin/reports/requests/time-adjustment': {
+          title: 'Time Adjustment Report',
+          description: 'Track time adjustment requests and processing details.',
+        },
+        '/admin/reports/requests/shift-assignment': {
+          title: 'Shift Assignment Report',
+          description: 'Track shift assignment request activity and status.',
+        },
+        '/admin/reports/requests/swap-request': {
+          title: 'Swap Request Report',
+          description: 'Track schedule swap requests and decision history.',
+        },
       };
 
       if (location.pathname.startsWith('/admin/employees')) {
@@ -90,6 +126,69 @@ const Header: React.FC = () => {
         return {
           title: 'Tardiness Report',
           description: 'Monitor daily punctuality statuses with monthly tardiness matrix.',
+        };
+      }
+
+      if (location.pathname.startsWith('/admin/reports/requests')) {
+        const requestRouteMeta: Array<{ path: string; title: string; description: string }> = [
+          {
+            path: '/admin/reports/requests/leave',
+            title: 'Leave Report',
+            description: 'Review leave filings by employee with actions and add-leave workflow.',
+          },
+          {
+            path: '/admin/reports/requests/expense',
+            title: 'Expense Report',
+            description: 'Review employee expense filings with totals and processing status.',
+          },
+          {
+            path: '/admin/reports/requests/fund',
+            title: 'Fund Request Report',
+            description: 'Track fund requests, payables, deductions, and payment progress.',
+          },
+          {
+            path: '/admin/reports/requests/overtime',
+            title: 'Overtime Report',
+            description: 'Monitor overtime request trends and processing outcomes.',
+          },
+          {
+            path: '/admin/reports/requests/undertime',
+            title: 'Undertime Report',
+            description: 'Monitor undertime request filings and approvals.',
+          },
+          {
+            path: '/admin/reports/requests/wfh',
+            title: 'Work from Home Report',
+            description: 'Track work-from-home request filings and statuses.',
+          },
+          {
+            path: '/admin/reports/requests/time-adjustment',
+            title: 'Time Adjustment Report',
+            description: 'Track time adjustment requests and processing details.',
+          },
+          {
+            path: '/admin/reports/requests/shift-assignment',
+            title: 'Shift Assignment Report',
+            description: 'Track shift assignment request activity and status.',
+          },
+          {
+            path: '/admin/reports/requests/swap-request',
+            title: 'Swap Request Report',
+            description: 'Track schedule swap requests and decision history.',
+          },
+        ];
+
+        const matched = requestRouteMeta.find((item) => location.pathname.startsWith(item.path));
+        if (matched) {
+          return {
+            title: matched.title,
+            description: matched.description,
+          };
+        }
+
+        return {
+          title: 'Requests Report',
+          description: 'Browse and analyze leave, expense, fund, and schedule-related requests.',
         };
       }
 

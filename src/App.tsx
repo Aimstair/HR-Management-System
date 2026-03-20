@@ -23,6 +23,18 @@ import AdminShifts from './pages/admin/AdminShifts';
 import AdminReports from './pages/admin/AdminReports';
 import AdminTardinessReport from './pages/admin/AdminTardinessReport';
 import AdminMemo from './pages/admin/AdminMemo';
+import LeaveReportPage from './pages/admin/reports/requests/pages/LeaveReportPage';
+import ExpenseReportPage from './pages/admin/reports/requests/pages/ExpenseReportPage';
+import FundRequestReportPage from './pages/admin/reports/requests/pages/FundRequestReportPage';
+import GenericRequestReportPage from './pages/admin/reports/requests/pages/GenericRequestReportPage';
+import {
+  overtimeRecords,
+  shiftAssignmentRecords,
+  swapRequestRecords,
+  timeAdjustmentRecords,
+  undertimeRecords,
+  wfhRecords,
+} from './pages/admin/reports/requests/mockData';
 
 /**
  * Protected Route Component
@@ -98,6 +110,34 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin/reports" element={<Navigate to="/admin/reports/attendance" replace />} />
         <Route path="/admin/reports/attendance" element={<AdminReports />} />
         <Route path="/admin/reports/tardiness" element={<AdminTardinessReport />} />
+        <Route path="/admin/reports/requests" element={<Navigate to="/admin/reports/requests/leave" replace />} />
+        <Route path="/admin/reports/requests/leave" element={<LeaveReportPage />} />
+        <Route path="/admin/reports/requests/expense" element={<ExpenseReportPage />} />
+        <Route path="/admin/reports/requests/fund" element={<FundRequestReportPage />} />
+        <Route
+          path="/admin/reports/requests/overtime"
+          element={<GenericRequestReportPage title="Overtime Report" description="Track overtime filings and processing history." rows={overtimeRecords} />}
+        />
+        <Route
+          path="/admin/reports/requests/undertime"
+          element={<GenericRequestReportPage title="Undertime Report" description="Track undertime filings and approval outcomes." rows={undertimeRecords} />}
+        />
+        <Route
+          path="/admin/reports/requests/wfh"
+          element={<GenericRequestReportPage title="Work from Home Report" description="Track WFH request trends and statuses." rows={wfhRecords} />}
+        />
+        <Route
+          path="/admin/reports/requests/time-adjustment"
+          element={<GenericRequestReportPage title="Time Adjustment Report" description="Track time adjustment filings and actions." rows={timeAdjustmentRecords} />}
+        />
+        <Route
+          path="/admin/reports/requests/shift-assignment"
+          element={<GenericRequestReportPage title="Shift Assignment Report" description="Track shift assignment requests and processing." rows={shiftAssignmentRecords} />}
+        />
+        <Route
+          path="/admin/reports/requests/swap-request"
+          element={<GenericRequestReportPage title="Swap Request Report" description="Track schedule swap requests and decisions." rows={swapRequestRecords} />}
+        />
         <Route path="/admin/memo" element={<AdminMemo />} />
       </Route>
 
