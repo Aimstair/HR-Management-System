@@ -95,8 +95,6 @@ const EmployeeEvaluations: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">My Evaluations</h1>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/20 border-primary/20">
           <p className="text-sm font-medium text-primary mb-2">Overall Rating</p>

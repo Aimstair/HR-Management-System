@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '../../../../../components/ui/dialog';
 import { Input } from '../../../../../components/ui/input';
+import { ScrollArea } from '../../../../../components/ui/scroll-area';
 import { Label } from '../../../../../components/ui/label';
 import {
   Popover,
@@ -192,7 +193,7 @@ const AssignShiftDialog: React.FC<AssignShiftDialogProps> = ({
                     </Button>
                   </div>
 
-                  <div className="max-h-52 overflow-y-auto rounded-md border">
+                  <ScrollArea className="max-h-52 rounded-md border">
                     {filteredEmployees.map((employee) => {
                       const isSelected = selectedEmployeeIds.includes(employee.id);
 
@@ -219,7 +220,7 @@ const AssignShiftDialog: React.FC<AssignShiftDialogProps> = ({
                         </button>
                       );
                     })}
-                  </div>
+                  </ScrollArea>
                 </div>
               </PopoverContent>
             </Popover>

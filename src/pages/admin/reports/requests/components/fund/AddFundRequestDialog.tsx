@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '../../../../../../../components/ui/select';
 import { Checkbox } from '../../../../../../../components/ui/checkbox';
+import { ScrollArea } from '../../../../../../../components/ui/scroll-area';
 import { Textarea } from '../../../../../../../components/ui/textarea';
 import type { FundRecord, ReportEmployeeSummary } from '../../types';
 
@@ -113,112 +114,116 @@ const AddFundRequestDialog: React.FC<AddFundRequestDialogProps> = ({ open, emplo
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Add Fund Request</DialogTitle>
           <DialogDescription>Create a new fund request for the selected employee.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div className="space-y-1">
-            <Label>Employee</Label>
-            <Input value={employee?.fullName || ''} disabled />
-          </div>
+        <ScrollArea className="max-h-[72vh] pr-4">
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label>Employee</Label>
+                <Input value={employee?.fullName || ''} disabled />
+              </div>
 
-          <div className="space-y-1">
-            <Label>Request Type</Label>
-            <Select value={requestType} onValueChange={(next) => setRequestType(next as 'Cash Advance' | 'Loan')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select request type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Cash Advance">Cash Advance</SelectItem>
-                <SelectItem value="Loan">Loan</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-1">
+                <Label>Request Type</Label>
+                <Select value={requestType} onValueChange={(next) => setRequestType(next as 'Cash Advance' | 'Loan')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select request type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cash Advance">Cash Advance</SelectItem>
+                    <SelectItem value="Loan">Loan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {requestType === 'Loan' ? (
-            <div className="space-y-1">
-              <Label>Loan Type</Label>
-              <Select value={loanType} onValueChange={setLoanType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select loan type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Salary Loan">Salary Loan</SelectItem>
-                  <SelectItem value="Emergency Loan">Emergency Loan</SelectItem>
-                  <SelectItem value="Personal Loan">Personal Loan</SelectItem>
-                </SelectContent>
-              </Select>
+              {requestType === 'Loan' ? (
+                <div className="space-y-1">
+                  <Label>Loan Type</Label>
+                  <Select value={loanType} onValueChange={setLoanType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select loan type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Salary Loan">Salary Loan</SelectItem>
+                      <SelectItem value="Emergency Loan">Emergency Loan</SelectItem>
+                      <SelectItem value="Personal Loan">Personal Loan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+
+              <div className="space-y-1">
+                <Label>Deduction Type</Label>
+                <Select value={deductionMode} onValueChange={(next) => setDeductionMode(next as 'Every Pay Day' | 'Every Month')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select deduction type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Every Pay Day">Every Pay Day</SelectItem>
+                    <SelectItem value="Every Month">Every Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Deduction Starts On</Label>
+                <Input type="date" value={deductionStart} onChange={(event) => setDeductionStart(event.target.value)} />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Total Amount</Label>
+                <Input type="number" min={0} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
+              </div>
+
+              <div className="space-y-1">
+                <Label>No. of Payment Terms</Label>
+                <Input type="number" min={1} value={terms} onChange={(event) => setTerms(event.target.value)} />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Deductable Amount</Label>
+                <Input type="number" min={0} step="0.01" value={deductableAmount} onChange={(event) => setDeductableAmount(event.target.value)} />
+              </div>
             </div>
-          ) : null}
 
-          <div className="space-y-1">
-            <Label>Deduction Type</Label>
-            <Select value={deductionMode} onValueChange={(next) => setDeductionMode(next as 'Every Pay Day' | 'Every Month')}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select deduction type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Every Pay Day">Every Pay Day</SelectItem>
-                <SelectItem value="Every Month">Every Month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label>Deduction Starts On</Label>
-            <Input type="date" value={deductionStart} onChange={(event) => setDeductionStart(event.target.value)} />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Total Amount</Label>
-            <Input type="number" min={0} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
-          </div>
-
-          <div className="space-y-1">
-            <Label>No. of Payment Terms</Label>
-            <Input type="number" min={1} value={terms} onChange={(event) => setTerms(event.target.value)} />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Deductable Amount</Label>
-            <Input type="number" min={0} step="0.01" value={deductableAmount} onChange={(event) => setDeductableAmount(event.target.value)} />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Checkbox checked={initiallyPaid} onCheckedChange={(next) => setInitiallyPaid(Boolean(next))} />
-          <Label>Loan initially paid</Label>
-        </div>
-
-        {initiallyPaid ? (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="space-y-1">
-              <Label>Description</Label>
-              <Input value={initialDescription} onChange={(event) => setInitialDescription(event.target.value)} />
+            <div className="flex items-center gap-2">
+              <Checkbox checked={initiallyPaid} onCheckedChange={(next) => setInitiallyPaid(Boolean(next))} />
+              <Label>Loan initially paid</Label>
             </div>
+
+            {initiallyPaid ? (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label>Description</Label>
+                  <Input value={initialDescription} onChange={(event) => setInitialDescription(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Paid Terms</Label>
+                  <Input type="number" min={1} value={initialPaidTerms} onChange={(event) => setInitialPaidTerms(event.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Amount Paid</Label>
+                  <Input type="number" min={0} step="0.01" value={initialPaidAmount} onChange={(event) => setInitialPaidAmount(event.target.value)} />
+                </div>
+              </div>
+            ) : null}
+
             <div className="space-y-1">
-              <Label>Paid Terms</Label>
-              <Input type="number" min={1} value={initialPaidTerms} onChange={(event) => setInitialPaidTerms(event.target.value)} />
+              <Label>Notes</Label>
+              <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
             </div>
-            <div className="space-y-1">
-              <Label>Amount Paid</Label>
-              <Input type="number" min={0} step="0.01" value={initialPaidAmount} onChange={(event) => setInitialPaidAmount(event.target.value)} />
-            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="button" onClick={submit}>Add Fund Request</Button>
+            </DialogFooter>
           </div>
-        ) : null}
-
-        <div className="space-y-1">
-          <Label>Notes</Label>
-          <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-        </div>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="button" onClick={submit}>Add Fund Request</Button>
-        </DialogFooter>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

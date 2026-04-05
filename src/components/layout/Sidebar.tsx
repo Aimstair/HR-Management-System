@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import { Button } from '../../../components/ui/button';
+import { ScrollArea } from '../../../components/ui/scroll-area';
 import { cn } from '../../lib/utils';
 
 interface NavItem {
@@ -66,6 +67,12 @@ const Sidebar: React.FC = () => {
             label: 'Requests',
             href: '/portal/requests',
             icon: <FileText className="w-5 h-5" />,
+            requiredRole: [UserRole.EMPLOYEE],
+          },
+          {
+            label: 'Memos',
+            href: '/portal/memos',
+            icon: <ScrollText className="w-5 h-5" />,
             requiredRole: [UserRole.EMPLOYEE],
           },
           {
@@ -124,7 +131,8 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+      <ScrollArea className="flex-1">
+        <nav className="space-y-2 px-4 py-6">
         {navItems.map((item) => (
           <Link
             key={item.href}
@@ -315,7 +323,8 @@ const Sidebar: React.FC = () => {
             ) : null}
           </div>
         ) : null}
-      </nav>
+        </nav>
+      </ScrollArea>
 
       {/* User Section & Logout */}
       <div className="border-t border-primary/50 p-4 space-y-4">

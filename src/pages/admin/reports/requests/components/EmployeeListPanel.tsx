@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../../../../../component
 import { Button } from '../../../../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../../../components/ui/card';
 import { Input } from '../../../../../../components/ui/input';
+import { ScrollArea } from '../../../../../../components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -164,7 +165,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
           </div>
 
           <div className="h-full overflow-hidden rounded-md border">
-            <div className="h-full overflow-y-auto">
+            <ScrollArea className="h-full">
               <div className="divide-y">
                 {rows.map((employee) => {
                   const isSelected = employee.id === selectedEmployeeId;
@@ -207,7 +208,7 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
                   <div key={`blank-${index}`} className="h-[69px] border-t" />
                 ))}
               </div>
-            </div>
+            </ScrollArea>
           </div>
 
           <Paginator currentPage={safePage} totalPages={totalPages} onPageChange={setPage} />

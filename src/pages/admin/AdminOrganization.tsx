@@ -366,8 +366,9 @@ const AdminOrganization: React.FC = () => {
       </div>
 
       <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <div className="flex flex-row overflow-x-auto gap-4 p-4 h-[calc(100vh-200px)]">
-          <Card className="min-w-[320px] max-w-[360px] flex-1">
+        <ScrollArea className="h-[calc(100vh-200px)] w-full whitespace-nowrap rounded-md">
+          <div className="flex min-w-max flex-row gap-4 p-4">
+            <Card className="min-w-[320px] max-w-[360px] flex-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Divisions</CardTitle>
               <CardDescription>Schools and non-academic offices</CardDescription>
@@ -409,10 +410,10 @@ const AdminOrganization: React.FC = () => {
                 </div>
               </ScrollArea>
             </CardContent>
-          </Card>
+            </Card>
 
-          {selectedDivisionData && (
-            <Card className="min-w-[320px] max-w-[380px] flex-1">
+            {selectedDivisionData && (
+              <Card className="min-w-[320px] max-w-[380px] flex-1">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -443,11 +444,11 @@ const AdminOrganization: React.FC = () => {
                   </div>
                 </ScrollArea>
               </CardContent>
-            </Card>
-          )}
+              </Card>
+            )}
 
-          {selectedDepartmentData && (
-            <Card className="min-w-[340px] max-w-[420px] flex-1">
+            {selectedDepartmentData && (
+              <Card className="min-w-[340px] max-w-[420px] flex-1">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -483,9 +484,10 @@ const AdminOrganization: React.FC = () => {
                   </p>
                 </ScrollArea>
               </CardContent>
-            </Card>
-          )}
-        </div>
+              </Card>
+            )}
+          </div>
+        </ScrollArea>
       </DndContext>
     </div>
   );

@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../../components/ui/select';
+import { ScrollArea } from '../../../../../components/ui/scroll-area';
 import type { CampusNode, EmployeeNode } from '../types';
 
 interface OnboardingWizardProps {
@@ -328,32 +329,33 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? closeWizard() : onOpenChange(nextOpen))}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Employee Onboarding Wizard</DialogTitle>
           <DialogDescription>Provide all required employee details before creating the profile.</DialogDescription>
         </DialogHeader>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Step {step + 1}: {steps[step]}</CardTitle>
-            <CardDescription>Use Next/Prev to navigate through onboarding.</CardDescription>
-            <div className="grid grid-cols-5 gap-2">
-              {steps.map((label, index) => (
-                <div
-                  key={label}
-                  className={`rounded-md border px-2 py-2 text-center text-xs ${
-                    index <= step ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          </CardHeader>
+        <ScrollArea className="max-h-[72vh] pr-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Step {step + 1}: {steps[step]}</CardTitle>
+              <CardDescription>Use Next/Prev to navigate through onboarding.</CardDescription>
+              <div className="grid grid-cols-5 gap-2">
+                {steps.map((label, index) => (
+                  <div
+                    key={label}
+                    className={`rounded-md border px-2 py-2 text-center text-xs ${
+                      index <= step ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </CardHeader>
 
-          <CardContent>
-            <form className="space-y-5" onSubmit={handleSubmit(submit)}>
+            <CardContent>
+              <form className="space-y-5" onSubmit={handleSubmit(submit)}>
               {step === 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -565,22 +567,23 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-between pt-2">
-                <Button type="button" variant="outline" onClick={closeWizard}>Cancel</Button>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" onClick={prevStep} disabled={step === 0}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </Button>
-                  {step < steps.length - 1 ? (
-                    <Button type="button" onClick={nextStep}>Next <ChevronRight className="h-4 w-4" /></Button>
-                  ) : (
-                    <Button type="submit">Submit</Button>
-                  )}
+                <div className="flex items-center justify-between pt-2">
+                  <Button type="button" variant="outline" onClick={closeWizard}>Cancel</Button>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" onClick={prevStep} disabled={step === 0}>
+                      <ChevronLeft className="h-4 w-4" /> Previous
+                    </Button>
+                    {step < steps.length - 1 ? (
+                      <Button type="button" onClick={nextStep}>Next <ChevronRight className="h-4 w-4" /></Button>
+                    ) : (
+                      <Button type="submit">Submit</Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

@@ -13,6 +13,8 @@ import EmployeeProfile from './pages/employee/EmployeeProfile';
 import EmployeeAttendance from './pages/employee/EmployeeAttendance';
 import EmployeeRequests from './pages/employee/EmployeeRequests';
 import EmployeeEvaluations from './pages/employee/EmployeeEvaluations';
+import EmployeeMemos from './pages/employee/EmployeeMemos';
+import { EmployeePortalProvider } from './pages/employee/shared/EmployeePortalProvider';
 
 // Page imports - HR Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -82,7 +84,9 @@ const AppRoutes: React.FC = () => {
       <Route
         element={
           <ProtectedRoute allowedRoles={[UserRole.EMPLOYEE]}>
-            <Layout />
+            <EmployeePortalProvider>
+              <Layout />
+            </EmployeePortalProvider>
           </ProtectedRoute>
         }
       >
@@ -90,6 +94,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/portal/profile" element={<EmployeeProfile />} />
         <Route path="/portal/attendance" element={<EmployeeAttendance />} />
         <Route path="/portal/requests" element={<EmployeeRequests />} />
+        <Route path="/portal/memos" element={<EmployeeMemos />} />
         <Route path="/portal/evaluations" element={<EmployeeEvaluations />} />
       </Route>
 

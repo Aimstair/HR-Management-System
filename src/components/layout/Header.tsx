@@ -30,6 +30,10 @@ const Header: React.FC = () => {
           title: 'My Requests',
           description: 'Submit and monitor leave, adjustment, and other HR requests.',
         },
+        '/portal/memos': {
+          title: 'Memos',
+          description: 'Review received memos and organization announcements.',
+        },
         '/portal/evaluations': {
           title: 'Evaluations',
           description: 'Review evaluation results and progress insights.',
