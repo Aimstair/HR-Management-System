@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Area,
@@ -37,6 +37,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import { getAdminDashboardMetrics } from '../../lib/admin-api';
 
 interface KpiStats {
   totalEmployees: number;
@@ -44,6 +46,7 @@ interface KpiStats {
   pendingRequests: number;
   todayAttendance: number;
   totalLate: number;
+  activeShifts: number;
 }
 
 interface AttendanceTrendPoint {
@@ -85,12 +88,13 @@ interface KpiCard {
 const PRIMARY_COLOR = '#0D3E20';
 const ACCENT_COLOR = '#FEB104';
 
-const kpiStats: KpiStats = {
+const fallbackKpiStats: KpiStats = {
   totalEmployees: 342,
   onLeave: 12,
   pendingRequests: 18,
   todayAttendance: 94,
   totalLate: 8,
+  activeShifts: 12,
 };
 
 const attendanceTrendData: AttendanceTrendPoint[] = [
@@ -174,38 +178,9 @@ const priorityRequests: PriorityRequestItem[] = [
 
 const pieColors: string[] = [PRIMARY_COLOR, '#2D6A4F', '#6AA58D', ACCENT_COLOR];
 
-const kpiCards: KpiCard[] = [
-  {
-    label: 'Active Headcount',
-    value: String(kpiStats.totalEmployees - kpiStats.onLeave),
-    helper: `${kpiStats.onLeave} currently on leave`,
-    icon: UserCheck,
-    iconClassName: 'bg-primary/10 text-primary',
-  },
-  {
-    label: 'Pending Approvals',
-    value: String(kpiStats.pendingRequests),
-    helper: 'Across all request modules',
-    icon: FileClock,
-    iconClassName: 'text-black',
-  },
-  {
-    label: "Today's Attendance %",
-    value: `${kpiStats.todayAttendance}%`,
-    helper: 'Organization attendance rate today',
-    icon: CheckCircle2,
-    iconClassName: 'bg-primary/10 text-primary',
-  },
-  {
-    label: 'Flagged Tardy',
-    value: String(kpiStats.totalLate),
-    helper: 'Employees marked late today',
-    icon: AlertCircle,
-    iconClassName: 'bg-destructive/10 text-destructive',
-  },
-];
-
 const AdminDashboard: React.FC = () => {
+  const [kpiStats, setKpiStats] = useState<KpiStats>(fallbackKpiStats);
+
   const formattedDate = useMemo(() => {
     return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
@@ -214,6 +189,57 @@ const AdminDashboard: React.FC = () => {
       year: 'numeric',
     }).format(new Date());
   }, []);
+
+  useEffect(() => {
+    const loadDashboardMetrics = async (): Promise<void> => {
+      try {
+        const metrics = await getAdminDashboardMetrics();
+        setKpiStats((current) => ({
+          ...current,
+          totalEmployees: metrics.totalEmployees,
+          pendingRequests: metrics.pendingRequests,
+          activeShifts: metrics.activeShifts,
+        }));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load admin dashboard metrics');
+      }
+    };
+
+    void loadDashboardMetrics();
+  }, []);
+
+  const kpiCards: KpiCard[] = useMemo(() => {
+    return [
+      {
+        label: 'Active Headcount',
+        value: String(Math.max(0, kpiStats.totalEmployees - kpiStats.onLeave)),
+        helper: `${kpiStats.onLeave} currently on leave`,
+        icon: UserCheck,
+        iconClassName: 'bg-primary/10 text-primary',
+      },
+      {
+        label: 'Pending Approvals',
+        value: String(kpiStats.pendingRequests),
+        helper: `${kpiStats.activeShifts} configured active shifts`,
+        icon: FileClock,
+        iconClassName: 'text-black',
+      },
+      {
+        label: "Today's Attendance %",
+        value: `${kpiStats.todayAttendance}%`,
+        helper: 'Organization attendance rate today',
+        icon: CheckCircle2,
+        iconClassName: 'bg-primary/10 text-primary',
+      },
+      {
+        label: 'Flagged Tardy',
+        value: String(kpiStats.totalLate),
+        helper: 'Employees marked late today',
+        icon: AlertCircle,
+        iconClassName: 'bg-destructive/10 text-destructive',
+      },
+    ];
+  }, [kpiStats]);
 
   const initials = (name: string): string => {
     return name

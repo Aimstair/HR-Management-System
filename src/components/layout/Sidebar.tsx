@@ -15,7 +15,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types';
+import { ADMIN_ROLES, isAdminRole, UserRole } from '../../types';
 import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { cn } from '../../lib/utils';
@@ -26,6 +26,13 @@ interface NavItem {
   icon: React.ReactNode;
   requiredRole: UserRole[];
 }
+
+const roleLabels: Record<UserRole, string> = {
+  [UserRole.EMPLOYEE]: 'Employee',
+  [UserRole.HEAD_ADMIN]: 'Head Admin',
+  [UserRole.SCHOOL_ADMIN]: 'School Admin',
+  [UserRole.DEPARTMENT_ADMIN]: 'Department Admin',
+};
 
 /**
  * Sidebar Navigation Component
@@ -47,7 +54,7 @@ const Sidebar: React.FC = () => {
       label: 'Dashboard',
       href: user.role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />,
-      requiredRole: [UserRole.EMPLOYEE, UserRole.HR],
+      requiredRole: [UserRole.EMPLOYEE, ...ADMIN_ROLES],
     },
     ...(user.role === UserRole.EMPLOYEE
       ? [
@@ -83,37 +90,37 @@ const Sidebar: React.FC = () => {
           },
         ]
       : []),
-    ...(user.role === UserRole.HR
+    ...(isAdminRole(user.role)
       ? [
           {
             label: 'Employees',
             href: '/admin/employees',
             icon: <Users className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
           {
             label: 'Organization',
             href: '/admin/organization',
             icon: <Building2 className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
           {
             label: 'Requests',
             href: '/admin/requests',
             icon: <FileText className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
           {
             label: 'Shifts',
             href: '/admin/shifts',
             icon: <Calendar className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
           {
             label: 'Memo',
             href: '/admin/memo',
             icon: <ScrollText className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
         ]
       : []),
@@ -127,7 +134,7 @@ const Sidebar: React.FC = () => {
       {/* Logo/Branding */}
       <div className="p-6 border-b border-primary/50">
         <h1 className="text-2xl font-bold text-primary-foreground">HR System</h1>
-        <p className="text-sm text-primary-foreground/80 mt-1">{user.role.replace('ROLE_', '')}</p>
+        <p className="text-sm text-primary-foreground/80 mt-1">{roleLabels[user.role]}</p>
       </div>
 
       {/* Navigation Items */}
@@ -149,7 +156,7 @@ const Sidebar: React.FC = () => {
           </Link>
         ))}
 
-        {user.role === UserRole.HR ? (
+        {isAdminRole(user.role) ? (
           <div className="space-y-2">
             <button
               type="button"

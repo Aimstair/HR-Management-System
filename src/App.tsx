@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
-import { UserRole } from './types';
+import { ADMIN_ROLES, getDefaultRouteForRole, UserRole } from './types';
 
 // Page imports - Auth
 import LoginPage from './pages/auth/LoginPage';
@@ -101,7 +101,7 @@ const AppRoutes: React.FC = () => {
       {/* ===== HR ADMIN ROUTES ===== */}
       <Route
         element={
-          <ProtectedRoute allowedRoles={[UserRole.HR]}>
+          <ProtectedRoute allowedRoles={ADMIN_ROLES}>
             <Layout />
           </ProtectedRoute>
         }
@@ -136,10 +136,7 @@ const AppRoutes: React.FC = () => {
         path="/"
         element={
           user ? (
-            <Navigate
-              to={user.role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard'}
-              replace
-            />
+            <Navigate to={getDefaultRouteForRole(user.role)} replace />
           ) : (
             <Navigate to="/login" replace />
           )

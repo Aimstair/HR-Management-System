@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '../../../components/ui/select';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole, type User } from '../../types';
+import { isAdminRole, type User } from '../../types';
 import { campuses as employeeDirectoryCampuses } from '../admin/employees/mockData';
 import type { CampusNode, EmployeeNode } from '../admin/employees/types';
 
@@ -127,7 +127,7 @@ const buildFallbackEmployee = (user: User): EmployeeNode => {
     middleName: '',
     lastName: user.lastName,
     jobTitle: user.position,
-    role: user.role === UserRole.HR ? 'HR Admin' : 'Faculty',
+    role: isAdminRole(user.role) ? 'Admin' : 'Faculty',
     profilePicture: user.profileImage,
     birthDate: EMPTY_VALUE,
     phoneNumber: EMPTY_VALUE,

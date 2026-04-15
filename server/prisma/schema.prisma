@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ROLE_HEAD_ADMIN
+  ROLE_SCHOOL_ADMIN
+  ROLE_DEPARTMENT_ADMIN
+  ROLE_EMPLOYEE
+}
+
+enum AdminScopeType {
+  GLOBAL
+  SCHOOL
+  DEPARTMENT
+}
+
+enum RequestType {
+  LEAVE
+  EXPENSE
+  FUND
+  OVERTIME
+  UNDERTIME
+  WFH
+  TIME_ADJUSTMENT
+  SHIFT_ASSIGNMENT
+  SWAP_REQUEST
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model School {
+  id          String          @id
+  name        String          @unique
+  code        String?         @unique
+  departments Department[]
+  users       User[]
+  requests    RequestRecord[]
+  shifts      Shift[]
+  memos       Memo[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Department {
+  id        String          @id
+  name      String
+  schoolId  String
+  school    School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  users     User[]
+  requests  RequestRecord[]
+  shifts    Shift[]
+  memos     Memo[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([schoolId])
+  @@unique([schoolId, name])
+}
+
+model User {
+  id                  String          @id @default(cuid())
+  email               String          @unique
+  passwordHash        String
+  isActive            Boolean         @default(true)
+  firstName           String
+  lastName            String
+  role                Role
+  department          String?
+  schoolBranch        String?
+  position            String?
+  profileImage        String?
+  joinDate            DateTime        @default(now())
+  schoolId            String?
+  departmentId        String?
+  school              School?         @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  departmentModel     Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  adminScopeType      AdminScopeType?
+  adminSchoolId       String?
+  adminSchoolName     String?
+  adminDepartmentId   String?
+  adminDepartmentName String?
+  requests            RequestRecord[] @relation("EmployeeRequests")
+  reviewedRequests    RequestRecord[] @relation("ReviewedRequests")
+  createdShifts       Shift[]         @relation("ShiftCreatedBy")
+  createdMemos        Memo[]          @relation("MemoCreatedBy")
+  refreshTokens       RefreshToken[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([role])
+  @@index([adminScopeType])
+  @@index([schoolId])
+  @@index([departmentId])
+}
+
+model RequestRecord {
+  id           String        @id @default(cuid())
+  type         RequestType
+  status       RequestStatus @default(PENDING)
+  title        String
+  description  String?
+  employeeId   String
+  reviewedById String?
+  schoolId     String
+  departmentId String?
+  employee     User          @relation("EmployeeRequests", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewedBy   User?         @relation("ReviewedRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([employeeId])
+  @@index([reviewedById])
+  @@index([schoolId])
+  @@index([departmentId])
+  @@index([status])
+  @@unique([type, employeeId, title])
+}
+
+model Shift {
+  id           String      @id @default(cuid())
+  name         String
+  startTime    String
+  endTime      String
+  schoolId     String
+  departmentId String?
+  createdById  String?
+  school       School      @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdBy    User?       @relation("ShiftCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([schoolId])
+  @@index([departmentId])
+  @@unique([name, schoolId, departmentId, startTime, endTime])
+}
+
+model Memo {
+  id           String          @id @default(cuid())
+  title        String
+  content      String
+  scopeType    AdminScopeType?
+  schoolId     String
+  departmentId String?
+  createdById  String?
+  school       School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  department   Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdBy    User?           @relation("MemoCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedAt  DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([schoolId])
+  @@index([departmentId])
+  @@unique([title, schoolId, departmentId])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

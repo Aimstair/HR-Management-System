@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Download, Plus, Table2, BarChart3, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types';
+import { isAdminRole } from '../../types';
 import { Card, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import EmployeeListPanel from './reports/attendance/components/EmployeeListPanel';
@@ -51,7 +51,7 @@ const defaultGraphFilter: GraphFilterState = {
 
 const AdminReports: React.FC = () => {
   const { user } = useAuth();
-  const isHr = user?.role === UserRole.HR;
+  const isAdmin = user ? isAdminRole(user.role) : false;
 
   const [employees] = useState<ReportEmployee[]>(reportEmployees);
   const [entries, setEntries] = useState<DtrEntry[]>(dtrEntries);
@@ -251,7 +251,7 @@ const AdminReports: React.FC = () => {
                     {dtrFilterLabel}
                   </Button>
 
-                  {isHr ? (
+                  {isAdmin ? (
                     <Button type="button" onClick={() => setIsAddTimeOpen(true)} disabled={!selectedEmployee}>
                       <Plus className="h-4 w-4" />
                       Add Time
@@ -273,7 +273,7 @@ const AdminReports: React.FC = () => {
               </CardHeader>
             </Card>
 
-            <DtrTable entries={filteredEntries} isHr={isHr} onEditEntry={(entry) => setEditEntry(entry)} />
+            <DtrTable entries={filteredEntries} isHr={isAdmin} onEditEntry={(entry) => setEditEntry(entry)} />
           </div>
         </div>
       ) : (
@@ -290,14 +290,14 @@ const AdminReports: React.FC = () => {
       )}
 
       <EditAttendanceDialog
-        open={Boolean(editEntry) && isHr}
+        open={Boolean(editEntry) && isAdmin}
         entry={editEntry}
         onClose={() => setEditEntry(null)}
         onSave={applyEditAttendance}
       />
 
       <AddTimeDialog
-        open={isAddTimeOpen && isHr}
+        open={isAddTimeOpen && isAdmin}
         employee={selectedEmployee}
         onClose={() => setIsAddTimeOpen(false)}
         onAddTime={addTime}
@@ -319,7 +319,7 @@ const AdminReports: React.FC = () => {
       />
 
       <ExportDialog
-        open={isBulkExportOpen && isHr}
+        open={isBulkExportOpen && isAdmin}
         title="Bulk Export (All Employee)"
         onClose={() => setIsBulkExportOpen(false)}
         onExport={exportBulkCsv}

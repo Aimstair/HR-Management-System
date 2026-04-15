@@ -9,8 +9,38 @@
 
 export enum UserRole {
   EMPLOYEE = 'ROLE_EMPLOYEE',
-  HR = 'ROLE_HR',
+  HEAD_ADMIN = 'ROLE_HEAD_ADMIN',
+  SCHOOL_ADMIN = 'ROLE_SCHOOL_ADMIN',
+  DEPARTMENT_ADMIN = 'ROLE_DEPARTMENT_ADMIN',
 }
+
+export enum AdminScopeType {
+  GLOBAL = 'GLOBAL',
+  SCHOOL = 'SCHOOL',
+  DEPARTMENT = 'DEPARTMENT',
+}
+
+export interface AdminScope {
+  scopeType: AdminScopeType;
+  schoolId?: string | null;
+  schoolName?: string | null;
+  departmentId?: string | null;
+  departmentName?: string | null;
+}
+
+export const ADMIN_ROLES: UserRole[] = [
+  UserRole.HEAD_ADMIN,
+  UserRole.SCHOOL_ADMIN,
+  UserRole.DEPARTMENT_ADMIN,
+];
+
+export const isAdminRole = (role: UserRole): boolean => {
+  return ADMIN_ROLES.includes(role);
+};
+
+export const getDefaultRouteForRole = (role: UserRole): string => {
+  return role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard';
+};
 
 export interface User {
   id: string;
@@ -23,13 +53,14 @@ export interface User {
   profileImage?: string;
   joinDate: Date;
   position: string;
+  scope?: AdminScope | null;
 }
 
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
