@@ -1,17 +1,33 @@
 import React from 'react';
-import { createEmployeeRequestRecord, initialAttendanceEntries, initialEmployeeMemos, initialEmployeeRequests } from './employeePortalData';
+import {
+  createEmployeeRequestRecord,
+  getInitialAttendanceEntries,
+  getInitialEmployeeRequests,
+  initialEmployeeMemos,
+} from './employeePortalData';
 import type {
   EmployeePortalContextValue,
   EmployeeRequestDraft,
   EmployeeRequestRecord,
 } from './employeePortalTypes';
+import { useAuth } from '../../../context/AuthContext';
+import { EmployeeType } from '../../../types';
 
 const EmployeePortalContext = React.createContext<EmployeePortalContextValue | null>(null);
 
 const EmployeePortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [attendanceEntries] = React.useState(initialAttendanceEntries);
+  const { user } = useAuth();
+  const employeeType = user?.employeeType ?? EmployeeType.NON_TEACHING;
+  const attendanceEntries = React.useMemo(
+    () => getInitialAttendanceEntries(employeeType),
+    [employeeType],
+  );
   const [memos] = React.useState(initialEmployeeMemos);
-  const [requests, setRequests] = React.useState(initialEmployeeRequests);
+  const [requests, setRequests] = React.useState(() => getInitialEmployeeRequests(employeeType));
+
+  React.useEffect(() => {
+    setRequests(getInitialEmployeeRequests(employeeType));
+  }, [employeeType]);
 
   const submitRequest = React.useCallback((draft: EmployeeRequestDraft): EmployeeRequestRecord => {
     const next = createEmployeeRequestRecord(draft);
@@ -29,6 +45,21 @@ const EmployeePortalProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const targetEntry = attendanceEntries.find((entry) => entry.id === payload.attendanceEntryId);
       if (!targetEntry) {
         return null;
+      }
+
+      if (targetEntry.mode === 'TEACHING_SESSION') {
+        const status = targetEntry.status ?? 'PRESENT';
+
+        return submitRequest({
+          type: 'attendance',
+          fields: {
+            sessionDate: targetEntry.date,
+            subject: `${targetEntry.subjectCode ?? 'SUBJECT'} - ${targetEntry.subjectName ?? 'Session'}`,
+            classSession: targetEntry.id,
+            markedStatus: status,
+            reason: payload.reason,
+          },
+        });
       }
 
       return submitRequest({

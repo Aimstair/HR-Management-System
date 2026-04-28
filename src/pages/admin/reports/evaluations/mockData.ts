@@ -21,6 +21,7 @@ const teachingFaculty = Array.from(
                 school: school.name,
                 department: department.name,
                 avatarUrl: employee.profilePicture || employee.avatarUrl || 'https://picsum.photos/seed/default-faculty/120/120',
+                employeeType: 'TEACHING' as const,
               })),
           ),
         ),
@@ -29,7 +30,29 @@ const teachingFaculty = Array.from(
   ).values(),
 );
 
-export const facultyProfiles: FacultyProfile[] = teachingFaculty.slice(0, 10);
+const nonTeachingStaff = Array.from(
+  new Map(
+    campuses
+      .flatMap((campus) =>
+        campus.departments.flatMap((department) =>
+          (department.employees ?? [])
+            .filter((employee) => employee.role === 'Staff' || employee.role === 'HR Admin')
+            .map((employee) => ({
+              id: employee.id,
+              fullName: employee.fullName,
+              position: employee.position,
+              school: campus.name,
+              department: department.name,
+              avatarUrl: employee.profilePicture || employee.avatarUrl || 'https://picsum.photos/seed/default-staff/120/120',
+              employeeType: 'NON_TEACHING' as const,
+            })),
+        ),
+      )
+      .map((staff) => [staff.id, staff]),
+  ).values(),
+);
+
+export const facultyProfiles: FacultyProfile[] = [...teachingFaculty.slice(0, 10), ...nonTeachingStaff.slice(0, 10)];
 
 const subjectsBySchool: Record<string, Array<{ code: string; title: string }>> = {
   'School of Engineering': [
@@ -51,6 +74,25 @@ const subjectsBySchool: Record<string, Array<{ code: string; title: string }>> =
     { code: 'CS 221L', title: 'Data Structures Laboratory' },
     { code: 'CS 242L', title: 'Database Systems Laboratory' },
     { code: 'CS 261L', title: 'Networking Laboratory' },
+  ],
+};
+
+const kpisByDepartment: Record<string, Array<{ code: string; title: string }>> = {
+  HR: [
+    { code: 'HR-KPI-01', title: 'Recruitment Turnaround and Onboarding Cycle' },
+    { code: 'HR-KPI-02', title: 'Employee Relations Case Resolution Quality' },
+  ],
+  Accounting: [
+    { code: 'ACC-KPI-01', title: 'Payroll Accuracy and Timeliness' },
+    { code: 'ACC-KPI-02', title: 'Disbursement Compliance and Reporting' },
+  ],
+  Maintenance: [
+    { code: 'MNT-KPI-01', title: 'Preventive Maintenance Completion Rate' },
+    { code: 'MNT-KPI-02', title: 'Facility Incident Response Time' },
+  ],
+  Cleaners: [
+    { code: 'CLN-KPI-01', title: 'Campus Cleanliness Audit Score' },
+    { code: 'CLN-KPI-02', title: 'Housekeeping SLA Compliance' },
   ],
 };
 
@@ -135,6 +177,45 @@ const makeSections = (seed: number): EvaluationSectionScore[] => [
   },
 ];
 
+const makeNonTeachingSections = (seed: number): EvaluationSectionScore[] => [
+  {
+    id: 'service-delivery',
+    title: 'Service Delivery and Work Quality',
+    criteria: [
+      criterion('service-a', 'Delivers assigned tasks accurately and on schedule', scoreFromSeed(seed, 1)),
+      criterion('service-b', 'Maintains service standards across recurring activities', scoreFromSeed(seed, 2)),
+      criterion('service-c', 'Adapts work plans based on operational priorities', scoreFromSeed(seed, 3)),
+    ],
+  },
+  {
+    id: 'coordination',
+    title: 'Coordination and Stakeholder Communication',
+    criteria: [
+      criterion('coord-a', 'Coordinates effectively with related offices and teams', scoreFromSeed(seed, 4)),
+      criterion('coord-b', 'Provides timely updates and status reporting', scoreFromSeed(seed, 5)),
+      criterion('coord-c', 'Handles requests and concerns professionally', scoreFromSeed(seed, 6)),
+    ],
+  },
+  {
+    id: 'process-compliance',
+    title: 'Policy Compliance and Process Discipline',
+    criteria: [
+      criterion('process-a', 'Follows approved policies and standard operating procedures', scoreFromSeed(seed, 7)),
+      criterion('process-b', 'Maintains complete and reliable documentation', scoreFromSeed(seed, 8)),
+      criterion('process-c', 'Uses institutional resources responsibly and securely', scoreFromSeed(seed, 9)),
+    ],
+  },
+  {
+    id: 'initiative',
+    title: 'Initiative and Continuous Improvement',
+    criteria: [
+      criterion('initiative-a', 'Identifies process improvements proactively', scoreFromSeed(seed, 10)),
+      criterion('initiative-b', 'Acts on feedback to improve output quality', scoreFromSeed(seed, 11)),
+      criterion('initiative-c', 'Supports team goals beyond minimum expectations', scoreFromSeed(seed, 12)),
+    ],
+  },
+];
+
 const strongPointPool = [
   'Explains procedures clearly before lab execution.',
   'Consistently starts sessions on schedule.',
@@ -153,12 +234,36 @@ const improvementPool = [
   'Publish feedback summaries faster after submissions.',
 ];
 
+const staffStrongPointPool = [
+  'Maintains dependable turnaround for operational requests.',
+  'Communicates progress and blockers clearly with stakeholders.',
+  'Consistently follows documentation and process controls.',
+  'Shows ownership in resolving day-to-day service issues.',
+  'Supports team collaboration during peak workload periods.',
+  'Introduces practical small improvements to routine tasks.',
+];
+
+const staffImprovementPool = [
+  'Escalate delays earlier for better cross-team coordination.',
+  'Increase update frequency on high-priority tasks.',
+  'Improve completeness of process logs and records.',
+  'Standardize handoff notes between shifts or units.',
+  'Broaden familiarity with related campus policies.',
+  'Document recurring issues with root-cause analysis.',
+];
+
 const pickPool = (pool: string[], seed: number): string[] => {
   return [pool[seed % pool.length], pool[(seed + 2) % pool.length]];
 };
 
 const makeRecordsForFaculty = (faculty: FacultyProfile, facultyIndex: number): FacultyEvaluationRecord[] => {
-  const subjects = subjectsBySchool[faculty.school] || subjectsBySchool['School of Engineering'];
+  const isTeaching = faculty.employeeType === 'TEACHING';
+  const subjects = isTeaching
+    ? subjectsBySchool[faculty.school] || subjectsBySchool['School of Engineering']
+    : kpisByDepartment[faculty.department] || [
+        { code: 'OPS-KPI-01', title: 'Operational KPI Review' },
+        { code: 'OPS-KPI-02', title: 'Service and Compliance KPI Review' },
+      ];
 
   return schoolYears.flatMap((schoolYear, yearIndex) =>
     semesters.flatMap((semester, semIndex) =>
@@ -178,10 +283,11 @@ const makeRecordsForFaculty = (faculty: FacultyProfile, facultyIndex: number): F
           schoolYear,
           semester,
           submittedAt: `2026-03-${day}T10:30:00`,
-          respondentCount: 24 + ((seed + 3) % 18),
-          sections: makeSections(seed),
-          strongPoints: pickPool(strongPointPool, seed),
-          improvements: pickPool(improvementPool, seed + 1),
+          respondentCount: isTeaching ? 24 + ((seed + 3) % 18) : 8 + ((seed + 2) % 9),
+          sections: isTeaching ? makeSections(seed) : makeNonTeachingSections(seed),
+          strongPoints: pickPool(isTeaching ? strongPointPool : staffStrongPointPool, seed),
+          improvements: pickPool(isTeaching ? improvementPool : staffImprovementPool, seed + 1),
+          employeeType: faculty.employeeType,
         } satisfies FacultyEvaluationRecord;
       }),
     ),

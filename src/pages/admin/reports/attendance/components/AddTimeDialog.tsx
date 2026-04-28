@@ -10,27 +10,33 @@ import {
 import { Button } from '../../../../../../components/ui/button';
 import { Input } from '../../../../../../components/ui/input';
 import { Label } from '../../../../../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../components/ui/select';
 import { Textarea } from '../../../../../../components/ui/textarea';
 import type { AddTimeFormValues, ReportEmployee } from '../types';
+import { EmployeeType } from '../../../../../types';
 
 interface AddTimeDialogProps {
   open: boolean;
   employee: ReportEmployee | null;
+  employeeType: EmployeeType;
   onClose: () => void;
   onAddTime: (values: AddTimeFormValues) => void;
 }
 
-const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, onAddTime }) => {
+const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, employeeType, onClose, onAddTime }) => {
   const [start, setStart] = useState<string>('');
   const [end, setEnd] = useState<string>('');
-  const [agenda, setAgenda] = useState<string>('');
+  const [subject, setSubject] = useState<string>('');
+  const [status, setStatus] = useState<'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED'>('PRESENT');
   const [notes, setNotes] = useState<string>('');
+  const isTeaching = employeeType === EmployeeType.TEACHING;
 
   React.useEffect(() => {
     if (!open) {
       setStart('');
       setEnd('');
-      setAgenda('');
+      setSubject('');
+      setStatus('PRESENT');
       setNotes('');
     }
   }, [open]);
@@ -44,7 +50,8 @@ const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, 
       employeeId: employee.id,
       start,
       end,
-      agenda,
+      subject: isTeaching ? subject : undefined,
+      status: isTeaching ? status : undefined,
       notes,
     });
     onClose();
@@ -75,10 +82,33 @@ const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Agenda</Label>
-            <Input value={agenda} onChange={(event) => setAgenda(event.target.value)} placeholder="e.g. Overtime Completion" />
-          </div>
+          {isTeaching ? (
+            <>
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <Input
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="e.g. CS101 - Introduction to Computer Science"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PRESENT">Present</SelectItem>
+                    <SelectItem value="LATE">Late</SelectItem>
+                    <SelectItem value="ABSENT">Absent</SelectItem>
+                    <SelectItem value="EXCUSED">Excused</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : null}
 
           <div className="space-y-2">
             <Label>Notes</Label>

@@ -65,7 +65,21 @@ npm run dev
 
 All users use password `Password123!` after seeding:
 
-- `head.admin@school.com`
-- `school.admin@school.com`
-- `dept.admin@school.com`
-- `employee@school.com`
+- `head.hr@school.com`
+- `campus.hr.main@school.com`
+- `campus.hr.north@school.com`
+- `employee.teaching@school.com`
+- `employee.staff@school.com`
+
+## API Documentation (Swagger)
+
+With the API running, open:
+
+- Swagger UI: `http://localhost:4000/api/docs`
+- OpenAPI JSON: `http://localhost:4000/api/openapi.json`
+
+To call protected endpoints from Swagger UI:
+
+1. Login using `POST /api/auth/login`.
+2. Copy the `accessToken` from the response.
+3. Click **Authorize** and set bearer auth as `Bearer <token>`.

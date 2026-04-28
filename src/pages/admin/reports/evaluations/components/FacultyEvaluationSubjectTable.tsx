@@ -47,7 +47,7 @@ const FacultyEvaluationSubjectTable: React.FC<FacultyEvaluationSubjectTableProps
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Subject</TableHead>
+              <TableHead>Metric</TableHead>
               <TableHead>Term</TableHead>
               <TableHead>Respondents</TableHead>
               <TableHead>Section Averages</TableHead>
@@ -58,7 +58,7 @@ const FacultyEvaluationSubjectTable: React.FC<FacultyEvaluationSubjectTableProps
             {pagedRows.length === 0 ? (
               <TableRow className="h-[99px]">
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No evaluation records for selected filter.
+                  No performance records for selected filter.
                 </TableCell>
               </TableRow>
             ) : (

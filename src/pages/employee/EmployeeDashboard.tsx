@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, ClipboardList, Megaphone, TimerReset } from 'lucide-react';
+import { CalendarClock, CheckCircle2, ClipboardList, Megaphone, TimerReset, XCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import DashboardMemosPreview from './dashboard/components/DashboardMemosPreview';
 import DashboardRequestSummary from './dashboard/components/DashboardRequestSummary';
 import DashboardStatCard from './dashboard/components/DashboardStatCard';
 import { useEmployeePortal } from './shared/EmployeePortalProvider';
+import { useAuth } from '../../context/AuthContext';
+import { EmployeeType } from '../../types';
 import {
   filterAttendanceByMonth,
   filterRequestsByMonthAndType,
@@ -14,18 +16,28 @@ import {
   getAttendanceStats,
   getCurrentMonthKey,
   getRequestStats,
+  getTeachingAttendanceSessionStats,
 } from './shared/employeePortalUtils';
 
 const EmployeeDashboard: React.FC = () => {
+  const { user } = useAuth();
   const { attendanceEntries, requests, memos } = useEmployeePortal();
   const currentMonth = getCurrentMonthKey();
+  const employeeType = user?.employeeType ?? EmployeeType.NON_TEACHING;
+  const isTeaching = employeeType === EmployeeType.TEACHING;
 
   const monthAttendanceEntries = React.useMemo(() => {
-    return filterAttendanceByMonth(attendanceEntries, currentMonth);
-  }, [attendanceEntries, currentMonth]);
+    return filterAttendanceByMonth(attendanceEntries, currentMonth).filter((entry) =>
+      isTeaching ? entry.mode === 'TEACHING_SESSION' : entry.mode === 'DAILY',
+    );
+  }, [attendanceEntries, currentMonth, isTeaching]);
 
   const attendanceTotals = React.useMemo(() => {
     return getAttendanceStats(monthAttendanceEntries);
+  }, [monthAttendanceEntries]);
+
+  const teachingSessionTotals = React.useMemo(() => {
+    return getTeachingAttendanceSessionStats(monthAttendanceEntries);
   }, [monthAttendanceEntries]);
 
   const monthRequests = React.useMemo(() => {
@@ -70,26 +82,53 @@ const EmployeeDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <DashboardStatCard
-          label="Total Work Hours"
-          value={formatDurationHms(attendanceTotals.totalWorkMinutes)}
-          helper="Computed from this month attendance entries"
-          icon={<CalendarClock className="h-5 w-5" />}
-        />
-        <DashboardStatCard
-          label="Total Late Duration"
-          value={formatDurationHms(attendanceTotals.totalLateMinutes)}
-          helper="Accumulated late duration this month"
-          icon={<TimerReset className="h-5 w-5" />}
-          iconClassName="bg-secondary/20 text-secondary-foreground"
-        />
-        <DashboardStatCard
-          label="Total Undertime"
-          value={formatDurationHms(attendanceTotals.totalUndertimeMinutes)}
-          helper="Undertime total for selected month"
-          icon={<TimerReset className="h-5 w-5" />}
-          iconClassName="bg-destructive/10 text-destructive"
-        />
+        {isTeaching ? (
+          <>
+            <DashboardStatCard
+              label="Teaching Sessions"
+              value={String(teachingSessionTotals.totalSessions)}
+              helper="Supervisor-marked sessions this month"
+              icon={<CalendarClock className="h-5 w-5" />}
+            />
+            <DashboardStatCard
+              label="Sessions Present"
+              value={String(teachingSessionTotals.present)}
+              helper="Sessions marked present"
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              iconClassName="bg-primary/10 text-primary"
+            />
+            <DashboardStatCard
+              label="Appealable Sessions"
+              value={String(teachingSessionTotals.appealable)}
+              helper="Late or absent marks eligible for appeal"
+              icon={<XCircle className="h-5 w-5" />}
+              iconClassName="bg-destructive/10 text-destructive"
+            />
+          </>
+        ) : (
+          <>
+            <DashboardStatCard
+              label="Total Work Hours"
+              value={formatDurationHms(attendanceTotals.totalWorkMinutes)}
+              helper="Computed from this month attendance entries"
+              icon={<CalendarClock className="h-5 w-5" />}
+            />
+            <DashboardStatCard
+              label="Total Late Duration"
+              value={formatDurationHms(attendanceTotals.totalLateMinutes)}
+              helper="Accumulated late duration this month"
+              icon={<TimerReset className="h-5 w-5" />}
+              iconClassName="bg-secondary/20 text-secondary-foreground"
+            />
+            <DashboardStatCard
+              label="Total Undertime"
+              value={formatDurationHms(attendanceTotals.totalUndertimeMinutes)}
+              helper="Undertime total for selected month"
+              icon={<TimerReset className="h-5 w-5" />}
+              iconClassName="bg-destructive/10 text-destructive"
+            />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

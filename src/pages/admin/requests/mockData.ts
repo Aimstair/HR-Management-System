@@ -35,33 +35,6 @@ export const initialRequests: RequestRecord[] = [
     reliever: 'N/A',
   },
   {
-    id: 'REQ-E-1003',
-    category: 'expense',
-    status: RequestStatus.PENDING,
-    employee: {
-      name: 'Michael Chen',
-      position: 'HR Specialist',
-      avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop',
-    },
-    requestDate: '2026-03-10T11:02:00',
-    notes: 'Lab consumables reimbursement.',
-    amount: 4350,
-    expenseDate: '2026-03-09T16:30:00',
-  },
-  {
-    id: 'REQ-F-1004',
-    category: 'funds',
-    status: RequestStatus.REJECTED,
-    employee: {
-      name: 'James Martinez',
-      position: 'Science Coordinator',
-    },
-    requestDate: '2026-03-05T10:40:00',
-    notes: 'Robotics competition kits budget request.',
-    amount: 25000,
-    expenseDate: '2026-03-25T09:00:00',
-  },
-  {
     id: 'REQ-W-1005',
     category: 'wfh',
     status: RequestStatus.PENDING,

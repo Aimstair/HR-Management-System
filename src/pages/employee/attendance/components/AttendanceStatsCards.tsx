@@ -1,15 +1,40 @@
 import React from 'react';
-import { Clock3, TimerReset, TriangleAlert } from 'lucide-react';
+import { CheckCircle2, Clock3, TimerReset, TriangleAlert, XCircle } from 'lucide-react';
 import { Card, CardContent } from '../../../../../components/ui/card';
-import type { AttendanceStatTotals } from '../../shared/employeePortalTypes';
+import type {
+  AttendanceStatTotals,
+  TeachingAttendanceSessionTotals,
+} from '../../shared/employeePortalTypes';
 import { formatDurationHms } from '../../shared/employeePortalUtils';
 
 interface AttendanceStatsCardsProps {
   totals: AttendanceStatTotals;
+  sessionTotals?: TeachingAttendanceSessionTotals;
 }
 
-const AttendanceStatsCards: React.FC<AttendanceStatsCardsProps> = ({ totals }) => {
-  const items = [
+const AttendanceStatsCards: React.FC<AttendanceStatsCardsProps> = ({ totals, sessionTotals }) => {
+  const items = sessionTotals
+    ? [
+        {
+          label: 'Total Sessions',
+          value: String(sessionTotals.totalSessions),
+          icon: Clock3,
+          iconClassName: 'bg-primary/10 text-primary',
+        },
+        {
+          label: 'Present Sessions',
+          value: String(sessionTotals.present),
+          icon: CheckCircle2,
+          iconClassName: 'bg-primary/10 text-primary',
+        },
+        {
+          label: 'Late + Absent',
+          value: String(sessionTotals.late + sessionTotals.absent),
+          icon: XCircle,
+          iconClassName: 'bg-destructive/10 text-destructive',
+        },
+      ]
+    : [
     {
       label: 'Total Work Hours',
       value: formatDurationHms(totals.totalWorkMinutes),

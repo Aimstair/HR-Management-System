@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { Download, Plus, Table2, BarChart3, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
-import { isAdminRole } from '../../types';
+import { EmployeeType, isAdminRole } from '../../types';
 import { Card, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
+import type { EmployeeTypeFilter } from '../../components/hr/EmployeeTypeSegmentedControl';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import EmployeeListPanel from './reports/attendance/components/EmployeeListPanel';
 import DtrTable from './reports/attendance/components/DtrTable';
 import EditAttendanceDialog from './reports/attendance/components/EditAttendanceDialog';
@@ -55,6 +57,9 @@ const AdminReports: React.FC = () => {
 
   const [employees] = useState<ReportEmployee[]>(reportEmployees);
   const [entries, setEntries] = useState<DtrEntry[]>(dtrEntries);
+  const [employeeTypeFilter, setEmployeeTypeFilter] = useState<EmployeeTypeFilter>('ALL');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [subjectFilter, setSubjectFilter] = useState<string>('all');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(employees[0]?.id ?? null);
   const [dtrFilter, setDtrFilter] = useState<DtrFilterState>(defaultDtrFilter);
   const [graphFilter, setGraphFilter] = useState<GraphFilterState>(defaultGraphFilter);
@@ -71,21 +76,80 @@ const AdminReports: React.FC = () => {
     setHeaderActionsEl(document.getElementById('header-actions'));
   }, []);
 
+  const filteredEmployees = useMemo(() => {
+    const typeFiltered =
+      employeeTypeFilter === 'ALL'
+        ? employees
+        : employees.filter((employee) => employee.employeeType === employeeTypeFilter);
+
+    if (departmentFilter === 'all') {
+      return typeFiltered;
+    }
+
+    return typeFiltered.filter((employee) => employee.department === departmentFilter);
+  }, [departmentFilter, employeeTypeFilter, employees]);
+
+  useEffect(() => {
+    if (!filteredEmployees.length) {
+      setSelectedEmployeeId(null);
+      return;
+    }
+
+    const isCurrentVisible = filteredEmployees.some((employee) => employee.id === selectedEmployeeId);
+    if (!isCurrentVisible) {
+      setSelectedEmployeeId(filteredEmployees[0].id);
+    }
+  }, [filteredEmployees, selectedEmployeeId]);
+
   const selectedEmployee = useMemo(() => {
-    return employees.find((employee) => employee.id === selectedEmployeeId) ?? null;
-  }, [employees, selectedEmployeeId]);
+    return filteredEmployees.find((employee) => employee.id === selectedEmployeeId) ?? null;
+  }, [filteredEmployees, selectedEmployeeId]);
 
   const selectedEmployeeEntries = useMemo(() => {
     return entries.filter((entry) => entry.employeeId === selectedEmployeeId);
   }, [entries, selectedEmployeeId]);
 
+  const teachingSubjects = useMemo(() => {
+    if (selectedEmployee?.employeeType !== EmployeeType.TEACHING) {
+      return [] as Array<{ code: string; label: string }>;
+    }
+
+    const uniqueSubjects = new Map<string, string>();
+
+    selectedEmployeeEntries.forEach((entry) => {
+      if (!entry.subjectCode) {
+        return;
+      }
+
+      uniqueSubjects.set(entry.subjectCode, entry.subjectName ?? entry.subjectCode);
+    });
+
+    return Array.from(uniqueSubjects.entries()).map(([code, label]) => ({ code, label }));
+  }, [selectedEmployee?.employeeType, selectedEmployeeEntries]);
+
+  useEffect(() => {
+    if (selectedEmployee?.employeeType !== EmployeeType.TEACHING) {
+      setSubjectFilter('all');
+      return;
+    }
+
+    if (subjectFilter !== 'all' && !teachingSubjects.some((subject) => subject.code === subjectFilter)) {
+      setSubjectFilter('all');
+    }
+  }, [selectedEmployee?.employeeType, subjectFilter, teachingSubjects]);
+
   const filteredEntries = useMemo(() => {
-    return filterDtrByRange(selectedEmployeeEntries, dtrFilter);
-  }, [dtrFilter, selectedEmployeeEntries]);
+    const subjectFiltered =
+      selectedEmployee?.employeeType === EmployeeType.TEACHING && subjectFilter !== 'all'
+        ? selectedEmployeeEntries.filter((entry) => entry.subjectCode === subjectFilter)
+        : selectedEmployeeEntries;
+
+    return filterDtrByRange(subjectFiltered, dtrFilter);
+  }, [dtrFilter, selectedEmployee?.employeeType, selectedEmployeeEntries, subjectFilter]);
 
   const graphData = useMemo(() => {
-    return buildGraphData(employees, entries, graphFilter);
-  }, [employees, entries, graphFilter]);
+    return buildGraphData(filteredEmployees, entries, graphFilter);
+  }, [filteredEmployees, entries, graphFilter]);
 
   const dtrFilterLabel = useMemo(() => {
     if (dtrFilter.mode === 'month' && dtrFilter.month) {
@@ -146,10 +210,14 @@ const AdminReports: React.FC = () => {
       shift: 'Flexible',
       timeIn: values.start,
       timeOut: values.end,
+      subjectCode: values.subject,
+      subjectName: values.subject,
+      attendanceStatus: values.status,
+      remarks: values.notes,
     };
 
     setEntries((current) => [newEntry, ...current]);
-    toast.success(`Time added. Agenda: ${values.agenda || 'N/A'}`);
+    toast.success(`Time added${values.subject ? ` for ${values.subject}` : ''}.`);
   };
 
   const exportCurrentCsv = (mode: ExportRangeMode, month: string, start: string, end: string): void => {
@@ -184,17 +252,21 @@ const AdminReports: React.FC = () => {
   };
 
   const exportBulkCsv = (mode: ExportRangeMode, month: string, start: string, end: string): void => {
+    const visibleEmployeeIds = new Set(filteredEmployees.map((employee) => employee.id));
     const filterState: DtrFilterState =
       mode === 'month'
         ? { mode: 'month', month, rangeStart: '', rangeEnd: '' }
         : { mode: 'range', month: '', rangeStart: start, rangeEnd: end };
 
-    const filtered = filterDtrByRange(entries, filterState);
+    const filtered = filterDtrByRange(
+      entries.filter((entry) => visibleEmployeeIds.has(entry.employeeId)),
+      filterState,
+    );
 
     const csv = toCsv(
       ['Employee', 'Department', 'Position', 'Date', 'Shift', 'Time In', 'Time Out', 'Late', 'Work Hours'],
       filtered.map((entry) => {
-        const employee = employees.find((item) => item.id === entry.employeeId);
+        const employee = filteredEmployees.find((item) => item.id === entry.employeeId);
         return [
           employee?.fullName ?? 'Unknown',
           employee?.department ?? 'Unknown',
@@ -234,9 +306,13 @@ const AdminReports: React.FC = () => {
       {viewMode === 'table' ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
           <EmployeeListPanel
-            employees={employees}
+            employees={filteredEmployees}
             selectedEmployeeId={selectedEmployeeId}
             onSelectEmployee={setSelectedEmployeeId}
+            employeeTypeFilter={employeeTypeFilter}
+            onEmployeeTypeChange={setEmployeeTypeFilter}
+            departmentFilter={departmentFilter}
+            onDepartmentChange={setDepartmentFilter}
           />
 
           <div className="space-y-4">
@@ -244,8 +320,23 @@ const AdminReports: React.FC = () => {
               <CardHeader className='relative'>
                 <CardTitle>DTR Controls</CardTitle>
                 <CardDescription>Filter date scope and manage attendance records.</CardDescription>
-
                 <div className="flex flex-wrap gap-2 absolute right-4 top-0">
+                  {selectedEmployee?.employeeType === EmployeeType.TEACHING ? (
+                    <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                      <SelectTrigger className="w-72">
+                        <SelectValue placeholder="All Subjects" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Subjects</SelectItem>
+                        {teachingSubjects.map((subject) => (
+                          <SelectItem key={subject.code} value={subject.code}>
+                            {subject.code} - {subject.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+
                   <Button type="button" variant="outline" onClick={() => setIsDateFilterOpen(true)}>
                     <Filter className="h-4 w-4" />
                     {dtrFilterLabel}
@@ -273,7 +364,12 @@ const AdminReports: React.FC = () => {
               </CardHeader>
             </Card>
 
-            <DtrTable entries={filteredEntries} isHr={isAdmin} onEditEntry={(entry) => setEditEntry(entry)} />
+            <DtrTable
+              entries={filteredEntries}
+              isHr={isAdmin}
+              employeeType={selectedEmployee?.employeeType === 'TEACHING' ? EmployeeType.TEACHING : EmployeeType.NON_TEACHING}
+              onEditEntry={(entry) => setEditEntry(entry)}
+            />
           </div>
         </div>
       ) : (
@@ -301,6 +397,7 @@ const AdminReports: React.FC = () => {
         employee={selectedEmployee}
         onClose={() => setIsAddTimeOpen(false)}
         onAddTime={addTime}
+        employeeType={selectedEmployee?.employeeType === EmployeeType.TEACHING ? EmployeeType.TEACHING : EmployeeType.NON_TEACHING}
       />
 
       <DateFilterDialog

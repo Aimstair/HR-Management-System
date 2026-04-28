@@ -92,37 +92,37 @@ const LoginPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 className="w-full text-sm"
-                onClick={() => quickLogin('employee@school.com')}
+                onClick={() => quickLogin('employee.teaching@school.com')}
                 disabled={loading}
               >
-                Login as Employee
+                Login as Teaching Employee
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full text-sm"
-                onClick={() => quickLogin('head.admin@school.com')}
+                onClick={() => quickLogin('head.hr@school.com')}
                 disabled={loading}
               >
-                Login as Head Admin
+                Login as Head HR
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full text-sm"
-                onClick={() => quickLogin('school.admin@school.com')}
+                onClick={() => quickLogin('campus.hr.main@school.com')}
                 disabled={loading}
               >
-                Login as School Admin
+                Login as Main Campus HR
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full text-sm"
-                onClick={() => quickLogin('dept.admin@school.com')}
+                onClick={() => quickLogin('employee.staff@school.com')}
                 disabled={loading}
               >
-                Login as Department Admin
+                Login as Non-Teaching Employee
               </Button>
             </div>
           </div>

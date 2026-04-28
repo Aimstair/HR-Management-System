@@ -57,7 +57,7 @@ interface AttendanceTrendPoint {
 }
 
 interface RequestBreakdownPoint {
-  name: 'Leave' | 'Funds' | 'Overtime' | 'Shift Swap';
+  name: 'Leave' | 'Undertime' | 'Overtime' | 'Shift Swap';
   value: number;
 }
 
@@ -73,7 +73,7 @@ interface PriorityRequestItem {
   id: string;
   avatarUrl: string;
   name: string;
-  requestType: 'Leave' | 'Funds' | 'Overtime' | 'Shift Swap';
+  requestType: 'Leave' | 'Undertime' | 'Overtime' | 'Shift Swap';
   dateSubmitted: string;
 }
 
@@ -109,7 +109,7 @@ const attendanceTrendData: AttendanceTrendPoint[] = [
 
 const requestBreakdownData: RequestBreakdownPoint[] = [
   { name: 'Leave', value: 45 },
-  { name: 'Funds', value: 25 },
+  { name: 'Undertime', value: 25 },
   { name: 'Overtime', value: 20 },
   { name: 'Shift Swap', value: 10 },
 ];
@@ -157,7 +157,7 @@ const priorityRequests: PriorityRequestItem[] = [
     id: 'PR-002',
     avatarUrl: 'https://picsum.photos/seed/priority-2/80/80',
     name: 'Emma Davis',
-    requestType: 'Funds',
+    requestType: 'Undertime',
     dateSubmitted: '2026-03-20',
   },
   {

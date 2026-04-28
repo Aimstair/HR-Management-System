@@ -28,6 +28,7 @@ export interface AdminEmployeeRecord {
   firstName: string;
   lastName: string;
   role: 'ROLE_EMPLOYEE';
+  employeeType: 'TEACHING' | 'NON_TEACHING';
   isActive: boolean;
   schoolId: string | null;
   schoolBranch: string | null;
@@ -65,6 +66,7 @@ export interface CreateAdminEmployeePayload {
   email: string;
   firstName: string;
   lastName: string;
+  employeeType?: 'TEACHING' | 'NON_TEACHING';
   schoolId: string;
   departmentId?: string | null;
   position?: string | null;
@@ -76,6 +78,7 @@ export interface UpdateAdminEmployeePayload {
   email?: string;
   firstName?: string;
   lastName?: string;
+  employeeType?: 'TEACHING' | 'NON_TEACHING';
   schoolId?: string;
   departmentId?: string | null;
   position?: string | null;
@@ -144,6 +147,151 @@ export interface AdminRequestListQuery {
 
 export interface AdminRequestListResponse {
   rows: AdminRequestRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export type TeachingAttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+export type NonTeachingAttendanceStatus =
+  | 'PRESENT'
+  | 'ABSENT'
+  | 'LATE'
+  | 'HALF_DAY'
+  | 'LEAVE';
+export type PerformanceRubricType = 'TEACHING' | 'NON_TEACHING';
+
+export interface AdminTeachingAttendanceRecord {
+  id: string;
+  employeeId: string;
+  status: TeachingAttendanceStatus;
+  remarks: string | null;
+  createdAt: string;
+  updatedAt: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    position: string | null;
+  };
+  classSession: {
+    id: string;
+    sessionDate: string;
+    startsAt: string;
+    endsAt: string;
+    room: string | null;
+    subject: {
+      id: string;
+      code: string;
+      name: string;
+    };
+    school: {
+      id: string;
+      name: string;
+    };
+    department: {
+      id: string;
+      name: string;
+    } | null;
+  };
+}
+
+export interface AdminNonTeachingAttendanceRecord {
+  id: string;
+  employeeId: string;
+  schoolId: string;
+  departmentId: string | null;
+  attendanceDate: string;
+  status: NonTeachingAttendanceStatus;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  remarks: string | null;
+  createdAt: string;
+  updatedAt: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    position: string | null;
+  };
+  school: {
+    id: string;
+    name: string;
+  };
+  department: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface AdminPerformanceEvaluationRecord {
+  id: string;
+  employeeId: string;
+  schoolId: string;
+  departmentId: string | null;
+  evaluatorId: string | null;
+  rubricType: PerformanceRubricType;
+  periodStart: string;
+  periodEnd: string;
+  criteria: unknown;
+  overallScore: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    position: string | null;
+    employeeType: 'TEACHING' | 'NON_TEACHING';
+  };
+  evaluator: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  school: {
+    id: string;
+    name: string;
+  };
+  department: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface AdminAttendanceListQuery {
+  schoolId?: string;
+  departmentId?: string;
+  employeeId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminTeachingAttendanceListQuery extends AdminAttendanceListQuery {
+  status?: TeachingAttendanceStatus;
+}
+
+export interface AdminNonTeachingAttendanceListQuery extends AdminAttendanceListQuery {
+  status?: NonTeachingAttendanceStatus;
+}
+
+export interface AdminPerformanceEvaluationListQuery extends AdminAttendanceListQuery {
+  rubricType?: PerformanceRubricType;
+  employeeType?: 'TEACHING' | 'NON_TEACHING';
+}
+
+export interface PaginatedResponse<T> {
+  rows: T[];
   pagination: {
     page: number;
     limit: number;
@@ -324,4 +472,65 @@ export const bulkUpdateAdminRequestStatus = (
     method: 'PATCH',
     body: JSON.stringify({ ids, status }),
   });
+};
+
+export const getAdminTeachingAttendance = (
+  query: AdminTeachingAttendanceListQuery = {},
+): Promise<PaginatedResponse<AdminTeachingAttendanceRecord>> => {
+  return request<PaginatedResponse<AdminTeachingAttendanceRecord>>(
+    `/admin/attendance/teaching${buildQuery({
+      schoolId: query.schoolId,
+      departmentId: query.departmentId,
+      employeeId: query.employeeId,
+      from: query.from,
+      to: query.to,
+      status: query.status,
+      page: query.page,
+      limit: query.limit,
+    })}`,
+    {
+      method: 'GET',
+    },
+  );
+};
+
+export const getAdminNonTeachingAttendance = (
+  query: AdminNonTeachingAttendanceListQuery = {},
+): Promise<PaginatedResponse<AdminNonTeachingAttendanceRecord>> => {
+  return request<PaginatedResponse<AdminNonTeachingAttendanceRecord>>(
+    `/admin/attendance/non-teaching${buildQuery({
+      schoolId: query.schoolId,
+      departmentId: query.departmentId,
+      employeeId: query.employeeId,
+      from: query.from,
+      to: query.to,
+      status: query.status,
+      page: query.page,
+      limit: query.limit,
+    })}`,
+    {
+      method: 'GET',
+    },
+  );
+};
+
+export const getAdminPerformanceEvaluations = (
+  query: AdminPerformanceEvaluationListQuery = {},
+): Promise<PaginatedResponse<AdminPerformanceEvaluationRecord>> => {
+  return request<PaginatedResponse<AdminPerformanceEvaluationRecord>>(
+    `/admin/performance-evaluations${buildQuery({
+      schoolId: query.schoolId,
+      departmentId: query.departmentId,
+      employeeId: query.employeeId,
+      from: query.from,
+      to: query.to,
+      rubricType: query.rubricType,
+      employeeType: query.employeeType,
+      page: query.page,
+      limit: query.limit,
+    })}`,
+    {
+      method: 'GET',
+    },
+  );
 };

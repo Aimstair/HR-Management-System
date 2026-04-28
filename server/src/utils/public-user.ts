@@ -8,6 +8,7 @@ export const toPublicUser = (user: User) => {
     firstName: user.firstName,
     lastName: user.lastName,
     role: user.role,
+    employeeType: user.employeeType,
     department: user.department,
     schoolBranch: user.schoolBranch,
     profileImage: user.profileImage,

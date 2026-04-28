@@ -1,4 +1,5 @@
 import { RequestStatus } from '../../../types';
+import { EmployeeType } from '../../../types';
 import { initialMemos } from '../../admin/memo/mockData';
 import type {
   EmployeeAttendanceEntry,
@@ -28,6 +29,12 @@ const asText = (value: unknown): string => {
 const buildSummary = (draft: EmployeeRequestDraft): string => {
   switch (draft.type) {
     case 'attendance': {
+      const subject = asText(draft.fields.subject) || asText(draft.fields.classSession);
+      const markedStatus = asText(draft.fields.markedStatus);
+      if (subject || markedStatus) {
+        return `Attendance appeal for ${subject || 'session'} on ${asText(draft.fields.sessionDate)} (${markedStatus || 'status dispute'})`;
+      }
+
       const date = asText(draft.fields.date);
       const timeIn = asText(draft.fields.timeIn);
       const timeOut = asText(draft.fields.timeOut);
@@ -35,10 +42,6 @@ const buildSummary = (draft: EmployeeRequestDraft): string => {
     }
     case 'leave':
       return `Leave request: ${asText(draft.fields.leaveType)} (${asText(draft.fields.startDate)} to ${asText(draft.fields.endDate)})`;
-    case 'expense':
-      return `Expense request: ${asText(draft.fields.expenseType)} (${asText(draft.fields.amount)})`;
-    case 'funds':
-      return `Funds request: ${asText(draft.fields.requestType)} (${asText(draft.fields.amount)})`;
     case 'undertime':
       return `Undertime request on ${asText(draft.fields.undertimeDate)}`;
     case 'overtime':
@@ -58,6 +61,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1001',
     date: '2026-03-01',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-03-01T08:06:00',
@@ -66,6 +70,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1002',
     date: '2026-03-02',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-03-02T08:17:00',
@@ -74,6 +79,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1003',
     date: '2026-03-03',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-03-03T07:59:00',
@@ -82,6 +88,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1004',
     date: '2026-03-04',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-03-04T08:21:00',
@@ -90,6 +97,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1005',
     date: '2026-03-05',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-03-05T08:08:00',
@@ -98,6 +106,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1006',
     date: '2026-03-06',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-03-06T08:12:00',
@@ -106,6 +115,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1007',
     date: '2026-02-21',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-02-21T08:04:00',
@@ -114,6 +124,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1008',
     date: '2026-02-22',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-02-22T08:19:00',
@@ -122,6 +133,7 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1009',
     date: '2026-02-23',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-02-23T08:02:00',
@@ -130,10 +142,89 @@ export const initialAttendanceEntries: EmployeeAttendanceEntry[] = [
   {
     id: 'ATT-1010',
     date: '2026-02-24',
+    mode: 'DAILY',
     campus: 'Main Campus',
     shift: 'Morning',
     timeIn: '2026-02-24T08:14:00',
     timeOut: '2026-02-24T16:41:00',
+  },
+];
+
+export const initialTeachingAttendanceEntries: EmployeeAttendanceEntry[] = [
+  {
+    id: 'TSESS-3001',
+    date: '2026-03-11',
+    mode: 'TEACHING_SESSION',
+    campus: 'Main Campus',
+    shift: null,
+    timeIn: null,
+    timeOut: null,
+    status: 'PRESENT',
+    subjectCode: 'MATH101',
+    subjectName: 'College Algebra',
+    room: 'R-204',
+    sessionStart: '2026-03-11T08:00:00',
+    sessionEnd: '2026-03-11T09:30:00',
+  },
+  {
+    id: 'TSESS-3002',
+    date: '2026-03-11',
+    mode: 'TEACHING_SESSION',
+    campus: 'Main Campus',
+    shift: null,
+    timeIn: null,
+    timeOut: null,
+    status: 'LATE',
+    subjectCode: 'MATH201',
+    subjectName: 'Statistics',
+    room: 'R-101',
+    sessionStart: '2026-03-11T13:00:00',
+    sessionEnd: '2026-03-11T14:30:00',
+  },
+  {
+    id: 'TSESS-3003',
+    date: '2026-03-12',
+    mode: 'TEACHING_SESSION',
+    campus: 'Main Campus',
+    shift: null,
+    timeIn: null,
+    timeOut: null,
+    status: 'ABSENT',
+    subjectCode: 'MATH101',
+    subjectName: 'College Algebra',
+    room: 'R-204',
+    sessionStart: '2026-03-12T08:00:00',
+    sessionEnd: '2026-03-12T09:30:00',
+  },
+  {
+    id: 'TSESS-3004',
+    date: '2026-03-12',
+    mode: 'TEACHING_SESSION',
+    campus: 'Main Campus',
+    shift: null,
+    timeIn: null,
+    timeOut: null,
+    status: 'EXCUSED',
+    subjectCode: 'MATH230',
+    subjectName: 'Linear Algebra',
+    room: 'R-307',
+    sessionStart: '2026-03-12T15:00:00',
+    sessionEnd: '2026-03-12T16:30:00',
+  },
+  {
+    id: 'TSESS-3005',
+    date: '2026-03-13',
+    mode: 'TEACHING_SESSION',
+    campus: 'Main Campus',
+    shift: null,
+    timeIn: null,
+    timeOut: null,
+    status: 'PRESENT',
+    subjectCode: 'MATH201',
+    subjectName: 'Statistics',
+    room: 'R-101',
+    sessionStart: '2026-03-13T10:30:00',
+    sessionEnd: '2026-03-13T12:00:00',
   },
 ];
 
@@ -166,34 +257,6 @@ export const initialEmployeeRequests: EmployeeRequestRecord[] = [
       reliever: 'Michael Chen',
       attachments: ['med-cert.pdf'],
       reason: 'Family commitment.',
-    },
-  },
-  {
-    id: 'EMP-REQ-1903',
-    type: 'expense',
-    status: RequestStatus.PENDING,
-    submittedAt: '2026-03-06T10:45:00',
-    summary: 'Expense request: Teaching Materials (PHP 2450)',
-    fields: {
-      expenseType: 'Teaching Materials',
-      dateIncurred: '2026-03-05',
-      amount: 'PHP 2450',
-      attachment: ['receipt-2450.jpg'],
-      reason: 'Laboratory handouts and ink refills.',
-    },
-  },
-  {
-    id: 'EMP-REQ-1904',
-    type: 'funds',
-    status: RequestStatus.REJECTED,
-    submittedAt: '2026-03-02T15:18:00',
-    summary: 'Funds request: Cash Advance (PHP 5000)',
-    fields: {
-      requestType: 'Cash Advance',
-      amount: 'PHP 5000',
-      terms: '2 payroll deductions',
-      deductionStartDate: '2026-04-15',
-      reason: 'Conference travel and printing expenses.',
     },
   },
   {
@@ -294,4 +357,22 @@ export const createEmployeeRequestRecord = (
     summary: buildSummary(draft),
     fields: draft.fields,
   };
+};
+
+export const getInitialAttendanceEntries = (employeeType: EmployeeType): EmployeeAttendanceEntry[] => {
+  if (employeeType === EmployeeType.TEACHING) {
+    return [...initialTeachingAttendanceEntries];
+  }
+
+  return [...initialAttendanceEntries];
+};
+
+export const getInitialEmployeeRequests = (employeeType: EmployeeType): EmployeeRequestRecord[] => {
+  if (employeeType === EmployeeType.TEACHING) {
+    return initialEmployeeRequests.filter(
+      (request) => request.type !== 'change_shift' && request.type !== 'swap',
+    );
+  }
+
+  return [...initialEmployeeRequests];
 };

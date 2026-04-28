@@ -1,7 +1,6 @@
 export type AppRole =
-  | 'ROLE_HEAD_ADMIN'
-  | 'ROLE_SCHOOL_ADMIN'
-  | 'ROLE_DEPARTMENT_ADMIN'
+  | 'ROLE_HEAD_HR'
+  | 'ROLE_CAMPUS_HR'
   | 'ROLE_EMPLOYEE';
 
 export type AdminScopeType = 'GLOBAL' | 'SCHOOL' | 'DEPARTMENT';

@@ -32,7 +32,8 @@ export interface EmployeeNode {
   middleName: string;
   lastName: string;
   jobTitle: string;
-  role: 'Faculty' | 'Staff' | 'Chairman' | 'Dean' | 'HR Admin';
+  role: 'Faculty' | 'Staff' | 'Chairman' | 'Dean' | 'HR Admin' | 'Admin';
+  employeeType: 'TEACHING' | 'NON_TEACHING';
 
   profilePicture?: string;
   birthDate: string;

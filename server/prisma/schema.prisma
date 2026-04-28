@@ -9,9 +9,8 @@ datasource db {
 }
 
 enum Role {
-  ROLE_HEAD_ADMIN
-  ROLE_SCHOOL_ADMIN
-  ROLE_DEPARTMENT_ADMIN
+  ROLE_HEAD_HR
+  ROLE_CAMPUS_HR
   ROLE_EMPLOYEE
 }
 
@@ -19,6 +18,11 @@ enum AdminScopeType {
   GLOBAL
   SCHOOL
   DEPARTMENT
+}
+
+enum EmployeeType {
+  TEACHING
+  NON_TEACHING
 }
 
 enum RequestType {
@@ -40,30 +44,73 @@ enum RequestStatus {
   CANCELLED
 }
 
+enum TeachingAttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum NonTeachingAttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  LEAVE
+}
+
+enum PerformanceRubricType {
+  TEACHING
+  NON_TEACHING
+}
+
+model Campus {
+  campusId                    String                      @id
+  name                        String                      @unique
+  code                        String?                     @unique
+  schools                     School[]
+  users                       User[]                      @relation("UserCampus")
+  requests                    RequestRecord[]
+  shifts                      Shift[]
+  memos                       Memo[]
+  nonTeachingAttendanceRows   NonTeachingAttendance[]
+  performanceEvaluations      PerformanceEvaluation[]
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+}
+
 model School {
-  id          String          @id
-  name        String          @unique
-  code        String?         @unique
-  departments Department[]
-  users       User[]
-  requests    RequestRecord[]
-  shifts      Shift[]
-  memos       Memo[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  schoolId                    String                      @id
+  name                        String
+  campusId                    String
+  campus                      Campus                      @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  departments                 Department[]
+  subjects                    Subject[]
+  teachingAssignments         TeachingAssignment[]
+  classSessions               ClassSession[]
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+
+  @@unique([campusId, name])
+  @@index([campusId])
 }
 
 model Department {
-  id        String          @id
-  name      String
-  schoolId  String
-  school    School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  users     User[]
-  requests  RequestRecord[]
-  shifts    Shift[]
-  memos     Memo[]
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  departmentId              String                      @id
+  name                      String
+  schoolId                  String
+  school                    School                      @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  users                     User[]
+  requests                  RequestRecord[]
+  shifts                    Shift[]
+  memos                     Memo[]
+  subjects                  Subject[]
+  teachingAssignments       TeachingAssignment[]
+  classSessions             ClassSession[]
+  nonTeachingAttendanceRows NonTeachingAttendance[]
+  performanceEvaluations    PerformanceEvaluation[]
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
 
   @@index([schoolId])
   @@unique([schoolId, name])
@@ -77,6 +124,7 @@ model User {
   firstName           String
   lastName            String
   role                Role
+  employeeType        EmployeeType    @default(NON_TEACHING)
   department          String?
   schoolBranch        String?
   position            String?
@@ -84,8 +132,8 @@ model User {
   joinDate            DateTime        @default(now())
   schoolId            String?
   departmentId        String?
-  school              School?         @relation(fields: [schoolId], references: [id], onDelete: SetNull)
-  departmentModel     Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  school              Campus?         @relation("UserCampus", fields: [schoolId], references: [campusId], onDelete: SetNull)
+  departmentModel     Department?     @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
   adminScopeType      AdminScopeType?
   adminSchoolId       String?
   adminSchoolName     String?
@@ -95,6 +143,11 @@ model User {
   reviewedRequests    RequestRecord[] @relation("ReviewedRequests")
   createdShifts       Shift[]         @relation("ShiftCreatedBy")
   createdMemos        Memo[]          @relation("MemoCreatedBy")
+  teachingAssignments TeachingAssignment[]
+  teachingAttendance  TeachingAttendance[]
+  nonTeachingAttendanceRows NonTeachingAttendance[]
+  performanceEvaluations PerformanceEvaluation[] @relation("EmployeePerformanceEvaluations")
+  performanceEvaluationsGiven PerformanceEvaluation[] @relation("EvaluatorPerformanceEvaluations")
   refreshTokens       RefreshToken[]
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
@@ -103,6 +156,9 @@ model User {
   @@index([adminScopeType])
   @@index([schoolId])
   @@index([departmentId])
+  @@index([employeeType])
+  @@index([schoolId, isActive])
+  @@index([departmentId, isActive])
 }
 
 model RequestRecord {
@@ -113,20 +169,22 @@ model RequestRecord {
   description  String?
   employeeId   String
   reviewedById String?
-  schoolId     String
+  campusId     String
   departmentId String?
   employee     User          @relation("EmployeeRequests", fields: [employeeId], references: [id], onDelete: Cascade)
   reviewedBy   User?         @relation("ReviewedRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
-  school       School        @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  campus       Campus        @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  department   Department?   @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([employeeId])
   @@index([reviewedById])
-  @@index([schoolId])
+  @@index([campusId])
   @@index([departmentId])
   @@index([status])
+  @@index([campusId, status])
+  @@index([departmentId, status])
   @@unique([type, employeeId, title])
 }
 
@@ -135,18 +193,18 @@ model Shift {
   name         String
   startTime    String
   endTime      String
-  schoolId     String
+  campusId     String
   departmentId String?
   createdById  String?
-  school       School      @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  campus       Campus      @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
   createdBy    User?       @relation("ShiftCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  @@index([schoolId])
+  @@index([campusId])
   @@index([departmentId])
-  @@unique([name, schoolId, departmentId, startTime, endTime])
+  @@unique([name, campusId, departmentId, startTime, endTime])
 }
 
 model Memo {
@@ -154,19 +212,19 @@ model Memo {
   title        String
   content      String
   scopeType    AdminScopeType?
-  schoolId     String
+  campusId     String
   departmentId String?
   createdById  String?
-  school       School          @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  department   Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  campus       Campus          @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  department   Department?     @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
   createdBy    User?           @relation("MemoCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   publishedAt  DateTime        @default(now())
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
-  @@index([schoolId])
+  @@index([campusId])
   @@index([departmentId])
-  @@unique([title, schoolId, departmentId])
+  @@unique([title, campusId, departmentId])
 }
 
 model RefreshToken {
@@ -180,4 +238,130 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+model Subject {
+  id          String               @id @default(cuid())
+  code        String
+  name        String
+  schoolId    String
+  departmentId String?
+  school      School               @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  department  Department?          @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  assignments TeachingAssignment[]
+  sessions    ClassSession[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@index([departmentId])
+}
+
+model TeachingAssignment {
+  id           String      @id @default(cuid())
+  employeeId   String
+  subjectId    String
+  schoolId     String
+  departmentId String?
+  startsOn     DateTime
+  endsOn       DateTime?
+  employee     User        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  subject      Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  school       School      @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([employeeId, subjectId, startsOn])
+  @@index([employeeId])
+  @@index([subjectId])
+  @@index([schoolId])
+  @@index([departmentId])
+}
+
+model ClassSession {
+  id            String               @id @default(cuid())
+  subjectId     String
+  schoolId      String
+  departmentId  String?
+  sessionDate   DateTime
+  startsAt      DateTime
+  endsAt        DateTime
+  room          String?
+  subject       Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  school        School               @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  department    Department?          @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  attendance    TeachingAttendance[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([subjectId, sessionDate])
+  @@index([schoolId, sessionDate])
+  @@index([departmentId, sessionDate])
+}
+
+model TeachingAttendance {
+  id            String                   @id @default(cuid())
+  employeeId    String
+  classSessionId String
+  status        TeachingAttendanceStatus @default(PRESENT)
+  remarks       String?
+  employee      User                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  classSession  ClassSession             @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@unique([employeeId, classSessionId])
+  @@index([employeeId])
+  @@index([classSessionId])
+  @@index([status])
+}
+
+model NonTeachingAttendance {
+  id            String                     @id @default(cuid())
+  employeeId    String
+  schoolId      String
+  departmentId  String?
+  attendanceDate DateTime
+  status        NonTeachingAttendanceStatus @default(PRESENT)
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  remarks       String?
+  employee      User                       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  school        Campus                     @relation(fields: [schoolId], references: [campusId], onDelete: Cascade)
+  department    Department?                @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  @@unique([employeeId, attendanceDate])
+  @@index([schoolId, attendanceDate])
+  @@index([departmentId, attendanceDate])
+  @@index([status])
+}
+
+model PerformanceEvaluation {
+  id            String                @id @default(cuid())
+  employeeId    String
+  schoolId      String
+  departmentId  String?
+  evaluatorId   String?
+  rubricType    PerformanceRubricType
+  periodStart   DateTime
+  periodEnd     DateTime
+  criteria      Json
+  overallScore  Float
+  notes         String?
+  employee      User                  @relation("EmployeePerformanceEvaluations", fields: [employeeId], references: [id], onDelete: Cascade)
+  evaluator     User?                 @relation("EvaluatorPerformanceEvaluations", fields: [evaluatorId], references: [id], onDelete: SetNull)
+  school        Campus                @relation(fields: [schoolId], references: [campusId], onDelete: Cascade)
+  department    Department?           @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([employeeId])
+  @@index([schoolId, rubricType])
+  @@index([departmentId, rubricType])
+  @@index([periodStart, periodEnd])
 }

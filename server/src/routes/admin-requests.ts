@@ -9,9 +9,8 @@ import type { AppRole } from '../types/auth.js';
 export const adminRequestsRouter = Router();
 
 const ADMIN_ROLES: AppRole[] = [
-  'ROLE_HEAD_ADMIN',
-  'ROLE_SCHOOL_ADMIN',
-  'ROLE_DEPARTMENT_ADMIN',
+  'ROLE_HEAD_HR',
+  'ROLE_CAMPUS_HR',
 ];
 
 const requestTypeSchema = z.enum([
@@ -63,19 +62,11 @@ const assertScopeFilters = (
   schoolId?: string,
   departmentId?: string,
 ): void => {
-  if (auth.role === 'ROLE_SCHOOL_ADMIN' && schoolId && schoolId !== auth.schoolId) {
+  if (auth.role === 'ROLE_CAMPUS_HR' && schoolId && schoolId !== auth.schoolId) {
     throw new ApiError(403, 'Requested school is outside your admin scope');
   }
 
-  if (auth.role === 'ROLE_DEPARTMENT_ADMIN') {
-    if (departmentId && departmentId !== auth.departmentId) {
-      throw new ApiError(403, 'Requested department is outside your admin scope');
-    }
-
-    if (schoolId && auth.schoolId && schoolId !== auth.schoolId) {
-      throw new ApiError(403, 'Requested school is outside your admin scope');
-    }
-  }
+  void departmentId;
 };
 
 const normalizeRequestRow = (row: {

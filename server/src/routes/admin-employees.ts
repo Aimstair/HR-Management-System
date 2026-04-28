@@ -10,9 +10,8 @@ import type { AppRole } from '../types/auth.js';
 export const adminEmployeesRouter = Router();
 
 const ADMIN_ROLES: AppRole[] = [
-  'ROLE_HEAD_ADMIN',
-  'ROLE_SCHOOL_ADMIN',
-  'ROLE_DEPARTMENT_ADMIN',
+  'ROLE_HEAD_HR',
+  'ROLE_CAMPUS_HR',
 ];
 
 const listEmployeesQuerySchema = z.object({
@@ -34,6 +33,7 @@ const createEmployeeBodySchema = z.object({
   email: z.string().trim().email(),
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
+  employeeType: z.enum(['TEACHING', 'NON_TEACHING']).optional(),
   schoolId: z.string().trim().min(1),
   departmentId: z.string().trim().min(1).nullable().optional(),
   position: z.string().trim().nullable().optional(),
@@ -46,6 +46,7 @@ const updateEmployeeBodySchema = z
     email: z.string().trim().email().optional(),
     firstName: z.string().trim().min(1).optional(),
     lastName: z.string().trim().min(1).optional(),
+    employeeType: z.enum(['TEACHING', 'NON_TEACHING']).optional(),
     schoolId: z.string().trim().min(1).optional(),
     departmentId: z.string().trim().min(1).nullable().optional(),
     position: z.string().trim().nullable().optional(),
@@ -66,6 +67,7 @@ const employeeSelect = {
   firstName: true,
   lastName: true,
   role: true,
+  employeeType: true,
   isActive: true,
   schoolId: true,
   schoolBranch: true,
@@ -76,13 +78,13 @@ const employeeSelect = {
   joinDate: true,
   school: {
     select: {
-      id: true,
+      campusId: true,
       name: true,
     },
   },
   departmentModel: {
     select: {
-      id: true,
+      departmentId: true,
       name: true,
     },
   },
@@ -100,46 +102,26 @@ const assertScopeFilters = (
   schoolId?: string,
   departmentId?: string,
 ): void => {
-  if (auth.role === 'ROLE_SCHOOL_ADMIN' && schoolId && schoolId !== auth.schoolId) {
+  if (auth.role === 'ROLE_CAMPUS_HR' && schoolId && schoolId !== auth.schoolId) {
     throw new ApiError(403, 'Requested school is outside your admin scope');
   }
 
-  if (auth.role === 'ROLE_DEPARTMENT_ADMIN') {
-    if (departmentId && departmentId !== auth.departmentId) {
-      throw new ApiError(403, 'Requested department is outside your admin scope');
-    }
-
-    if (schoolId && auth.schoolId && schoolId !== auth.schoolId) {
-      throw new ApiError(403, 'Requested school is outside your admin scope');
-    }
-  }
+  void departmentId;
 };
 
 const assertMutationScope = (auth: AdminAuth, schoolId: string, departmentId: string | null): void => {
-  if (auth.role === 'ROLE_SCHOOL_ADMIN' && schoolId !== auth.schoolId) {
+  if (auth.role === 'ROLE_CAMPUS_HR' && schoolId !== auth.schoolId) {
     throw new ApiError(403, 'Requested school is outside your admin scope');
   }
 
-  if (auth.role === 'ROLE_DEPARTMENT_ADMIN') {
-    if (!departmentId) {
-      throw new ApiError(403, 'Department admins can only manage employees in their department scope');
-    }
-
-    if (!auth.departmentId || departmentId !== auth.departmentId) {
-      throw new ApiError(403, 'Requested department is outside your admin scope');
-    }
-
-    if (auth.schoolId && schoolId !== auth.schoolId) {
-      throw new ApiError(403, 'Requested school is outside your admin scope');
-    }
-  }
+  void departmentId;
 };
 
 const resolveScopeTargets = async (schoolId: string, departmentId: string | null) => {
-  const school = await prisma.school.findUnique({
-    where: { id: schoolId },
+  const school = await prisma.campus.findUnique({
+    where: { campusId: schoolId },
     select: {
-      id: true,
+      campusId: true,
       name: true,
     },
   });
@@ -156,9 +138,9 @@ const resolveScopeTargets = async (schoolId: string, departmentId: string | null
   }
 
   const department = await prisma.department.findUnique({
-    where: { id: departmentId },
+    where: { departmentId },
     select: {
-      id: true,
+      departmentId: true,
       name: true,
       schoolId: true,
     },
@@ -184,6 +166,7 @@ const normalizeEmployeeRow = (employee: {
   firstName: string;
   lastName: string;
   role: AppRole;
+  employeeType: 'TEACHING' | 'NON_TEACHING';
   isActive: boolean;
   schoolId: string | null;
   schoolBranch: string | null;
@@ -192,8 +175,8 @@ const normalizeEmployeeRow = (employee: {
   position: string | null;
   profileImage: string | null;
   joinDate: Date;
-  school: { id: string; name: string } | null;
-  departmentModel: { id: string; name: string } | null;
+  school: { campusId: string; name: string } | null;
+  departmentModel: { departmentId: string; name: string } | null;
 }) => {
   return {
     ...employee,
@@ -349,9 +332,10 @@ adminEmployeesRouter.post(
           firstName: payload.firstName,
           lastName: payload.lastName,
           role: 'ROLE_EMPLOYEE',
-          schoolId: school.id,
+          employeeType: payload.employeeType ?? 'NON_TEACHING',
+          schoolId: school.campusId,
           schoolBranch: school.name,
-          departmentId: department?.id ?? null,
+          departmentId: department?.departmentId ?? null,
           department: department?.name ?? null,
           position: payload.position ?? null,
           profileImage: payload.profileImage ?? null,
@@ -434,12 +418,13 @@ adminEmployeesRouter.patch(
           ...(normalizedEmail ? { email: normalizedEmail } : {}),
           ...(payload.firstName !== undefined ? { firstName: payload.firstName } : {}),
           ...(payload.lastName !== undefined ? { lastName: payload.lastName } : {}),
+          ...(payload.employeeType !== undefined ? { employeeType: payload.employeeType } : {}),
           ...(payload.position !== undefined ? { position: payload.position } : {}),
           ...(payload.profileImage !== undefined ? { profileImage: payload.profileImage } : {}),
           ...(payload.isActive !== undefined ? { isActive: payload.isActive } : {}),
-          schoolId: school.id,
+          schoolId: school.campusId,
           schoolBranch: school.name,
-          departmentId: department?.id ?? null,
+          departmentId: department?.departmentId ?? null,
           department: department?.name ?? null,
         },
         select: employeeSelect,

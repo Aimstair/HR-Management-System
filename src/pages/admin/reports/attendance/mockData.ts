@@ -9,6 +9,7 @@ export const reportEmployees: ReportEmployee[] = [
     department: 'Engineering',
     position: 'Professor',
     campus: 'Main Campus',
+    employeeType: 'TEACHING',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
   },
   {
@@ -17,6 +18,7 @@ export const reportEmployees: ReportEmployee[] = [
     department: 'Registrar',
     position: 'Registrar Officer',
     campus: 'Main Campus',
+    employeeType: 'NON_TEACHING',
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
   },
   {
@@ -25,6 +27,7 @@ export const reportEmployees: ReportEmployee[] = [
     department: 'Human Resources',
     position: 'HR Specialist',
     campus: 'North Campus',
+    employeeType: 'NON_TEACHING',
     avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
   },
   {
@@ -33,6 +36,7 @@ export const reportEmployees: ReportEmployee[] = [
     department: 'Finance',
     position: 'Accountant',
     campus: 'South Campus',
+    employeeType: 'NON_TEACHING',
     avatarUrl: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=200&h=200&fit=crop',
   },
   {
@@ -41,6 +45,7 @@ export const reportEmployees: ReportEmployee[] = [
     department: 'Operations',
     position: 'Operations Supervisor',
     campus: 'North Campus',
+    employeeType: 'NON_TEACHING',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
   },
   {
@@ -49,6 +54,7 @@ export const reportEmployees: ReportEmployee[] = [
     department: 'Engineering',
     position: 'Assistant Professor',
     campus: 'Main Campus',
+    employeeType: 'TEACHING',
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
   },
 ];
@@ -61,6 +67,11 @@ export const dtrEntries: DtrEntry[] = [
     shift: 'Morning',
     timeIn: '2026-03-16T08:07',
     timeOut: '2026-03-16T17:12',
+    subjectCode: 'CS101',
+    subjectName: 'Introduction to Computer Science',
+    semester: '1st Semester',
+    remarks: 'Present during the scheduled class session.',
+    attendanceStatus: 'PRESENT',
   },
   {
     id: 'DTR-002',
@@ -69,6 +80,11 @@ export const dtrEntries: DtrEntry[] = [
     shift: 'Morning',
     timeIn: '2026-03-15T07:58',
     timeOut: '2026-03-15T17:06',
+    subjectCode: 'CS101',
+    subjectName: 'Introduction to Computer Science',
+    semester: '1st Semester',
+    remarks: 'Late arrival but completed the session.',
+    attendanceStatus: 'LATE',
   },
   {
     id: 'DTR-003',
@@ -77,6 +93,11 @@ export const dtrEntries: DtrEntry[] = [
     shift: 'Morning',
     timeIn: '2026-03-14T08:22',
     timeOut: '2026-03-14T17:01',
+    subjectCode: 'MATH202',
+    subjectName: 'Advanced Mathematics',
+    semester: '2nd Semester',
+    remarks: 'Absent due to approved academic activity.',
+    attendanceStatus: 'ABSENT',
   },
   {
     id: 'DTR-004',
@@ -125,6 +146,11 @@ export const dtrEntries: DtrEntry[] = [
     shift: 'Morning',
     timeIn: '2026-03-16T08:00',
     timeOut: '2026-03-16T16:58',
+    subjectCode: 'BIO200',
+    subjectName: 'Biology Fundamentals',
+    semester: '1st Semester',
+    remarks: 'Teaching record confirmed at the scheduled time.',
+    attendanceStatus: 'PRESENT',
   },
   {
     id: 'DTR-010',

@@ -3,9 +3,7 @@ import type { RequestCategory, RequestRecord, SortDirection, SortState } from '.
 
 export const REQUEST_CATEGORY_MENU: Array<{ value: RequestCategory; label: string }> = [
   { value: 'leave', label: 'Leave' },
-  { value: 'expense', label: 'Expense' },
   { value: 'wfh', label: 'Work From Home' },
-  { value: 'funds', label: 'Funds' },
   { value: 'undertime', label: 'Undertime' },
   { value: 'overtime', label: 'Overtime' },
   { value: 'adjustments', label: 'Adjustments' },

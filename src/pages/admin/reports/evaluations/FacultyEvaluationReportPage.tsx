@@ -32,44 +32,61 @@ import {
   toCsv,
   withAcademicFilter,
 } from './utils';
+import EmployeeTypeSegmentedControl from '../../../../components/hr/EmployeeTypeSegmentedControl';
+
+type EvaluationEmployeeType = 'TEACHING' | 'NON_TEACHING';
 
 const FacultyEvaluationReportPage: React.FC = () => {
+  const [employeeType, setEmployeeType] = useState<EvaluationEmployeeType>('TEACHING');
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const [rightPanelMode, setRightPanelMode] = useState<'list' | 'detail'>('list');
   const [schoolFilter, setSchoolFilter] = useState<string>('all');
-  const [selectedFacultyId, setSelectedFacultyId] = useState<string>(facultyProfiles[0]?.id || '');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   const [semesterFilter, setSemesterFilter] = useState<SemesterFilter>('all');
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>('all');
   const [graphSemesterFilter, setGraphSemesterFilter] = useState<SemesterFilter>('all');
   const [graphSchoolYearFilter, setGraphSchoolYearFilter] = useState<string>('all');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
 
+  const trackLabel = employeeType === 'TEACHING' ? 'Teaching' : 'Non-Teaching';
+
+  const profilesByType = useMemo(
+    () => facultyProfiles.filter((faculty) => faculty.employeeType === employeeType),
+    [employeeType],
+  );
+
   const selectedFaculty = useMemo(
-    () => facultyProfiles.find((faculty) => faculty.id === selectedFacultyId) || null,
-    [selectedFacultyId],
+    () => profilesByType.find((faculty) => faculty.id === selectedFacultyId) || null,
+    [profilesByType, selectedFacultyId],
   );
 
   const schools = useMemo(() => {
-    const unique = new Set(facultyProfiles.map((faculty) => faculty.school));
+    const unique = new Set(profilesByType.map((faculty) => faculty.school));
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
-  }, []);
+  }, [profilesByType]);
 
   const filteredFacultyProfiles = useMemo(() => {
     if (schoolFilter === 'all') {
-      return facultyProfiles;
+      return profilesByType;
     }
 
-    return facultyProfiles.filter((faculty) => faculty.school === schoolFilter);
-  }, [schoolFilter]);
+    return profilesByType.filter((faculty) => faculty.school === schoolFilter);
+  }, [profilesByType, schoolFilter]);
 
   const schoolYears = useMemo(() => {
-    const unique = new Set(facultyEvaluationRecords.map((record) => record.schoolYear));
+    const unique = new Set(
+      facultyEvaluationRecords
+        .filter((record) => record.employeeType === employeeType)
+        .map((record) => record.schoolYear),
+    );
     return Array.from(unique).sort((a, b) => b.localeCompare(a));
-  }, []);
+  }, [employeeType]);
 
   const selectedFacultyRecords = useMemo(() => {
-    return facultyEvaluationRecords.filter((record) => record.facultyId === selectedFacultyId);
-  }, [selectedFacultyId]);
+    return facultyEvaluationRecords.filter(
+      (record) => record.facultyId === selectedFacultyId && record.employeeType === employeeType,
+    );
+  }, [selectedFacultyId, employeeType]);
 
   const filteredFacultyRecords = useMemo(() => {
     return withAcademicFilter(selectedFacultyRecords, schoolYearFilter, semesterFilter);
@@ -86,8 +103,13 @@ const FacultyEvaluationReportPage: React.FC = () => {
   const semesterAverage = useMemo(() => averageAcrossRecords(filteredFacultyRecords), [filteredFacultyRecords]);
 
   const graphRecords = useMemo(
-    () => withAcademicFilter(facultyEvaluationRecords, graphSchoolYearFilter, graphSemesterFilter),
-    [graphSchoolYearFilter, graphSemesterFilter],
+    () =>
+      withAcademicFilter(
+        facultyEvaluationRecords.filter((record) => record.employeeType === employeeType),
+        graphSchoolYearFilter,
+        graphSemesterFilter,
+      ),
+    [graphSchoolYearFilter, graphSemesterFilter, employeeType],
   );
 
   const departmentGraph = useMemo(() => aggregateByDepartment(graphRecords), [graphRecords]);
@@ -98,6 +120,16 @@ const FacultyEvaluationReportPage: React.FC = () => {
     setSelectedRecordId(filteredFacultyRecords[0]?.id || null);
     setRightPanelMode('list');
   }, [selectedFacultyId, semesterFilter, schoolYearFilter, filteredFacultyRecords]);
+
+  React.useEffect(() => {
+    setSchoolFilter('all');
+  }, [employeeType]);
+
+  React.useEffect(() => {
+    if (!selectedFacultyId && profilesByType.length > 0) {
+      setSelectedFacultyId(profilesByType[0].id);
+    }
+  }, [profilesByType, selectedFacultyId]);
 
   React.useEffect(() => {
     const stillVisible = filteredFacultyProfiles.some((faculty) => faculty.id === selectedFacultyId);
@@ -112,13 +144,15 @@ const FacultyEvaluationReportPage: React.FC = () => {
   };
 
   const exportFacultyCsv = (facultyId: string): void => {
-    const faculty = facultyProfiles.find((item) => item.id === facultyId);
+    const faculty = profilesByType.find((item) => item.id === facultyId);
     if (!faculty) {
       return;
     }
 
     const rows = withAcademicFilter(
-      facultyEvaluationRecords.filter((record) => record.facultyId === facultyId),
+      facultyEvaluationRecords.filter(
+        (record) => record.facultyId === facultyId && record.employeeType === employeeType,
+      ),
       schoolYearFilter,
       semesterFilter,
     ).map((record) => [
@@ -135,11 +169,11 @@ const FacultyEvaluationReportPage: React.FC = () => {
 
     const csv = toCsv(
       [
-        'Faculty Name',
+        'Employee Name',
         'School',
         'Department',
-        'Subject Code',
-        'Subject Title',
+        'Metric Code',
+        'Metric Title',
         'School Year',
         'Semester',
         'Respondents',
@@ -148,11 +182,17 @@ const FacultyEvaluationReportPage: React.FC = () => {
       rows,
     );
 
-    downloadCsv(`${faculty.fullName.replace(/\s+/g, '_')}_evaluation_report.csv`, csv);
+    downloadCsv(`${faculty.fullName.replace(/\s+/g, '_')}_${employeeType.toLowerCase()}_evaluation_report.csv`, csv);
   };
 
   return (
     <div className="space-y-4">
+      <EmployeeTypeSegmentedControl
+        value={employeeType}
+        onValueChange={(value) => setEmployeeType(value as EvaluationEmployeeType)}
+        includeAll={false}
+        className="w-full max-w-sm"
+      />
       <ViewModeHeaderToggle mode={viewMode} onChangeMode={setViewMode} />
 
       {viewMode === 'table' ? (
@@ -174,11 +214,11 @@ const FacultyEvaluationReportPage: React.FC = () => {
                     <CardHeader>
                         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-end">
                         <div>
-                            <CardTitle>Faculty Evaluation Report</CardTitle>
+                            <CardTitle>{trackLabel} Performance Report</CardTitle>
                             <CardDescription>
                             {selectedFaculty
-                                ? `${selectedFaculty.fullName} (${selectedFaculty.position})`
-                                : 'Select faculty'}
+                              ? `${selectedFaculty.fullName} (${selectedFaculty.position})`
+                              : `Select ${trackLabel.toLowerCase()} employee`}
                             </CardDescription>
                         </div>
 
@@ -216,11 +256,11 @@ const FacultyEvaluationReportPage: React.FC = () => {
                             <p className="text-2xl font-semibold">{semesterAverage.toFixed(2)} / 4.00</p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Career Average (All Teaching Years)</p>
+                          <p className="text-xs text-muted-foreground">Career Average (All Records)</p>
                             <p className="text-2xl font-semibold">{careerAverage.toFixed(2)} / 4.00</p>
                         </div>
                         <div className="rounded-md border p-3">
-                            <p className="text-xs text-muted-foreground">Total Subject Evaluations</p>
+                          <p className="text-xs text-muted-foreground">Total Performance Records</p>
                             <p className="text-2xl font-semibold">{filteredFacultyRecords.length}</p>
                         </div>
                         </div>
@@ -248,7 +288,7 @@ const FacultyEvaluationReportPage: React.FC = () => {
             <CardHeader>
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <CardTitle>Faculty Evaluation Graph Analytics</CardTitle>
+                  <CardTitle>{trackLabel} Performance Graph Analytics</CardTitle>
                   <CardDescription>
                     Compare evaluation averages by department, school, and employee.
                   </CardDescription>
@@ -291,7 +331,7 @@ const FacultyEvaluationReportPage: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Evaluation Score by Department</CardTitle>
+                <CardTitle className="text-base">Performance Score by Department</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-80 w-full">
@@ -310,7 +350,7 @@ const FacultyEvaluationReportPage: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Evaluation Score by School</CardTitle>
+                <CardTitle className="text-base">Performance Score by School</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-80 w-full">
@@ -329,7 +369,7 @@ const FacultyEvaluationReportPage: React.FC = () => {
 
             <Card className="xl:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">Evaluation Score by Employee (Top 12)</CardTitle>
+                <CardTitle className="text-base">Performance Score by Employee (Top 12)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-90 w-full">

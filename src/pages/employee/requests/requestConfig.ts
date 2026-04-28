@@ -1,4 +1,5 @@
 import type { EmployeeRequestType } from '../shared/employeePortalTypes';
+import { EmployeeType } from '../../../types';
 
 export interface RequestTypeOption {
   value: EmployeeRequestType;
@@ -30,11 +31,9 @@ export interface RequestFieldDefinition {
   options?: RequestSelectOption[];
 }
 
-export const EMPLOYEE_REQUEST_TYPE_OPTIONS: RequestTypeOption[] = [
+const ALL_REQUEST_TYPE_OPTIONS: RequestTypeOption[] = [
   { value: 'attendance', label: 'Attendance' },
   { value: 'leave', label: 'Leave' },
-  { value: 'expense', label: 'Expense' },
-  { value: 'funds', label: 'Funds' },
   { value: 'undertime', label: 'Undertime' },
   { value: 'overtime', label: 'Overtime' },
   { value: 'change_shift', label: 'Change Shift' },
@@ -42,7 +41,45 @@ export const EMPLOYEE_REQUEST_TYPE_OPTIONS: RequestTypeOption[] = [
   { value: 'remote', label: 'Remote' },
 ];
 
-export const REQUEST_FORM_SCHEMAS: Record<EmployeeRequestType, RequestFieldDefinition[]> = {
+export const getAvailableRequestTypeOptions = (employeeType: EmployeeType): RequestTypeOption[] => {
+  if (employeeType === EmployeeType.TEACHING) {
+    return ALL_REQUEST_TYPE_OPTIONS.filter(
+      (option) => option.value !== 'change_shift' && option.value !== 'swap',
+    );
+  }
+
+  return ALL_REQUEST_TYPE_OPTIONS;
+};
+
+const TEACHING_ATTENDANCE_APPEAL_SCHEMA: RequestFieldDefinition[] = [
+  { key: 'sessionDate', label: 'Session Date', type: 'date', required: true },
+  {
+    key: 'subject',
+    label: 'Subject / Session',
+    type: 'text',
+    required: true,
+    placeholder: 'Example: MATH101 - Section A',
+  },
+  {
+    key: 'markedStatus',
+    label: 'Marked Status',
+    type: 'select',
+    required: true,
+    options: [
+      { label: 'Late', value: 'LATE' },
+      { label: 'Absent', value: 'ABSENT' },
+    ],
+  },
+  {
+    key: 'reason',
+    label: 'Appeal Reason',
+    type: 'textarea',
+    required: true,
+    placeholder: 'Provide supporting details for your attendance appeal',
+  },
+];
+
+const REQUEST_FORM_SCHEMAS: Record<EmployeeRequestType, RequestFieldDefinition[]> = {
   attendance: [
     { key: 'date', label: 'Attendance Date', type: 'date', required: true },
     { key: 'timeIn', label: 'Time In', type: 'time', required: true },
@@ -95,58 +132,6 @@ export const REQUEST_FORM_SCHEMAS: Record<EmployeeRequestType, RequestFieldDefin
       type: 'textarea',
       required: true,
       placeholder: 'Provide leave request reason',
-    },
-  ],
-  expense: [
-    {
-      key: 'expenseType',
-      label: 'Expense Type',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Travel', value: 'Travel' },
-        { label: 'Teaching Materials', value: 'Teaching Materials' },
-        { label: 'Supplies', value: 'Supplies' },
-        { label: 'Meals', value: 'Meals' },
-      ],
-    },
-    { key: 'dateIncurred', label: 'Date Incurred', type: 'date', required: true },
-    { key: 'amount', label: 'Amount', type: 'number', required: true, placeholder: '0.00' },
-    { key: 'attachment', label: 'Attachment', type: 'file', required: true },
-    {
-      key: 'reason',
-      label: 'Notes / Reason',
-      type: 'textarea',
-      required: true,
-      placeholder: 'Provide expense details',
-    },
-  ],
-  funds: [
-    {
-      key: 'requestType',
-      label: 'Request Type',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Cash Advance', value: 'Cash Advance' },
-        { label: 'Loan', value: 'Loan' },
-      ],
-    },
-    { key: 'amount', label: 'Amount', type: 'number', required: true, placeholder: '0.00' },
-    {
-      key: 'terms',
-      label: 'Terms / Installment Plan',
-      type: 'text',
-      required: true,
-      placeholder: 'Example: 3 payroll deductions',
-    },
-    { key: 'deductionStartDate', label: 'Deduction Start Date', type: 'date', required: true },
-    {
-      key: 'reason',
-      label: 'Reason',
-      type: 'textarea',
-      required: true,
-      placeholder: 'Provide request justification',
     },
   ],
   undertime: [
@@ -258,7 +243,18 @@ export const REQUEST_FORM_SCHEMAS: Record<EmployeeRequestType, RequestFieldDefin
 
 export const getRequestTypeLabel = (requestType: EmployeeRequestType): string => {
   return (
-    EMPLOYEE_REQUEST_TYPE_OPTIONS.find((option) => option.value === requestType)?.label ||
+    ALL_REQUEST_TYPE_OPTIONS.find((option) => option.value === requestType)?.label ||
     requestType.replace('_', ' ')
   );
+};
+
+export const getRequestFormSchema = (
+  requestType: EmployeeRequestType,
+  employeeType: EmployeeType,
+): RequestFieldDefinition[] => {
+  if (requestType === 'attendance' && employeeType === EmployeeType.TEACHING) {
+    return TEACHING_ATTENDANCE_APPEAL_SCHEMA;
+  }
+
+  return REQUEST_FORM_SCHEMAS[requestType];
 };

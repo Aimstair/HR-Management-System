@@ -1,17 +1,18 @@
 import React from 'react';
 import { Button } from '../../../../../components/ui/button';
 import type { EmployeeRequestType } from '../../shared/employeePortalTypes';
-import { EMPLOYEE_REQUEST_TYPE_OPTIONS } from '../requestConfig';
+import type { RequestTypeOption } from '../requestConfig';
 
 interface RequestTypeMenuProps {
   activeType: EmployeeRequestType;
+  options: RequestTypeOption[];
   onChange: (nextType: EmployeeRequestType) => void;
 }
 
-const RequestTypeMenu: React.FC<RequestTypeMenuProps> = ({ activeType, onChange }) => {
+const RequestTypeMenu: React.FC<RequestTypeMenuProps> = ({ activeType, options, onChange }) => {
   return (
     <div className="flex flex-wrap gap-2">
-      {EMPLOYEE_REQUEST_TYPE_OPTIONS.map((option) => (
+      {options.map((option) => (
         <Button
           key={option.value}
           variant={option.value === activeType ? 'default' : 'outline'}

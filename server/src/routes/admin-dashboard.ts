@@ -8,9 +8,8 @@ import type { AppRole } from '../types/auth.js';
 export const adminDashboardRouter = Router();
 
 const ADMIN_ROLES: AppRole[] = [
-  'ROLE_HEAD_ADMIN',
-  'ROLE_SCHOOL_ADMIN',
-  'ROLE_DEPARTMENT_ADMIN',
+  'ROLE_HEAD_HR',
+  'ROLE_CAMPUS_HR',
 ];
 
 adminDashboardRouter.get(
@@ -41,12 +40,7 @@ adminDashboardRouter.get(
           where: getScopedShiftWhere(auth),
         }),
         prisma.memo.findMany({
-          where:
-            auth.role === 'ROLE_HEAD_ADMIN'
-              ? {}
-              : auth.role === 'ROLE_SCHOOL_ADMIN'
-                ? { schoolId: auth.schoolId ?? undefined }
-                : { departmentId: auth.departmentId ?? undefined },
+          where: auth.role === 'ROLE_HEAD_HR' ? {} : { campusId: auth.schoolId ?? undefined },
           select: {
             id: true,
             title: true,

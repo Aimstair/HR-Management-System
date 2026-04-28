@@ -15,7 +15,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { ADMIN_ROLES, isAdminRole, UserRole } from '../../types';
+import { ADMIN_ROLES, EmployeeType, isAdminRole, UserRole } from '../../types';
 import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { cn } from '../../lib/utils';
@@ -29,9 +29,8 @@ interface NavItem {
 
 const roleLabels: Record<UserRole, string> = {
   [UserRole.EMPLOYEE]: 'Employee',
-  [UserRole.HEAD_ADMIN]: 'Head Admin',
-  [UserRole.SCHOOL_ADMIN]: 'School Admin',
-  [UserRole.DEPARTMENT_ADMIN]: 'Department Admin',
+  [UserRole.HEAD_HR]: 'Head HR',
+  [UserRole.CAMPUS_HR]: 'Campus HR',
 };
 
 /**
@@ -82,12 +81,16 @@ const Sidebar: React.FC = () => {
             icon: <ScrollText className="w-5 h-5" />,
             requiredRole: [UserRole.EMPLOYEE],
           },
-          {
-            label: 'Evaluations',
-            href: '/portal/evaluations',
-            icon: <BookOpen className="w-5 h-5" />,
-            requiredRole: [UserRole.EMPLOYEE],
-          },
+          ...(user.employeeType === EmployeeType.TEACHING
+            ? [
+                {
+                  label: 'Evaluations',
+                  href: '/portal/evaluations',
+                  icon: <BookOpen className="w-5 h-5" />,
+                  requiredRole: [UserRole.EMPLOYEE],
+                },
+              ]
+            : []),
         ]
       : []),
     ...(isAdminRole(user.role)
@@ -235,28 +238,6 @@ const Sidebar: React.FC = () => {
                       )}
                     >
                       Leave Report
-                    </Link>
-                    <Link
-                      to="/admin/reports/requests/expense"
-                      className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive('/admin/reports/requests/expense')
-                          ? 'bg-secondary/25 text-secondary-foreground'
-                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                      )}
-                    >
-                      Expense Report
-                    </Link>
-                    <Link
-                      to="/admin/reports/requests/fund"
-                      className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive('/admin/reports/requests/fund')
-                          ? 'bg-secondary/25 text-secondary-foreground'
-                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                      )}
-                    >
-                      Fund Request Report
                     </Link>
                     <Link
                       to="/admin/reports/requests/overtime"

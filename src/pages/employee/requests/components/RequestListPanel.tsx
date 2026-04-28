@@ -1,11 +1,24 @@
 import React from 'react';
 import { Badge } from '../../../../../components/ui/badge';
-import { Card, CardContent } from '../../../../../components/ui/card';
+import { Button } from '../../../../../components/ui/button';
 import { ScrollArea } from '../../../../../components/ui/scroll-area';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../../../components/ui/table';
 import type { EmployeeRequestRecord, EmployeeRequestType } from '../../shared/employeePortalTypes';
 import { formatDateTimeLabel } from '../../shared/employeePortalUtils';
 import { statusBadgeClass, statusLabel } from '../../../admin/requests/utils';
-import { REQUEST_FORM_SCHEMAS, getRequestTypeLabel } from '../requestConfig';
+import { getRequestFormSchema, getRequestTypeLabel } from '../requestConfig';
+import { useAuth } from '../../../../context/AuthContext';
+import { EmployeeType } from '../../../../types';
+
+const REQUESTS_ROWS_PER_PAGE = 9;
+const REQUESTS_ROW_HEIGHT_CLASS = 'h-14';
 
 interface RequestListPanelProps {
   requestType: EmployeeRequestType;
@@ -25,47 +38,131 @@ const toDisplayValue = (value: unknown): string => {
 };
 
 const RequestListPanel: React.FC<RequestListPanelProps> = ({ requestType, requests }) => {
-  const detailFields = REQUEST_FORM_SCHEMAS[requestType];
+  const { user } = useAuth();
+  const employeeType = user?.employeeType ?? EmployeeType.NON_TEACHING;
+  const detailFields = getRequestFormSchema(requestType, employeeType);
+
+  const [page, setPage] = React.useState<number>(1);
+
+  const totalPages = React.useMemo(() => {
+    return Math.max(1, Math.ceil(requests.length / REQUESTS_ROWS_PER_PAGE));
+  }, [requests.length]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [requestType]);
+
+  React.useEffect(() => {
+    setPage((currentPage) => Math.min(currentPage, totalPages));
+  }, [totalPages]);
+
+  const paginatedRequests = React.useMemo(() => {
+    const startIndex = (page - 1) * REQUESTS_ROWS_PER_PAGE;
+    return requests.slice(startIndex, startIndex + REQUESTS_ROWS_PER_PAGE);
+  }, [page, requests]);
+
+  const emptyRows = REQUESTS_ROWS_PER_PAGE - paginatedRequests.length;
+  const hasNoRequests = requests.length === 0;
+
+  const minimumTableWidth = Math.max(980, 520 + detailFields.length * 180);
 
   return (
-    <div className="rounded-sm border">
-      <ScrollArea className="h-107.5 w-full p-4">
-        {requests.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">
-            No requests found for the selected type and month.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {requests.map((request) => (
-              <Card key={request.id} className="py-4">
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-semibold">{getRequestTypeLabel(request.type)} Request</p>
-                      <p className="text-xs text-muted-foreground">
-                        Submitted: {formatDateTimeLabel(request.submittedAt)}
-                      </p>
-                    </div>
+    <div className="space-y-3 rounded-sm">
+      <div className=" border-b">
+        <ScrollArea className="w-full">
+          <div style={{ minWidth: `${minimumTableWidth}px` }}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-38">Submitted</TableHead>
+                  <TableHead className="w-28">Status</TableHead>
+                  <TableHead className="w-36">Type</TableHead>
+                  <TableHead className="min-w-72">Summary</TableHead>
+                  {detailFields.map((field) => (
+                    <TableHead key={field.key} className="min-w-44">
+                      {field.label}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
 
-                    <Badge className={statusBadgeClass[request.status]}>{statusLabel[request.status]}</Badge>
-                  </div>
+              <TableBody>
+                {paginatedRequests.map((request) => (
+                  <TableRow key={request.id} className={REQUESTS_ROW_HEIGHT_CLASS}>
+                    <TableCell className="align-middle text-xs">{formatDateTimeLabel(request.submittedAt)}</TableCell>
+                    <TableCell className="align-middle">
+                      <Badge className={statusBadgeClass[request.status]}>{statusLabel[request.status]}</Badge>
+                    </TableCell>
+                    <TableCell className="align-middle text-xs">{getRequestTypeLabel(request.type)}</TableCell>
+                    <TableCell className="max-w-72 truncate align-middle text-xs" title={request.summary}>
+                      {request.summary || 'N/A'}
+                    </TableCell>
+                    {detailFields.map((field) => {
+                      const value = toDisplayValue(request.fields[field.key]);
 
-                  <p className="text-sm text-muted-foreground">{request.summary}</p>
+                      return (
+                        <TableCell
+                          key={`${request.id}-${field.key}`}
+                          className="max-w-72 truncate align-middle text-xs"
+                          title={value}
+                        >
+                          {value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
 
-                  <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-2">
+                {Array.from({ length: emptyRows }, (_, index) => (
+                  <TableRow key={`empty-${index}`} className={REQUESTS_ROW_HEIGHT_CLASS}>
+                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
                     {detailFields.map((field) => (
-                      <div key={`${request.id}-${field.key}`} className="rounded-sm bg-muted/40 p-2">
-                        <p className="font-medium text-muted-foreground">{field.label}</p>
-                        <p className="mt-1 wrap-break-word">{toDisplayValue(request.fields[field.key])}</p>
-                      </div>
+                      <TableCell key={`empty-${index}-${field.key}`} className="text-xs text-muted-foreground">
+                        --
+                      </TableCell>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </ScrollArea>
+        </ScrollArea>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 px-4">
+        <p className="text-xs text-muted-foreground">
+          {hasNoRequests
+            ? 'No requests found for the selected type and month.'
+            : `Showing ${(page - 1) * REQUESTS_ROWS_PER_PAGE + 1}-${Math.min(page * REQUESTS_ROWS_PER_PAGE, requests.length)} of ${requests.length} requests`}
+        </p>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+            disabled={page <= 1}
+          >
+            Previous
+          </Button>
+          <p className="min-w-20 text-center text-xs text-muted-foreground">
+            Page {page} of {totalPages}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
+            disabled={page >= totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

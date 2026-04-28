@@ -7,6 +7,8 @@ import { authRouter } from './routes/auth.js';
 import { adminDashboardRouter } from './routes/admin-dashboard.js';
 import { adminEmployeesRouter } from './routes/admin-employees.js';
 import { adminRequestsRouter } from './routes/admin-requests.js';
+import { adminAttendancePerformanceRouter } from './routes/admin-attendance-performance.js';
+import { registerSwagger } from './docs/swagger.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 export const app = express();
@@ -26,6 +28,9 @@ app.use('/api/auth', authRouter);
 app.use('/api/admin', adminDashboardRouter);
 app.use('/api/admin', adminEmployeesRouter);
 app.use('/api/admin', adminRequestsRouter);
+app.use('/api/admin', adminAttendancePerformanceRouter);
+
+registerSwagger(app);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

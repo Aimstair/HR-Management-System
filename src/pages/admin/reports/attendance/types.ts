@@ -6,6 +6,7 @@ export interface ReportEmployee {
   department: string;
   position: string;
   campus: string;
+  employeeType: 'TEACHING' | 'NON_TEACHING';
   avatarUrl?: string;
 }
 
@@ -16,13 +17,19 @@ export interface DtrEntry {
   shift: ShiftType;
   timeIn: string; // ISO date time
   timeOut: string; // ISO date time
+  subjectCode?: string;
+  subjectName?: string;
+  semester?: string;
+  remarks?: string;
+  attendanceStatus?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
 }
 
 export interface AddTimeFormValues {
   employeeId: string;
   start: string;
   end: string;
-  agenda: string;
+  subject?: string;
+  status?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
   notes: string;
 }
 

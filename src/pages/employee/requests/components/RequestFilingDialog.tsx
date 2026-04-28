@@ -24,20 +24,25 @@ import type {
   EmployeeRequestType,
 } from '../../shared/employeePortalTypes';
 import {
-  REQUEST_FORM_SCHEMAS,
+  getRequestFormSchema,
   type RequestFieldDefinition,
   getRequestTypeLabel,
 } from '../requestConfig';
+import { EmployeeType } from '../../../../types';
 
 interface RequestFilingDialogProps {
   open: boolean;
   requestType: EmployeeRequestType;
+  employeeType: EmployeeType;
   onClose: () => void;
   onSubmit: (fields: EmployeeRequestFields) => void;
 }
 
-const createInitialValues = (requestType: EmployeeRequestType): EmployeeRequestFields => {
-  const schema = REQUEST_FORM_SCHEMAS[requestType];
+const createInitialValues = (
+  requestType: EmployeeRequestType,
+  employeeType: EmployeeType,
+): EmployeeRequestFields => {
+  const schema = getRequestFormSchema(requestType, employeeType);
   return schema.reduce<EmployeeRequestFields>((acc, field) => {
     acc[field.key] = field.type === 'file' ? [] : '';
     return acc;
@@ -59,11 +64,15 @@ const isValueEmpty = (value: unknown): boolean => {
 const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
   open,
   requestType,
+  employeeType,
   onClose,
   onSubmit,
 }) => {
-  const schema = REQUEST_FORM_SCHEMAS[requestType];
-  const [values, setValues] = React.useState<EmployeeRequestFields>(() => createInitialValues(requestType));
+  const schema = React.useMemo(
+    () => getRequestFormSchema(requestType, employeeType),
+    [requestType, employeeType],
+  );
+  const [values, setValues] = React.useState<EmployeeRequestFields>(() => createInitialValues(requestType, employeeType));
   const [validationError, setValidationError] = React.useState<string>('');
 
   React.useEffect(() => {
@@ -71,9 +80,9 @@ const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
       return;
     }
 
-    setValues(createInitialValues(requestType));
+    setValues(createInitialValues(requestType, employeeType));
     setValidationError('');
-  }, [open, requestType]);
+  }, [open, requestType, employeeType]);
 
   const updateValue = (key: string, value: EmployeeRequestFields[string]): void => {
     setValues((current) => ({

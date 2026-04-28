@@ -9,9 +9,13 @@
 
 export enum UserRole {
   EMPLOYEE = 'ROLE_EMPLOYEE',
-  HEAD_ADMIN = 'ROLE_HEAD_ADMIN',
-  SCHOOL_ADMIN = 'ROLE_SCHOOL_ADMIN',
-  DEPARTMENT_ADMIN = 'ROLE_DEPARTMENT_ADMIN',
+  HEAD_HR = 'ROLE_HEAD_HR',
+  CAMPUS_HR = 'ROLE_CAMPUS_HR',
+}
+
+export enum EmployeeType {
+  TEACHING = 'TEACHING',
+  NON_TEACHING = 'NON_TEACHING',
 }
 
 export enum AdminScopeType {
@@ -29,9 +33,8 @@ export interface AdminScope {
 }
 
 export const ADMIN_ROLES: UserRole[] = [
-  UserRole.HEAD_ADMIN,
-  UserRole.SCHOOL_ADMIN,
-  UserRole.DEPARTMENT_ADMIN,
+  UserRole.HEAD_HR,
+  UserRole.CAMPUS_HR,
 ];
 
 export const isAdminRole = (role: UserRole): boolean => {
@@ -48,6 +51,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
+  employeeType: EmployeeType;
   department: string;
   schoolBranch: string;
   profileImage?: string;
