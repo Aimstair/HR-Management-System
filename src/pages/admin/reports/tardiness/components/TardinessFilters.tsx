@@ -7,9 +7,12 @@ interface TardinessFiltersProps {
   search: string;
   month: number;
   year: number;
+  department: string;
+  departmentOptions: string[];
   onSearchChange: (value: string) => void;
   onMonthChange: (value: number) => void;
   onYearChange: (value: number) => void;
+  onDepartmentChange: (value: string) => void;
 }
 
 const months = [
@@ -33,12 +36,15 @@ const TardinessFilters: React.FC<TardinessFiltersProps> = ({
   search,
   month,
   year,
+  department,
+  departmentOptions,
   onSearchChange,
   onMonthChange,
   onYearChange,
+  onDepartmentChange,
 }) => {
   return (
-    <div className="flex flex-row gap-4 w-full">
+    <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div className="space-y-2">
         <Label>Search Employee</Label>
         <Input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search name" />
@@ -67,6 +73,22 @@ const TardinessFilters: React.FC<TardinessFiltersProps> = ({
           <SelectContent>
             {years.map((item) => (
               <SelectItem key={item} value={String(item)}>
+                {item}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Department</Label>
+        <Select value={department} onValueChange={onDepartmentChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filter non-teaching department" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {departmentOptions.map((item) => (
+              <SelectItem key={item} value={item}>
                 {item}
               </SelectItem>
             ))}

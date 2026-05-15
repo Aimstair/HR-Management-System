@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Breadcrumb,
@@ -21,6 +22,7 @@ import type { CampusNode, EmployeeNode, NavState, DepartmentNode, SchoolNode } f
 
 const AdminEmployeesPage: React.FC = () => {
   const [campuses, setCampuses] = useState<CampusNode[]>(initialCampuses);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [navState, setNavState] = useState<NavState>({
     level: 'campus',
     campus: null,
@@ -61,6 +63,49 @@ const AdminEmployeesPage: React.FC = () => {
     () => employeesForCurrentScope.find((employee) => employee.id === navState.employeeId) ?? null,
     [employeesForCurrentScope, navState.employeeId],
   );
+
+  useEffect(() => {
+    const employeeId = searchParams.get('employeeId');
+    if (!employeeId) {
+      return;
+    }
+
+    for (const campus of campuses) {
+      for (const department of campus.departments) {
+        if (department.schools && department.schools.length > 0) {
+          for (const school of department.schools) {
+            if (school.employees.some((employee) => employee.id === employeeId)) {
+              setNavState({
+                level: 'profile',
+                campus: campus.id,
+                department: department.id,
+                school: school.id,
+                employeeId,
+              });
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete('employeeId');
+              setSearchParams(nextParams, { replace: true });
+              return;
+            }
+          }
+        }
+
+        if (department.employees?.some((employee) => employee.id === employeeId)) {
+          setNavState({
+            level: 'profile',
+            campus: campus.id,
+            department: department.id,
+            school: null,
+            employeeId,
+          });
+          const nextParams = new URLSearchParams(searchParams);
+          nextParams.delete('employeeId');
+          setSearchParams(nextParams, { replace: true });
+          return;
+        }
+      }
+    }
+  }, [campuses, searchParams, setSearchParams]);
 
   const schoolOptionsForSelectedDepartment = selectedDepartment?.schools ?? [];
 

@@ -3,12 +3,12 @@ import type { RequestCategory, RequestRecord, SortDirection, SortState } from '.
 
 export const REQUEST_CATEGORY_MENU: Array<{ value: RequestCategory; label: string }> = [
   { value: 'leave', label: 'Leave' },
-  { value: 'wfh', label: 'Work From Home' },
-  { value: 'undertime', label: 'Undertime' },
   { value: 'overtime', label: 'Overtime' },
+  { value: 'undertime', label: 'Undertime' },
+  { value: 'wfh', label: 'Work From Home' },
   { value: 'adjustments', label: 'Adjustments' },
-  { value: 'shift', label: 'Shift' },
-  { value: 'swap', label: 'Swap' },
+  // { value: 'shift', label: 'Shift' },
+  // { value: 'swap', label: 'Swap' },
 ];
 
 export const statusBadgeClass: Record<RequestStatus, string> = {

@@ -13,19 +13,39 @@ const AdminTardinessReport: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [month, setMonth] = useState<number>(now.getMonth() + 1);
   const [year, setYear] = useState<number>(now.getFullYear());
+  const [department, setDepartment] = useState<string>('all');
   const [activeStatuses, setActiveStatuses] = useState<Set<TardinessStatus>>(
     new Set(LEGEND_ITEMS.map((item) => item.key)),
   );
 
   const monthDays = useMemo(() => makeMonthDays(year, month), [year, month]);
 
+  const nonTeachingDepartmentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          reportEmployees
+            .filter((employee) => employee.employeeType === 'NON_TEACHING')
+            .map((employee) => employee.department),
+        ),
+      ).sort(),
+    [],
+  );
+
+  React.useEffect(() => {
+    if (department !== 'all' && !nonTeachingDepartmentOptions.includes(department)) {
+      setDepartment('all');
+    }
+  }, [department, nonTeachingDepartmentOptions]);
+
   const rows = useMemo(() => {
     const filteredEmployees = reportEmployees.filter((employee) =>
-      employee.fullName.toLowerCase().includes(search.trim().toLowerCase()),
+      employee.fullName.toLowerCase().includes(search.trim().toLowerCase()) &&
+      (department === 'all' || employee.department === department),
     );
 
     return buildTardinessRows(filteredEmployees, dtrEntries, monthDays);
-  }, [monthDays, search]);
+  }, [department, monthDays, search]);
 
   const toggleStatus = (status: TardinessStatus): void => {
     setActiveStatuses((current) => {
@@ -44,12 +64,15 @@ const AdminTardinessReport: React.FC = () => {
       <Card className='relative py-5'>
         <CardContent className='flex flex-col md:flex-row items-start'>
           <TardinessFilters
-          search={search}
-          month={month}
-          year={year}
-          onSearchChange={setSearch}
-          onMonthChange={setMonth}
-          onYearChange={setYear}
+            search={search}
+            month={month}
+            year={year}
+            department={department}
+            departmentOptions={nonTeachingDepartmentOptions}
+            onSearchChange={setSearch}
+            onMonthChange={setMonth}
+            onYearChange={setYear}
+            onDepartmentChange={setDepartment}
           />
           
           <div className='flex flex-col w-full gap-2 items-start justify-start'> 

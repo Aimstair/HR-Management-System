@@ -25,14 +25,14 @@ const refreshCookieConfig = {
 };
 
 const buildAuthPayload = (user: {
-  id: string;
+  userId: string;
   role: AuthTokenPayload['role'];
   adminScopeType: AuthTokenPayload['scopeType'];
   adminSchoolId: string | null;
   adminDepartmentId: string | null;
 }) => {
   return {
-    sub: user.id,
+    sub: user.userId,
     role: user.role,
     scopeType: user.adminScopeType,
     schoolId: user.adminSchoolId,
@@ -70,7 +70,7 @@ authRouter.post('/login', async (req, res, next) => {
     await prisma.refreshToken.create({
       data: {
         tokenHash: hashRefreshToken(refreshToken),
-        userId: user.id,
+        userId: user.userId,
         expiresAt: getRefreshTokenExpiry(),
       },
     });
@@ -109,7 +109,7 @@ authRouter.post('/refresh', async (req, res, next) => {
     }
 
     await prisma.refreshToken.update({
-      where: { id: tokenRecord.id },
+      where: { refreshTokenId: tokenRecord.refreshTokenId },
       data: { revokedAt: new Date() },
     });
 
@@ -164,7 +164,7 @@ authRouter.get('/me', requireAuth, async (req, res, next) => {
       throw new ApiError(401, 'Unauthorized');
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({ where: { userId } });
     if (!user) {
       throw new ApiError(401, 'User session is no longer valid');
     }

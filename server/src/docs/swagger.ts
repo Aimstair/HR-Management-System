@@ -159,6 +159,8 @@ const swaggerSpec = swaggerJSDoc({
             },
             title: { type: 'string' },
             description: { type: 'string', nullable: true },
+            leaveStartDate: { type: 'string', format: 'date-time', nullable: true },
+            leaveEndDate: { type: 'string', format: 'date-time', nullable: true },
             employeeId: { type: 'string' },
             reviewedById: { type: 'string', nullable: true },
             schoolId: { type: 'string' },
@@ -197,6 +199,7 @@ const swaggerSpec = swaggerJSDoc({
               enum: ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'],
             },
             remarks: { type: 'string', nullable: true },
+            minutesLate: { type: 'integer', nullable: true },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
             employee: {
@@ -265,6 +268,7 @@ const swaggerSpec = swaggerJSDoc({
             checkInTime: { type: 'string', format: 'date-time', nullable: true },
             checkOutTime: { type: 'string', format: 'date-time', nullable: true },
             remarks: { type: 'string', nullable: true },
+            minutesLate: { type: 'integer', nullable: true },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
             employee: {
@@ -453,6 +457,7 @@ const swaggerSpec = swaggerJSDoc({
               enum: ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'],
             },
             remarks: { type: 'string', nullable: true },
+            minutesLate: { type: 'integer', nullable: true, minimum: 0 },
           },
           required: ['employeeId', 'classSessionId', 'status'],
         },
@@ -466,6 +471,7 @@ const swaggerSpec = swaggerJSDoc({
               enum: ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'],
             },
             remarks: { type: 'string', nullable: true },
+            minutesLate: { type: 'integer', nullable: true, minimum: 0 },
           },
         },
         CreateNonTeachingAttendanceRequest: {
@@ -482,6 +488,7 @@ const swaggerSpec = swaggerJSDoc({
             checkInTime: { type: 'string', format: 'date-time', nullable: true },
             checkOutTime: { type: 'string', format: 'date-time', nullable: true },
             remarks: { type: 'string', nullable: true },
+            minutesLate: { type: 'integer', nullable: true, minimum: 0 },
           },
           required: ['employeeId', 'attendanceDate', 'status'],
         },
@@ -499,7 +506,145 @@ const swaggerSpec = swaggerJSDoc({
             checkInTime: { type: 'string', format: 'date-time', nullable: true },
             checkOutTime: { type: 'string', format: 'date-time', nullable: true },
             remarks: { type: 'string', nullable: true },
+            minutesLate: { type: 'integer', nullable: true, minimum: 0 },
           },
+        },
+        DashboardSummaryResponse: {
+          type: 'object',
+          properties: {
+            summary: {
+              type: 'object',
+              properties: {
+                totalEmployees: { type: 'integer' },
+                totalTeachingEmployees: { type: 'integer' },
+                totalNonTeachingEmployees: { type: 'integer' },
+                teachingActive: { type: 'integer' },
+                nonTeachingActive: { type: 'integer' },
+                teachingSessionsPresent: { type: 'integer' },
+                teachingSessionsTotal: { type: 'integer' },
+                todayTeachingSessionsAttendance: { type: 'integer' },
+                onLeave: { type: 'integer' },
+                pendingRequests: { type: 'integer' },
+                todayAttendance: { type: 'integer' },
+                todayTeachingAttendance: { type: 'integer' },
+                todayNonTeachingAttendance: { type: 'integer' },
+                totalLate: { type: 'integer' },
+                activeShifts: { type: 'integer' },
+              },
+              required: [
+                'totalEmployees',
+                'totalTeachingEmployees',
+                'totalNonTeachingEmployees',
+                'teachingActive',
+                'nonTeachingActive',
+                'teachingSessionsPresent',
+                'teachingSessionsTotal',
+                'todayTeachingSessionsAttendance',
+                'onLeave',
+                'pendingRequests',
+                'todayAttendance',
+                'todayTeachingAttendance',
+                'todayNonTeachingAttendance',
+                'totalLate',
+                'activeShifts',
+              ],
+            },
+            attendanceTrendNonTeaching: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  day: { type: 'string' },
+                  date: { type: 'string', format: 'date' },
+                  present: { type: 'integer' },
+                  absent: { type: 'integer' },
+                  late: { type: 'integer' },
+                },
+                required: ['day', 'date', 'present', 'absent', 'late'],
+              },
+            },
+            attendanceTrendTeaching: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  day: { type: 'string' },
+                  date: { type: 'string', format: 'date' },
+                  present: { type: 'integer' },
+                  absent: { type: 'integer' },
+                  late: { type: 'integer' },
+                },
+                required: ['day', 'date', 'present', 'absent', 'late'],
+              },
+            },
+            requestBreakdown: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: {
+                    type: 'string',
+                    enum: ['Leave', 'Undertime', 'Overtime', 'Work from Home', 'Time Adjustment'],
+                  },
+                  value: { type: 'integer' },
+                },
+                required: ['name', 'value'],
+              },
+            },
+            priorityRequests: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  avatarUrl: { type: 'string', nullable: true },
+                  name: { type: 'string' },
+                  requestType: {
+                    type: 'string',
+                    enum: ['Leave', 'Undertime', 'Overtime', 'Work from Home', 'Time Adjustment'],
+                  },
+                  dateSubmitted: { type: 'string', format: 'date-time' },
+                },
+                required: ['id', 'name', 'requestType', 'dateSubmitted'],
+              },
+            },
+            tardinessWatchlist: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  employeeId: { type: 'string' },
+                  avatarUrl: { type: 'string', nullable: true },
+                  name: { type: 'string' },
+                  department: { type: 'string', nullable: true },
+                  minutesLate: { type: 'integer' },
+                },
+                required: ['id', 'employeeId', 'name', 'minutesLate'],
+              },
+            },
+            recentMemos: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' },
+                  publishedAt: { type: 'string', format: 'date-time' },
+                },
+                required: ['id', 'title', 'publishedAt'],
+              },
+            },
+          },
+          required: [
+            'summary',
+            'attendanceTrendNonTeaching',
+            'attendanceTrendTeaching',
+            'requestBreakdown',
+            'priorityRequests',
+            'tardinessWatchlist',
+            'recentMemos',
+          ],
         },
         CreatePerformanceEvaluationRequest: {
           type: 'object',
@@ -691,44 +836,24 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/dashboard/metrics': {
+      '/api/admin/dashboard/summary': {
         get: {
           tags: ['Admin Dashboard'],
-          summary: 'Get scoped admin dashboard metrics',
+          summary: 'Get scoped admin dashboard summary',
           security: [{ bearerAuth: [] }],
           responses: {
             200: {
-              description: 'Dashboard metrics',
+              description: 'Dashboard summary',
               content: {
                 'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      totalEmployees: { type: 'integer' },
-                      pendingRequests: { type: 'integer' },
-                      activeShifts: { type: 'integer' },
-                      recentMemos: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          properties: {
-                            id: { type: 'string' },
-                            title: { type: 'string' },
-                            publishedAt: { type: 'string', format: 'date-time' },
-                          },
-                          required: ['id', 'title', 'publishedAt'],
-                        },
-                      },
-                    },
-                    required: ['totalEmployees', 'pendingRequests', 'activeShifts', 'recentMemos'],
-                  },
+                  schema: { $ref: '#/components/schemas/DashboardSummaryResponse' },
                 },
               },
             },
           },
         },
       },
-      '/api/admin/employees': {
+      '/api/admin/employees/list': {
         get: {
           tags: ['Admin Employees'],
           summary: 'List scoped employees',
@@ -777,6 +902,8 @@ const swaggerSpec = swaggerJSDoc({
             },
           },
         },
+      },
+      '/api/admin/employees/create': {
         post: {
           tags: ['Admin Employees'],
           summary: 'Create employee',
@@ -851,6 +978,8 @@ const swaggerSpec = swaggerJSDoc({
             },
           },
         },
+      },
+      '/api/admin/employees/{employeeId}/update': {
         patch: {
           tags: ['Admin Employees'],
           summary: 'Update employee by ID',
@@ -902,51 +1031,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/employees/{employeeId}/deactivate': {
-        patch: {
-          tags: ['Admin Employees'],
-          summary: 'Set active state for employee',
-          security: [{ bearerAuth: [] }],
-          parameters: [
-            {
-              name: 'employeeId',
-              in: 'path',
-              required: true,
-              schema: { type: 'string' },
-            },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    isActive: { type: 'boolean', default: false },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            200: {
-              description: 'Employee activation status updated',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      employee: { $ref: '#/components/schemas/Employee' },
-                    },
-                    required: ['employee'],
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/api/admin/requests': {
+      '/api/admin/requests/list': {
         get: {
           tags: ['Admin Requests'],
           summary: 'List scoped requests',
@@ -1141,7 +1226,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/attendance/teaching': {
+      '/api/admin/attendance/teaching/list': {
         get: {
           tags: ['Admin Attendance & Performance'],
           summary: 'List scoped teaching attendance records',
@@ -1195,6 +1280,8 @@ const swaggerSpec = swaggerJSDoc({
             },
           },
         },
+      },
+      '/api/admin/attendance/teaching/create': {
         post: {
           tags: ['Admin Attendance & Performance'],
           summary: 'Create teaching attendance record',
@@ -1251,7 +1338,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/attendance/teaching/{id}': {
+      '/api/admin/attendance/teaching/{id}/update': {
         patch: {
           tags: ['Admin Attendance & Performance'],
           summary: 'Update teaching attendance record',
@@ -1316,7 +1403,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/attendance/non-teaching': {
+      '/api/admin/attendance/non-teaching/list': {
         get: {
           tags: ['Admin Attendance & Performance'],
           summary: 'List scoped non-teaching attendance records',
@@ -1373,6 +1460,8 @@ const swaggerSpec = swaggerJSDoc({
             },
           },
         },
+      },
+      '/api/admin/attendance/non-teaching/create': {
         post: {
           tags: ['Admin Attendance & Performance'],
           summary: 'Create non-teaching attendance record',
@@ -1429,7 +1518,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/attendance/non-teaching/{id}': {
+      '/api/admin/attendance/non-teaching/{id}/update': {
         patch: {
           tags: ['Admin Attendance & Performance'],
           summary: 'Update non-teaching attendance record',
@@ -1494,7 +1583,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/performance-evaluations': {
+      '/api/admin/performance-evaluations/list': {
         get: {
           tags: ['Admin Attendance & Performance'],
           summary: 'List scoped performance evaluations',
@@ -1553,6 +1642,8 @@ const swaggerSpec = swaggerJSDoc({
             },
           },
         },
+      },
+      '/api/admin/performance-evaluations/create': {
         post: {
           tags: ['Admin Attendance & Performance'],
           summary: 'Create performance evaluation',
@@ -1609,7 +1700,7 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
-      '/api/admin/performance-evaluations/{id}': {
+      '/api/admin/performance-evaluations/{id}/update': {
         patch: {
           tags: ['Admin Attendance & Performance'],
           summary: 'Update performance evaluation',

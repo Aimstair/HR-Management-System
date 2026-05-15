@@ -11,10 +11,64 @@ interface StoredSession {
   accessToken: string;
 }
 
-export interface AdminDashboardMetrics {
-  totalEmployees: number;
-  pendingRequests: number;
-  activeShifts: number;
+export type DashboardRequestTypeLabel =
+  | 'Leave'
+  | 'Undertime'
+  | 'Overtime'
+  | 'Work from Home'
+  | 'Time Adjustment';
+
+export interface AdminDashboardSummary {
+  summary: {
+    totalEmployees: number;
+    totalTeachingEmployees: number;
+    totalNonTeachingEmployees: number;
+    teachingActive: number;
+    nonTeachingActive: number;
+    teachingSessionsPresent: number;
+    teachingSessionsTotal: number;
+    todayTeachingSessionsAttendance: number;
+    onLeave: number;
+    pendingRequests: number;
+    todayAttendance: number;
+    todayTeachingAttendance: number;
+    todayNonTeachingAttendance: number;
+    totalLate: number;
+    activeShifts: number;
+  };
+  attendanceTrendNonTeaching: Array<{
+    day: string;
+    date: string;
+    present: number;
+    absent: number;
+    late: number;
+  }>;
+  attendanceTrendTeaching: Array<{
+    day: string;
+    date: string;
+    present: number;
+    absent: number;
+    late: number;
+  }>;
+  requestBreakdown: Array<{
+    name: DashboardRequestTypeLabel;
+    value: number;
+  }>;
+  priorityRequests: Array<{
+    id: string;
+    avatarUrl: string | null;
+    name: string;
+    requestType: DashboardRequestTypeLabel;
+    dateSubmitted: string;
+  }>;
+  tardinessWatchlist: Array<{
+    id: string;
+    employeeId: string;
+    avatarUrl: string | null;
+    name: string;
+    department: string | null;
+    minutesLate: number;
+  }>;
   recentMemos: Array<{
     id: string;
     title: string;
@@ -105,6 +159,8 @@ export interface AdminRequestRecord {
   status: AdminRequestStatus;
   title: string;
   description: string | null;
+  leaveStartDate: string | null;
+  leaveEndDate: string | null;
   employeeId: string;
   reviewedById: string | null;
   schoolId: string;
@@ -169,6 +225,7 @@ export interface AdminTeachingAttendanceRecord {
   employeeId: string;
   status: TeachingAttendanceStatus;
   remarks: string | null;
+  minutesLate: number | null;
   createdAt: string;
   updatedAt: string;
   employee: {
@@ -210,6 +267,7 @@ export interface AdminNonTeachingAttendanceRecord {
   checkInTime: string | null;
   checkOutTime: string | null;
   remarks: string | null;
+  minutesLate: number | null;
   createdAt: string;
   updatedAt: string;
   employee: {
@@ -364,8 +422,8 @@ const buildQuery = (params: Record<string, string | number | boolean | null | un
   return query ? `?${query}` : '';
 };
 
-export const getAdminDashboardMetrics = (): Promise<AdminDashboardMetrics> => {
-  return request<AdminDashboardMetrics>('/admin/dashboard/metrics', {
+export const getAdminDashboardSummary = (): Promise<AdminDashboardSummary> => {
+  return request<AdminDashboardSummary>('/admin/dashboard/summary', {
     method: 'GET',
   });
 };
@@ -374,7 +432,7 @@ export const getAdminEmployees = (
   query: AdminEmployeeListQuery = {},
 ): Promise<AdminEmployeeListResponse> => {
   return request<AdminEmployeeListResponse>(
-    `/admin/employees${buildQuery({
+    `/admin/employees/list${buildQuery({
       search: query.search,
       schoolId: query.schoolId,
       departmentId: query.departmentId,
@@ -401,7 +459,7 @@ export const getAdminEmployeeById = (
 export const createAdminEmployee = (
   payload: CreateAdminEmployeePayload,
 ): Promise<{ employee: AdminEmployeeRecord }> => {
-  return request<{ employee: AdminEmployeeRecord }>('/admin/employees', {
+  return request<{ employee: AdminEmployeeRecord }>('/admin/employees/create', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -411,7 +469,7 @@ export const updateAdminEmployee = (
   employeeId: string,
   payload: UpdateAdminEmployeePayload,
 ): Promise<{ employee: AdminEmployeeRecord }> => {
-  return request<{ employee: AdminEmployeeRecord }>(`/admin/employees/${employeeId}`, {
+  return request<{ employee: AdminEmployeeRecord }>(`/admin/employees/${employeeId}/update`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
@@ -421,17 +479,14 @@ export const setAdminEmployeeActive = (
   employeeId: string,
   isActive: boolean,
 ): Promise<{ employee: AdminEmployeeRecord }> => {
-  return request<{ employee: AdminEmployeeRecord }>(`/admin/employees/${employeeId}/deactivate`, {
-    method: 'PATCH',
-    body: JSON.stringify({ isActive }),
-  });
+  return updateAdminEmployee(employeeId, { isActive });
 };
 
 export const getAdminRequests = (
   query: AdminRequestListQuery = {},
 ): Promise<AdminRequestListResponse> => {
   return request<AdminRequestListResponse>(
-    `/admin/requests${buildQuery({
+    `/admin/requests/list${buildQuery({
       search: query.search,
       type: query.type,
       status: query.status,
@@ -478,7 +533,7 @@ export const getAdminTeachingAttendance = (
   query: AdminTeachingAttendanceListQuery = {},
 ): Promise<PaginatedResponse<AdminTeachingAttendanceRecord>> => {
   return request<PaginatedResponse<AdminTeachingAttendanceRecord>>(
-    `/admin/attendance/teaching${buildQuery({
+    `/admin/attendance/teaching/list${buildQuery({
       schoolId: query.schoolId,
       departmentId: query.departmentId,
       employeeId: query.employeeId,
@@ -498,7 +553,7 @@ export const getAdminNonTeachingAttendance = (
   query: AdminNonTeachingAttendanceListQuery = {},
 ): Promise<PaginatedResponse<AdminNonTeachingAttendanceRecord>> => {
   return request<PaginatedResponse<AdminNonTeachingAttendanceRecord>>(
-    `/admin/attendance/non-teaching${buildQuery({
+    `/admin/attendance/non-teaching/list${buildQuery({
       schoolId: query.schoolId,
       departmentId: query.departmentId,
       employeeId: query.employeeId,
@@ -518,7 +573,7 @@ export const getAdminPerformanceEvaluations = (
   query: AdminPerformanceEvaluationListQuery = {},
 ): Promise<PaginatedResponse<AdminPerformanceEvaluationRecord>> => {
   return request<PaginatedResponse<AdminPerformanceEvaluationRecord>>(
-    `/admin/performance-evaluations${buildQuery({
+    `/admin/performance-evaluations/list${buildQuery({
       schoolId: query.schoolId,
       departmentId: query.departmentId,
       employeeId: query.employeeId,

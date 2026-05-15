@@ -45,6 +45,7 @@ const teachingAttendanceCreateBodySchema = z.object({
   classSessionId: z.string().trim().min(1),
   status: z.nativeEnum(TeachingAttendanceStatus),
   remarks: z.string().trim().max(2000).nullable().optional(),
+  minutesLate: z.number().int().min(0).nullable().optional(),
 });
 
 const teachingAttendancePatchBodySchema = z
@@ -53,6 +54,7 @@ const teachingAttendancePatchBodySchema = z
     classSessionId: z.string().trim().min(1).optional(),
     status: z.nativeEnum(TeachingAttendanceStatus).optional(),
     remarks: z.string().trim().max(2000).nullable().optional(),
+    minutesLate: z.number().int().min(0).nullable().optional(),
   })
   .refine((value) => Object.values(value).some((item) => item !== undefined), {
     message: 'At least one field must be provided',
@@ -67,6 +69,7 @@ const nonTeachingAttendanceCreateBodySchema = z.object({
   checkInTime: z.string().trim().min(1).nullable().optional(),
   checkOutTime: z.string().trim().min(1).nullable().optional(),
   remarks: z.string().trim().max(2000).nullable().optional(),
+  minutesLate: z.number().int().min(0).nullable().optional(),
 });
 
 const nonTeachingAttendancePatchBodySchema = z
@@ -79,6 +82,7 @@ const nonTeachingAttendancePatchBodySchema = z
     checkInTime: z.string().trim().min(1).nullable().optional(),
     checkOutTime: z.string().trim().min(1).nullable().optional(),
     remarks: z.string().trim().max(2000).nullable().optional(),
+    minutesLate: z.number().int().min(0).nullable().optional(),
   })
   .refine((value) => Object.values(value).some((item) => item !== undefined), {
     message: 'At least one field must be provided',
@@ -123,6 +127,7 @@ const teachingAttendanceSelect = {
   employeeId: true,
   status: true,
   remarks: true,
+  minutesLate: true,
   createdAt: true,
   updatedAt: true,
   employee: {
@@ -174,6 +179,7 @@ const nonTeachingAttendanceSelect = {
   checkInTime: true,
   checkOutTime: true,
   remarks: true,
+  minutesLate: true,
   createdAt: true,
   updatedAt: true,
   employee: {
@@ -396,7 +402,11 @@ const resolveTeachingAttendanceTargets = async (
       where: { id: classSessionId },
       select: {
         id: true,
-        schoolId: true,
+        school: {
+          select: {
+            campusId: true,
+          },
+        },
       },
     }),
   ]);
@@ -405,9 +415,9 @@ const resolveTeachingAttendanceTargets = async (
     throw new ApiError(404, 'Class session not found');
   }
 
-  assertSchoolScope(auth, classSession.schoolId);
+  assertSchoolScope(auth, classSession.school.campusId);
 
-  if (employee.schoolId && employee.schoolId !== classSession.schoolId) {
+  if (employee.schoolId && employee.schoolId !== classSession.school.campusId) {
     throw new ApiError(400, 'Employee school does not match class session school');
   }
 };
@@ -537,7 +547,7 @@ const toWriteApiError = (error: unknown): unknown => {
 };
 
 adminAttendancePerformanceRouter.get(
-  '/attendance/teaching',
+  '/attendance/teaching/list',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -557,7 +567,7 @@ adminAttendancePerformanceRouter.get(
         ...(query.status ? { status: query.status } : {}),
         employee: { employeeType: 'TEACHING' as const },
         classSession: {
-          ...(schoolId ? { schoolId } : {}),
+          ...(schoolId ? { school: { campusId: schoolId } } : {}),
           ...(query.departmentId ? { departmentId: query.departmentId } : {}),
           ...((fromDate || toDate)
             ? {
@@ -600,7 +610,7 @@ adminAttendancePerformanceRouter.get(
 );
 
 adminAttendancePerformanceRouter.get(
-  '/attendance/non-teaching',
+  '/attendance/non-teaching/list',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -658,7 +668,7 @@ adminAttendancePerformanceRouter.get(
 );
 
 adminAttendancePerformanceRouter.get(
-  '/performance-evaluations',
+  '/performance-evaluations/list',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -730,7 +740,7 @@ adminAttendancePerformanceRouter.get(
 );
 
 adminAttendancePerformanceRouter.post(
-  '/attendance/teaching',
+  '/attendance/teaching/create',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -742,6 +752,7 @@ adminAttendancePerformanceRouter.post(
 
       const payload = teachingAttendanceCreateBodySchema.parse(req.body);
       await resolveTeachingAttendanceTargets(auth, payload.employeeId, payload.classSessionId);
+      const minutesLate = payload.status === 'LATE' ? payload.minutesLate ?? null : null;
 
       const row = await prisma.teachingAttendance.create({
         data: {
@@ -749,6 +760,7 @@ adminAttendancePerformanceRouter.post(
           classSessionId: payload.classSessionId,
           status: payload.status,
           remarks: normalizeOptionalText(payload.remarks) ?? null,
+          minutesLate,
         },
         select: teachingAttendanceSelect,
       });
@@ -763,7 +775,7 @@ adminAttendancePerformanceRouter.post(
 );
 
 adminAttendancePerformanceRouter.patch(
-  '/attendance/teaching/:id',
+  '/attendance/teaching/:id/update',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -782,9 +794,15 @@ adminAttendancePerformanceRouter.patch(
           id: true,
           employeeId: true,
           classSessionId: true,
+          status: true,
+          minutesLate: true,
           classSession: {
             select: {
-              schoolId: true,
+              school: {
+                select: {
+                  campusId: true,
+                },
+              },
             },
           },
         },
@@ -794,10 +812,14 @@ adminAttendancePerformanceRouter.patch(
         throw new ApiError(404, 'Teaching attendance record not found');
       }
 
-      assertSchoolScope(auth, existing.classSession.schoolId);
+      assertSchoolScope(auth, existing.classSession.school.campusId);
 
       const targetEmployeeId = payload.employeeId ?? existing.employeeId;
       const targetClassSessionId = payload.classSessionId ?? existing.classSessionId;
+      const targetStatus = payload.status ?? existing.status;
+      const resolvedMinutesLate = payload.minutesLate === undefined
+        ? (targetStatus === 'LATE' ? existing.minutesLate ?? null : null)
+        : (targetStatus === 'LATE' ? payload.minutesLate : null);
       await resolveTeachingAttendanceTargets(auth, targetEmployeeId, targetClassSessionId);
 
       const row = await prisma.teachingAttendance.update({
@@ -807,6 +829,7 @@ adminAttendancePerformanceRouter.patch(
           classSessionId: targetClassSessionId,
           status: payload.status,
           remarks: normalizeOptionalText(payload.remarks),
+          minutesLate: resolvedMinutesLate,
         },
         select: teachingAttendanceSelect,
       });
@@ -821,7 +844,7 @@ adminAttendancePerformanceRouter.patch(
 );
 
 adminAttendancePerformanceRouter.post(
-  '/attendance/non-teaching',
+  '/attendance/non-teaching/create',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -833,6 +856,7 @@ adminAttendancePerformanceRouter.post(
 
       const payload = nonTeachingAttendanceCreateBodySchema.parse(req.body);
       const resolved = await resolveNonTeachingAttendancePayload(auth, payload);
+      const minutesLate = payload.status === 'LATE' ? payload.minutesLate ?? null : null;
 
       const row = await prisma.nonTeachingAttendance.create({
         data: {
@@ -844,6 +868,7 @@ adminAttendancePerformanceRouter.post(
           checkInTime: resolved.checkInTime,
           checkOutTime: resolved.checkOutTime,
           remarks: normalizeOptionalText(payload.remarks) ?? null,
+          minutesLate,
         },
         select: nonTeachingAttendanceSelect,
       });
@@ -858,7 +883,7 @@ adminAttendancePerformanceRouter.post(
 );
 
 adminAttendancePerformanceRouter.patch(
-  '/attendance/non-teaching/:id',
+  '/attendance/non-teaching/:id/update',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -881,6 +906,8 @@ adminAttendancePerformanceRouter.patch(
           attendanceDate: true,
           checkInTime: true,
           checkOutTime: true,
+          status: true,
+          minutesLate: true,
         },
       });
 
@@ -896,6 +923,10 @@ adminAttendancePerformanceRouter.patch(
       const targetAttendanceDate = payload.attendanceDate ?? existing.attendanceDate.toISOString();
       const targetCheckIn = payload.checkInTime === undefined ? existing.checkInTime?.toISOString() ?? null : payload.checkInTime;
       const targetCheckOut = payload.checkOutTime === undefined ? existing.checkOutTime?.toISOString() ?? null : payload.checkOutTime;
+      const targetStatus = payload.status ?? existing.status;
+      const resolvedMinutesLate = payload.minutesLate === undefined
+        ? (targetStatus === 'LATE' ? existing.minutesLate ?? null : null)
+        : (targetStatus === 'LATE' ? payload.minutesLate : null);
 
       const resolved = await resolveNonTeachingAttendancePayload(auth, {
         employeeId: targetEmployeeId,
@@ -917,6 +948,7 @@ adminAttendancePerformanceRouter.patch(
           checkInTime: payload.checkInTime === undefined ? undefined : resolved.checkInTime,
           checkOutTime: payload.checkOutTime === undefined ? undefined : resolved.checkOutTime,
           remarks: normalizeOptionalText(payload.remarks),
+          minutesLate: resolvedMinutesLate,
         },
         select: nonTeachingAttendanceSelect,
       });
@@ -931,7 +963,7 @@ adminAttendancePerformanceRouter.patch(
 );
 
 adminAttendancePerformanceRouter.post(
-  '/performance-evaluations',
+  '/performance-evaluations/create',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -971,7 +1003,7 @@ adminAttendancePerformanceRouter.post(
 );
 
 adminAttendancePerformanceRouter.patch(
-  '/performance-evaluations/:id',
+  '/performance-evaluations/:id/update',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {

@@ -75,6 +75,8 @@ const normalizeRequestRow = (row: {
   status: string;
   title: string;
   description: string | null;
+  leaveStartDate: Date | null;
+  leaveEndDate: Date | null;
   employeeId: string;
   reviewedById: string | null;
   schoolId: string;
@@ -106,6 +108,8 @@ const normalizeRequestRow = (row: {
 }) => {
   return {
     ...row,
+    leaveStartDate: row.leaveStartDate ? row.leaveStartDate.toISOString() : null,
+    leaveEndDate: row.leaveEndDate ? row.leaveEndDate.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -117,6 +121,8 @@ const requestSelect = {
   status: true,
   title: true,
   description: true,
+  leaveStartDate: true,
+  leaveEndDate: true,
   employeeId: true,
   reviewedById: true,
   schoolId: true,
@@ -156,7 +162,7 @@ const requestSelect = {
 } as const;
 
 adminRequestsRouter.get(
-  '/requests',
+  '/requests/list',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {

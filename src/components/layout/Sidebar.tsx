@@ -101,12 +101,12 @@ const Sidebar: React.FC = () => {
             icon: <Users className="w-5 h-5" />,
             requiredRole: ADMIN_ROLES,
           },
-          {
-            label: 'Organization',
-            href: '/admin/organization',
-            icon: <Building2 className="w-5 h-5" />,
-            requiredRole: ADMIN_ROLES,
-          },
+          // {
+          //   label: 'Organization',
+          //   href: '/admin/organization',
+          //   icon: <Building2 className="w-5 h-5" />,
+          //   requiredRole: ADMIN_ROLES,
+          // },
           {
             label: 'Requests',
             href: '/admin/requests',
@@ -283,7 +283,7 @@ const Sidebar: React.FC = () => {
                     >
                       Time Adjustment Report
                     </Link>
-                    <Link
+                    {/* <Link
                       to="/admin/reports/requests/shift-assignment"
                       className={cn(
                         'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -293,8 +293,8 @@ const Sidebar: React.FC = () => {
                       )}
                     >
                       Shift Assignment Report
-                    </Link>
-                    <Link
+                    </Link> */}
+                    {/* <Link
                       to="/admin/reports/requests/swap-request"
                       className={cn(
                         'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -304,7 +304,7 @@ const Sidebar: React.FC = () => {
                       )}
                     >
                       Swap Request Report
-                    </Link>
+                    </Link> */}
                   </div>
                 ) : null}
               </div>

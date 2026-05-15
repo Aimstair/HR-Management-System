@@ -57,9 +57,6 @@ const updateEmployeeBodySchema = z
     message: 'At least one field must be provided for update',
   });
 
-const deactivateEmployeeBodySchema = z.object({
-  isActive: z.boolean().default(false),
-});
 
 const employeeSelect = {
   id: true,
@@ -204,7 +201,7 @@ const getEmployeesOrderBy = (
 };
 
 adminEmployeesRouter.get(
-  '/employees',
+  '/employees/list',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -297,7 +294,7 @@ adminEmployeesRouter.get(
 );
 
 adminEmployeesRouter.post(
-  '/employees',
+  '/employees/create',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -358,7 +355,7 @@ adminEmployeesRouter.post(
 );
 
 adminEmployeesRouter.patch(
-  '/employees/:employeeId',
+  '/employees/:employeeId/update',
   requireAuth,
   requireRoles(...ADMIN_ROLES),
   async (req, res, next) => {
@@ -439,57 +436,3 @@ adminEmployeesRouter.patch(
   },
 );
 
-adminEmployeesRouter.patch(
-  '/employees/:employeeId/deactivate',
-  requireAuth,
-  requireRoles(...ADMIN_ROLES),
-  async (req, res, next) => {
-    try {
-      const auth = req.auth;
-      if (!auth) {
-        throw new ApiError(401, 'Authentication is required');
-      }
-
-      const { employeeId } = employeeIdParamsSchema.parse(req.params);
-      const payload = deactivateEmployeeBodySchema.parse(req.body);
-      const scopedWhere = getScopedUserWhere(auth, 'ROLE_EMPLOYEE');
-
-      const existingEmployee = await prisma.user.findFirst({
-        where: {
-          ...scopedWhere,
-          id: employeeId,
-        },
-        select: {
-          id: true,
-          schoolId: true,
-          departmentId: true,
-        },
-      });
-
-      if (!existingEmployee) {
-        throw new ApiError(404, 'Employee not found in your scope');
-      }
-
-      const targetSchoolId = existingEmployee.schoolId;
-      if (!targetSchoolId) {
-        throw new ApiError(400, 'Employee record is missing a school assignment');
-      }
-
-      assertMutationScope(auth, targetSchoolId, existingEmployee.departmentId);
-
-      const employee = await prisma.user.update({
-        where: { id: existingEmployee.id },
-        data: {
-          isActive: payload.isActive,
-        },
-        select: employeeSelect,
-      });
-
-      res.json({
-        employee: normalizeEmployeeRow(employee),
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);

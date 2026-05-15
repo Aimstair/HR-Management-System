@@ -85,7 +85,7 @@ const LoginPage: React.FC = () => {
           </form>
 
           {/* Quick Login Demo */}
-          <div className="mt-8 pt-8 border-t border-border">
+          {/* <div className="mt-8 pt-8 border-t border-border">
             <p className="text-sm text-muted-foreground mb-4 text-center">Demo Credentials (Password: Password123!)</p>
             <div className="space-y-2">
               <Button
@@ -125,7 +125,7 @@ const LoginPage: React.FC = () => {
                 Login as Non-Teaching Employee
               </Button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

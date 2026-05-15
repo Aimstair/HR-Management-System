@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -65,41 +65,41 @@ enum PerformanceRubricType {
 }
 
 model Campus {
-  campusId                    String                      @id
-  name                        String                      @unique
-  code                        String?                     @unique
-  schools                     School[]
-  users                       User[]                      @relation("UserCampus")
-  requests                    RequestRecord[]
-  shifts                      Shift[]
-  memos                       Memo[]
-  nonTeachingAttendanceRows   NonTeachingAttendance[]
-  performanceEvaluations      PerformanceEvaluation[]
-  createdAt                   DateTime                    @default(now())
-  updatedAt                   DateTime                    @updatedAt
+  campusId                  String                  @id
+  name                      String                  @unique
+  code                      String?                 @unique
+  schools                   School[]
+  users                     User[]                  @relation("UserCampus")
+  requests                  RequestRecord[]
+  shifts                    Shift[]
+  memos                     Memo[]
+  nonTeachingAttendanceRows NonTeachingAttendance[]
+  performanceEvaluations    PerformanceEvaluation[]
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
 }
 
 model School {
-  schoolId                    String                      @id
-  name                        String
-  campusId                    String
-  campus                      Campus                      @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
-  departments                 Department[]
-  subjects                    Subject[]
-  teachingAssignments         TeachingAssignment[]
-  classSessions               ClassSession[]
-  createdAt                   DateTime                    @default(now())
-  updatedAt                   DateTime                    @updatedAt
+  schoolId            String               @id
+  name                String
+  campusId            String
+  campus              Campus               @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  departments         Department[]
+  subjects            Subject[]
+  teachingAssignments TeachingAssignment[]
+  classSessions       ClassSession[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@unique([campusId, name])
   @@index([campusId])
 }
 
 model Department {
-  departmentId              String                      @id
+  departmentId              String                  @id
   name                      String
   schoolId                  String
-  school                    School                      @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  school                    School                  @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
   users                     User[]
   requests                  RequestRecord[]
   shifts                    Shift[]
@@ -109,48 +109,48 @@ model Department {
   classSessions             ClassSession[]
   nonTeachingAttendanceRows NonTeachingAttendance[]
   performanceEvaluations    PerformanceEvaluation[]
-  createdAt                 DateTime                    @default(now())
-  updatedAt                 DateTime                    @updatedAt
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
 
   @@index([schoolId])
   @@unique([schoolId, name])
 }
 
 model User {
-  id                  String          @id @default(cuid())
-  email               String          @unique
-  passwordHash        String
-  isActive            Boolean         @default(true)
-  firstName           String
-  lastName            String
-  role                Role
-  employeeType        EmployeeType    @default(NON_TEACHING)
-  department          String?
-  schoolBranch        String?
-  position            String?
-  profileImage        String?
-  joinDate            DateTime        @default(now())
-  schoolId            String?
-  departmentId        String?
-  school              Campus?         @relation("UserCampus", fields: [schoolId], references: [campusId], onDelete: SetNull)
-  departmentModel     Department?     @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  adminScopeType      AdminScopeType?
-  adminSchoolId       String?
-  adminSchoolName     String?
-  adminDepartmentId   String?
-  adminDepartmentName String?
-  requests            RequestRecord[] @relation("EmployeeRequests")
-  reviewedRequests    RequestRecord[] @relation("ReviewedRequests")
-  createdShifts       Shift[]         @relation("ShiftCreatedBy")
-  createdMemos        Memo[]          @relation("MemoCreatedBy")
-  teachingAssignments TeachingAssignment[]
-  teachingAttendance  TeachingAttendance[]
-  nonTeachingAttendanceRows NonTeachingAttendance[]
-  performanceEvaluations PerformanceEvaluation[] @relation("EmployeePerformanceEvaluations")
+  userId                      String                  @id @default(cuid())
+  email                       String                  @unique
+  passwordHash                String
+  isActive                    Boolean                 @default(true)
+  firstName                   String
+  lastName                    String
+  role                        Role
+  employeeType                EmployeeType            @default(NON_TEACHING)
+  department                  String?
+  schoolBranch                String?
+  position                    String?
+  profileImage                String?
+  joinDate                    DateTime                @default(now())
+  schoolId                    String?
+  departmentId                String?
+  school                      Campus?                 @relation("UserCampus", fields: [schoolId], references: [campusId], onDelete: SetNull)
+  departmentModel             Department?             @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  adminScopeType              AdminScopeType?
+  adminSchoolId               String?
+  adminSchoolName             String?
+  adminDepartmentId           String?
+  adminDepartmentName         String?
+  requests                    RequestRecord[]         @relation("EmployeeRequests")
+  reviewedRequests            RequestRecord[]         @relation("ReviewedRequests")
+  createdShifts               Shift[]                 @relation("ShiftCreatedBy")
+  createdMemos                Memo[]                  @relation("MemoCreatedBy")
+  teachingAssignments         TeachingAssignment[]
+  teachingAttendance          TeachingAttendance[]
+  nonTeachingAttendanceRows   NonTeachingAttendance[]
+  performanceEvaluations      PerformanceEvaluation[] @relation("EmployeePerformanceEvaluations")
   performanceEvaluationsGiven PerformanceEvaluation[] @relation("EvaluatorPerformanceEvaluations")
-  refreshTokens       RefreshToken[]
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  refreshTokens               RefreshToken[]
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
 
   @@index([role])
   @@index([adminScopeType])
@@ -162,17 +162,19 @@ model User {
 }
 
 model RequestRecord {
-  id           String        @id @default(cuid())
+  requestId    String        @id @default(cuid())
   type         RequestType
   status       RequestStatus @default(PENDING)
   title        String
   description  String?
+  leaveStartDate DateTime?
+  leaveEndDate   DateTime?
   employeeId   String
   reviewedById String?
   campusId     String
   departmentId String?
-  employee     User          @relation("EmployeeRequests", fields: [employeeId], references: [id], onDelete: Cascade)
-  reviewedBy   User?         @relation("ReviewedRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  employee     User          @relation("EmployeeRequests", fields: [employeeId], references: [userId], onDelete: Cascade)
+  reviewedBy   User?         @relation("ReviewedRequests", fields: [reviewedById], references: [userId], onDelete: SetNull)
   campus       Campus        @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
   department   Department?   @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
   createdAt    DateTime      @default(now())
@@ -185,11 +187,12 @@ model RequestRecord {
   @@index([status])
   @@index([campusId, status])
   @@index([departmentId, status])
+  @@index([leaveStartDate, leaveEndDate])
   @@unique([type, employeeId, title])
 }
 
 model Shift {
-  id           String      @id @default(cuid())
+  shiftId      String      @id @default(cuid())
   name         String
   startTime    String
   endTime      String
@@ -198,7 +201,7 @@ model Shift {
   createdById  String?
   campus       Campus      @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
   department   Department? @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  createdBy    User?       @relation("ShiftCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy    User?       @relation("ShiftCreatedBy", fields: [createdById], references: [userId], onDelete: SetNull)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -208,7 +211,7 @@ model Shift {
 }
 
 model Memo {
-  id           String          @id @default(cuid())
+  memoId       String          @id @default(cuid())
   title        String
   content      String
   scopeType    AdminScopeType?
@@ -217,7 +220,7 @@ model Memo {
   createdById  String?
   campus       Campus          @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
   department   Department?     @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  createdBy    User?           @relation("MemoCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy    User?           @relation("MemoCreatedBy", fields: [createdById], references: [userId], onDelete: SetNull)
   publishedAt  DateTime        @default(now())
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -228,31 +231,31 @@ model Memo {
 }
 
 model RefreshToken {
-  id         String   @id @default(cuid())
-  tokenHash  String   @unique
-  userId     String
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime @default(now())
+  refreshTokenId String    @id @default(cuid())
+  tokenHash      String    @unique
+  userId         String
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
 model Subject {
-  id          String               @id @default(cuid())
-  code        String
-  name        String
-  schoolId    String
+  subjectId    String               @id @default(cuid())
+  code         String
+  name         String
+  schoolId     String
   departmentId String?
-  school      School               @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
-  department  Department?          @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  assignments TeachingAssignment[]
-  sessions    ClassSession[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  school       School               @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  department   Department?          @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  assignments  TeachingAssignment[]
+  sessions     ClassSession[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -260,15 +263,15 @@ model Subject {
 }
 
 model TeachingAssignment {
-  id           String      @id @default(cuid())
+  assignmentId String      @id @default(cuid())
   employeeId   String
   subjectId    String
   schoolId     String
   departmentId String?
   startsOn     DateTime
   endsOn       DateTime?
-  employee     User        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  subject      Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  employee     User        @relation(fields: [employeeId], references: [userId], onDelete: Cascade)
+  subject      Subject     @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
   school       School      @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
   department   Department? @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
   createdAt    DateTime    @default(now())
@@ -282,20 +285,20 @@ model TeachingAssignment {
 }
 
 model ClassSession {
-  id            String               @id @default(cuid())
-  subjectId     String
-  schoolId      String
-  departmentId  String?
-  sessionDate   DateTime
-  startsAt      DateTime
-  endsAt        DateTime
-  room          String?
-  subject       Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  school        School               @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
-  department    Department?          @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  attendance    TeachingAttendance[]
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  classSessionId String               @id @default(cuid())
+  subjectId      String
+  schoolId       String
+  departmentId   String?
+  sessionDate    DateTime
+  startsAt       DateTime
+  endsAt         DateTime
+  room           String?
+  subject        Subject              @relation(fields: [subjectId], references: [subjectId], onDelete: Cascade)
+  school         School               @relation(fields: [schoolId], references: [schoolId], onDelete: Cascade)
+  department     Department?          @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  attendance     TeachingAttendance[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([subjectId, sessionDate])
   @@index([schoolId, sessionDate])
@@ -303,15 +306,16 @@ model ClassSession {
 }
 
 model TeachingAttendance {
-  id            String                   @id @default(cuid())
-  employeeId    String
+  attendanceId   String                   @id @default(cuid())
+  employeeId     String
   classSessionId String
-  status        TeachingAttendanceStatus @default(PRESENT)
-  remarks       String?
-  employee      User                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  classSession  ClassSession             @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
+  status         TeachingAttendanceStatus @default(PRESENT)
+  remarks        String?
+  minutesLate    Int?
+  employee       User                     @relation(fields: [employeeId], references: [userId], onDelete: Cascade)
+  classSession   ClassSession             @relation(fields: [classSessionId], references: [classSessionId], onDelete: Cascade)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 
   @@unique([employeeId, classSessionId])
   @@index([employeeId])
@@ -320,20 +324,21 @@ model TeachingAttendance {
 }
 
 model NonTeachingAttendance {
-  id            String                     @id @default(cuid())
-  employeeId    String
-  schoolId      String
-  departmentId  String?
+  attendanceId   String                      @id @default(cuid())
+  employeeId     String
+  schoolId       String
+  departmentId   String?
   attendanceDate DateTime
-  status        NonTeachingAttendanceStatus @default(PRESENT)
-  checkInTime   DateTime?
-  checkOutTime  DateTime?
-  remarks       String?
-  employee      User                       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  school        Campus                     @relation(fields: [schoolId], references: [campusId], onDelete: Cascade)
-  department    Department?                @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
+  status         NonTeachingAttendanceStatus @default(PRESENT)
+  checkInTime    DateTime?
+  checkOutTime   DateTime?
+  remarks        String?
+  minutesLate    Int?
+  employee       User                        @relation(fields: [employeeId], references: [userId], onDelete: Cascade)
+  school         Campus                      @relation(fields: [schoolId], references: [campusId], onDelete: Cascade)
+  department     Department?                 @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
 
   @@unique([employeeId, attendanceDate])
   @@index([schoolId, attendanceDate])
@@ -342,23 +347,23 @@ model NonTeachingAttendance {
 }
 
 model PerformanceEvaluation {
-  id            String                @id @default(cuid())
-  employeeId    String
-  schoolId      String
-  departmentId  String?
-  evaluatorId   String?
-  rubricType    PerformanceRubricType
-  periodStart   DateTime
-  periodEnd     DateTime
-  criteria      Json
-  overallScore  Float
-  notes         String?
-  employee      User                  @relation("EmployeePerformanceEvaluations", fields: [employeeId], references: [id], onDelete: Cascade)
-  evaluator     User?                 @relation("EvaluatorPerformanceEvaluations", fields: [evaluatorId], references: [id], onDelete: SetNull)
-  school        Campus                @relation(fields: [schoolId], references: [campusId], onDelete: Cascade)
-  department    Department?           @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  evaluationId String                @id @default(cuid())
+  employeeId   String
+  schoolId     String
+  departmentId String?
+  evaluatorId  String?
+  rubricType   PerformanceRubricType
+  periodStart  DateTime
+  periodEnd    DateTime
+  criteria     Json
+  overallScore Float
+  notes        String?
+  employee     User                  @relation("EmployeePerformanceEvaluations", fields: [employeeId], references: [userId], onDelete: Cascade)
+  evaluator    User?                 @relation("EvaluatorPerformanceEvaluations", fields: [evaluatorId], references: [userId], onDelete: SetNull)
+  school       Campus                @relation(fields: [schoolId], references: [campusId], onDelete: Cascade)
+  department   Department?           @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
   @@index([employeeId])
   @@index([schoolId, rubricType])
