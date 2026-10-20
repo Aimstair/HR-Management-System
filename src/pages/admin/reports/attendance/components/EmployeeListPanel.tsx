@@ -8,9 +8,7 @@ import { Button } from '../../../../../../components/ui/button';
 import type { ReportEmployee } from '../types';
 import { ScrollArea } from '../../../../../../components/ui/scroll-area';
 import EmployeeTypeSegmentedControl, { type EmployeeTypeFilter } from '../../../../../components/hr/EmployeeTypeSegmentedControl';
-import { EmployeeType } from '../../../../../types';
 
-const TEACHING_DEPARTMENTS = ['Engineering', 'Education', 'Arts and Sciences', 'Business', 'Computer Studies'];
 
 interface EmployeeListPanelProps {
   employees: ReportEmployee[];
@@ -42,11 +40,12 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
   const [search, setSearch] = useState<string>('');
 
   const departmentOptions = useMemo(() => {
-    if (employeeTypeFilter === EmployeeType.TEACHING) {
-      return TEACHING_DEPARTMENTS;
-    }
+    const pool =
+      employeeTypeFilter === 'ALL'
+        ? employees
+        : employees.filter((employee) => employee.employeeType === employeeTypeFilter);
 
-    return Array.from(new Set(employees.map((employee) => employee.department))).sort();
+    return Array.from(new Set(pool.map((employee) => employee.department))).sort();
   }, [employeeTypeFilter, employees]);
 
   React.useEffect(() => {
@@ -58,16 +57,17 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return employees.filter((employee) => {
+      const typeMatch = employeeTypeFilter === 'ALL' || employee.employeeType === employeeTypeFilter;
+      const departmentMatch = departmentFilter === 'all' || employee.department === departmentFilter;
       const searchMatch =
         !q ||
         employee.fullName.toLowerCase().includes(q) ||
         employee.department.toLowerCase().includes(q) ||
         employee.position.toLowerCase().includes(q);
 
-      const departmentMatch = departmentFilter === 'all' || employee.department === departmentFilter;
-      return searchMatch && departmentMatch;
+      return typeMatch && departmentMatch && searchMatch;
     });
-  }, [departmentFilter, employees, search]);
+  }, [departmentFilter, employees, employeeTypeFilter, search]);
 
   return (
     <Card>

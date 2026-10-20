@@ -25,6 +25,11 @@ enum EmployeeType {
   NON_TEACHING
 }
 
+enum SchoolType {
+  TEACHING
+  NON_TEACHING
+}
+
 enum RequestType {
   LEAVE
   EXPENSE
@@ -68,6 +73,11 @@ model Campus {
   campusId                  String                  @id
   name                      String                  @unique
   code                      String?                 @unique
+  address                   String?
+  contact                   String?
+  email                     String?
+  status                    String                  @default("Active")
+  picture                   String?
   schools                   School[]
   users                     User[]                  @relation("UserCampus")
   requests                  RequestRecord[]
@@ -82,17 +92,25 @@ model Campus {
 model School {
   schoolId            String               @id
   name                String
+  type                SchoolType           @default(TEACHING)
   campusId            String
   campus              Campus               @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
   departments         Department[]
+  memos               Memo[]
   subjects            Subject[]
   teachingAssignments TeachingAssignment[]
   classSessions       ClassSession[]
+  location            String?
+  contact             String?
+  email               String?
+  status              String               @default("Active")
+  picture             String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
   @@unique([campusId, name])
   @@index([campusId])
+  @@index([type])
 }
 
 model Department {
@@ -109,6 +127,11 @@ model Department {
   classSessions             ClassSession[]
   nonTeachingAttendanceRows NonTeachingAttendance[]
   performanceEvaluations    PerformanceEvaluation[]
+  location                  String?
+  contact                   String?
+  email                     String?
+  status                    String                  @default("Active")
+  picture                   String?
   createdAt                 DateTime                @default(now())
   updatedAt                 DateTime                @updatedAt
 
@@ -130,6 +153,11 @@ model User {
   position                    String?
   profileImage                String?
   joinDate                    DateTime                @default(now())
+  idNumber                    String?
+  sssId                       String?
+  pagIbigId                   String?
+  tinNo                       String?
+  philhealthNo                String?
   schoolId                    String?
   departmentId                String?
   school                      Campus?                 @relation("UserCampus", fields: [schoolId], references: [campusId], onDelete: SetNull)
@@ -143,12 +171,14 @@ model User {
   reviewedRequests            RequestRecord[]         @relation("ReviewedRequests")
   createdShifts               Shift[]                 @relation("ShiftCreatedBy")
   createdMemos                Memo[]                  @relation("MemoCreatedBy")
+  receivedMemos               Memo[]                  @relation("MemoRecipientEmployee")
   teachingAssignments         TeachingAssignment[]
   teachingAttendance          TeachingAttendance[]
   nonTeachingAttendanceRows   NonTeachingAttendance[]
   performanceEvaluations      PerformanceEvaluation[] @relation("EmployeePerformanceEvaluations")
   performanceEvaluationsGiven PerformanceEvaluation[] @relation("EvaluatorPerformanceEvaluations")
   refreshTokens               RefreshToken[]
+  memoAcknowledgements        MemoAcknowledgement[]   @relation("EmployeeMemoAcknowledgements")
   createdAt                   DateTime                @default(now())
   updatedAt                   DateTime                @updatedAt
 
@@ -167,6 +197,7 @@ model RequestRecord {
   status       RequestStatus @default(PENDING)
   title        String
   description  String?
+  remarks      String?
   leaveStartDate DateTime?
   leaveEndDate   DateTime?
   employeeId   String
@@ -212,22 +243,46 @@ model Shift {
 
 model Memo {
   memoId       String          @id @default(cuid())
+  memoType     String          @default("Internal Memo")
   title        String
   content      String
+  attachments  String[]        @default([])
+  effectiveDate DateTime       @default(now())
   scopeType    AdminScopeType?
-  campusId     String
+  campusId     String?
+  schoolId     String?
   departmentId String?
+  recipientEmployeeId String?
   createdById  String?
-  campus       Campus          @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  campus       Campus?         @relation(fields: [campusId], references: [campusId], onDelete: Cascade)
+  school       School?         @relation(fields: [schoolId], references: [schoolId], onDelete: SetNull)
   department   Department?     @relation(fields: [departmentId], references: [departmentId], onDelete: SetNull)
+  recipientEmployee User?      @relation("MemoRecipientEmployee", fields: [recipientEmployeeId], references: [userId], onDelete: SetNull)
   createdBy    User?           @relation("MemoCreatedBy", fields: [createdById], references: [userId], onDelete: SetNull)
   publishedAt  DateTime        @default(now())
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  acknowledgements MemoAcknowledgement[] @relation("MemoAcknowledgements")
 
   @@index([campusId])
+  @@index([schoolId])
   @@index([departmentId])
-  @@unique([title, campusId, departmentId])
+  @@index([recipientEmployeeId])
+  @@unique([title, campusId, schoolId, departmentId, recipientEmployeeId])
+}
+
+model MemoAcknowledgement {
+  id             String   @id @default(cuid())
+  memoId         String
+  employeeId     String
+  acknowledgedAt DateTime @default(now())
+
+  memo           Memo     @relation("MemoAcknowledgements", fields: [memoId], references: [memoId], onDelete: Cascade)
+  employee       User     @relation("EmployeeMemoAcknowledgements", fields: [employeeId], references: [userId], onDelete: Cascade)
+
+  @@unique([memoId, employeeId])
+  @@index([memoId])
+  @@index([employeeId])
 }
 
 model RefreshToken {

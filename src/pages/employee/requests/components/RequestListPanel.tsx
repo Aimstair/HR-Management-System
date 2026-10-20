@@ -1,7 +1,6 @@
 import React from 'react';
 import { Badge } from '../../../../../components/ui/badge';
 import { Button } from '../../../../../components/ui/button';
-import { ScrollArea } from '../../../../../components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -11,11 +10,8 @@ import {
   TableRow,
 } from '../../../../../components/ui/table';
 import type { EmployeeRequestRecord, EmployeeRequestType } from '../../shared/employeePortalTypes';
-import { formatDateTimeLabel } from '../../shared/employeePortalUtils';
-import { statusBadgeClass, statusLabel } from '../../../admin/requests/utils';
-import { getRequestFormSchema, getRequestTypeLabel } from '../requestConfig';
-import { useAuth } from '../../../../context/AuthContext';
-import { EmployeeType } from '../../../../types';
+import { statusBadgeClass, statusLabel, buildDurationLabel, formatDateTime } from '../../../admin/requests/utils';
+import { getRequestTypeLabel } from '../requestConfig';
 
 const REQUESTS_ROWS_PER_PAGE = 9;
 const REQUESTS_ROW_HEIGHT_CLASS = 'h-14';
@@ -25,23 +21,14 @@ interface RequestListPanelProps {
   requests: EmployeeRequestRecord[];
 }
 
-const toDisplayValue = (value: unknown): string => {
-  if (value === null || value === undefined || value === '') {
-    return 'N/A';
-  }
-
-  if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(', ') : 'N/A';
-  }
-
-  return String(value);
-};
+const scheduleCell = (from?: string | null, to?: string | null): React.ReactNode => (
+  <div className="space-y-0.5 text-[12px] leading-tight">
+    <p className="truncate">From: {formatDateTime(from || undefined)}</p>
+    <p className="truncate">To: {formatDateTime(to || undefined)}</p>
+  </div>
+);
 
 const RequestListPanel: React.FC<RequestListPanelProps> = ({ requestType, requests }) => {
-  const { user } = useAuth();
-  const employeeType = user?.employeeType ?? EmployeeType.NON_TEACHING;
-  const detailFields = getRequestFormSchema(requestType, employeeType);
-
   const [page, setPage] = React.useState<number>(1);
 
   const totalPages = React.useMemo(() => {
@@ -64,72 +51,71 @@ const RequestListPanel: React.FC<RequestListPanelProps> = ({ requestType, reques
   const emptyRows = REQUESTS_ROWS_PER_PAGE - paginatedRequests.length;
   const hasNoRequests = requests.length === 0;
 
-  const minimumTableWidth = Math.max(980, 520 + detailFields.length * 180);
+  const minimumTableWidth = 1100;
 
   return (
     <div className="space-y-3 rounded-sm">
-      <div className=" border-b">
-        <ScrollArea className="w-full">
+      <div className="border-b">
+        <div className="w-full overflow-x-auto">
           <div style={{ minWidth: `${minimumTableWidth}px` }}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-38">Submitted</TableHead>
-                  <TableHead className="w-28">Status</TableHead>
+                  <TableHead className="w-40">Request Date</TableHead>
                   <TableHead className="w-36">Type</TableHead>
-                  <TableHead className="min-w-72">Summary</TableHead>
-                  {detailFields.map((field) => (
-                    <TableHead key={field.key} className="min-w-44">
-                      {field.label}
-                    </TableHead>
-                  ))}
+                  <TableHead className="min-w-64">Notes</TableHead>
+                  <TableHead className="w-32">Duration</TableHead>
+                  <TableHead className="min-w-56">Schedule</TableHead>
+                  <TableHead className="min-w-44">Remarks</TableHead>
+                  <TableHead className="w-32">Status</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {paginatedRequests.map((request) => (
                   <TableRow key={request.id} className={REQUESTS_ROW_HEIGHT_CLASS}>
-                    <TableCell className="align-middle text-xs">{formatDateTimeLabel(request.submittedAt)}</TableCell>
+                    <TableCell className="align-middle text-[12px] leading-tight">
+                      {formatDateTime(request.submittedAt)}
+                    </TableCell>
+                    <TableCell className="align-middle text-[12px]">
+                      {getRequestTypeLabel(request.type)}
+                    </TableCell>
+                    <TableCell 
+                      className="max-w-64 truncate align-middle text-[12px] text-muted-foreground" 
+                      title={String(request.fields.reason || request.fields.notes || request.summary || 'N/A')}
+                    >
+                      {String(request.fields.reason || request.fields.notes || request.summary || 'N/A')}
+                    </TableCell>
+                    <TableCell className="align-middle text-[12px] leading-tight">
+                      <span className="truncate">{buildDurationLabel(request.scheduleFrom, request.scheduleTo) || 'N/A'}</span>
+                    </TableCell>
+                    <TableCell className="align-middle text-[12px] leading-tight">
+                      {scheduleCell(request.scheduleFrom, request.scheduleTo)}
+                    </TableCell>
+                    <TableCell className="max-w-44 truncate align-middle text-[12px] leading-tight text-muted-foreground" title={request.remarks || ''}>
+                      {request.remarks || '—'}
+                    </TableCell>
                     <TableCell className="align-middle">
                       <Badge className={statusBadgeClass[request.status]}>{statusLabel[request.status]}</Badge>
                     </TableCell>
-                    <TableCell className="align-middle text-xs">{getRequestTypeLabel(request.type)}</TableCell>
-                    <TableCell className="max-w-72 truncate align-middle text-xs" title={request.summary}>
-                      {request.summary || 'N/A'}
-                    </TableCell>
-                    {detailFields.map((field) => {
-                      const value = toDisplayValue(request.fields[field.key]);
-
-                      return (
-                        <TableCell
-                          key={`${request.id}-${field.key}`}
-                          className="max-w-72 truncate align-middle text-xs"
-                          title={value}
-                        >
-                          {value}
-                        </TableCell>
-                      );
-                    })}
                   </TableRow>
                 ))}
 
                 {Array.from({ length: emptyRows }, (_, index) => (
                   <TableRow key={`empty-${index}`} className={REQUESTS_ROW_HEIGHT_CLASS}>
-                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">--</TableCell>
-                    {detailFields.map((field) => (
-                      <TableCell key={`empty-${index}-${field.key}`} className="text-xs text-muted-foreground">
-                        --
-                      </TableCell>
-                    ))}
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">--</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 px-4">

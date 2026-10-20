@@ -2,7 +2,7 @@ import type { User } from '@prisma/client';
 
 export const toPublicUser = (user: User) => {
   return {
-    id: user.id,
+    id: user.userId,
     email: user.email,
     isActive: user.isActive,
     firstName: user.firstName,
@@ -14,6 +14,11 @@ export const toPublicUser = (user: User) => {
     profileImage: user.profileImage,
     joinDate: user.joinDate.toISOString(),
     position: user.position,
+    idNumber: user.idNumber,
+    sssId: user.sssId,
+    pagIbigId: user.pagIbigId,
+    tinNo: user.tinNo,
+    philhealthNo: user.philhealthNo,
     scope: user.adminScopeType
       ? {
           scopeType: user.adminScopeType,

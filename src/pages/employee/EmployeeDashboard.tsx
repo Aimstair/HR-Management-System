@@ -8,7 +8,9 @@ import DashboardRequestSummary from './dashboard/components/DashboardRequestSumm
 import DashboardStatCard from './dashboard/components/DashboardStatCard';
 import { useEmployeePortal } from './shared/EmployeePortalProvider';
 import { useAuth } from '../../context/AuthContext';
-import { EmployeeType } from '../../types';
+import { EmployeeType, RequestStatus } from '../../types';
+import { Badge } from '../../../components/ui/badge';
+import { getRequestTypeLabel } from './requests/requestConfig';
 import {
   filterAttendanceByMonth,
   filterRequestsByMonthAndType,
@@ -17,7 +19,15 @@ import {
   getCurrentMonthKey,
   getRequestStats,
   getTeachingAttendanceSessionStats,
+  toMonthKey,
 } from './shared/employeePortalUtils';
+
+const requestStatusDisplay: Record<RequestStatus, { label: string; className: string }> = {
+  [RequestStatus.PENDING]: { label: 'Processing', className: 'border-amber-300 bg-amber-100 text-amber-900' },
+  [RequestStatus.APPROVED]: { label: 'Approved', className: 'border-emerald-300 bg-emerald-100 text-emerald-900' },
+  [RequestStatus.REJECTED]: { label: 'Rejected', className: 'border-red-300 bg-red-100 text-red-900' },
+  [RequestStatus.CANCELLED]: { label: 'Cancelled', className: 'border-slate-300 bg-slate-100 text-slate-700' },
+};
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -132,7 +142,7 @@ const EmployeeDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <DashboardMemosPreview memos={latestMemos} />
+        <DashboardMemosPreview memos={latestMemos} currentUserId={user?.id} />
         <DashboardRequestSummary totals={requestTotals} />
       </div>
 
@@ -146,14 +156,31 @@ const EmployeeDashboard: React.FC = () => {
             <p className="text-sm text-muted-foreground">No requests filed this month.</p>
           ) : (
             <div className="space-y-2">
-              {monthRequests.slice(0, 4).map((request) => (
-                <div key={request.id} className="rounded-sm border p-3">
-                  <p className="text-sm font-medium">{request.summary}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Filed on {new Date(request.submittedAt).toLocaleString('en-US')}
-                  </p>
-                </div>
-              ))}
+              {monthRequests.slice(0, 4).map((request) => {
+                const status = requestStatusDisplay[request.status] ?? requestStatusDisplay[RequestStatus.PENDING];
+                const query = new URLSearchParams({
+                  type: request.type,
+                  month: toMonthKey(request.submittedAt),
+                });
+
+                return (
+                  <Link
+                    key={request.id}
+                    to={`/portal/requests?${query.toString()}`}
+                    className="flex items-center justify-between gap-3 rounded-sm border p-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{getRequestTypeLabel(request.type)} Request</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Filed on {new Date(request.submittedAt).toLocaleString('en-US')}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className={status.className}>
+                      {status.label}
+                    </Badge>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </CardContent>

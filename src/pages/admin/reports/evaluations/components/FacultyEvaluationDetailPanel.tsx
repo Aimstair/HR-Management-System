@@ -43,7 +43,7 @@ const FacultyEvaluationDetailPanel: React.FC<FacultyEvaluationDetailPanelProps> 
       <CardContent className="space-y-4">
         <div className="rounded-md border p-3">
           <p className="text-xs text-muted-foreground">Overall Average</p>
-          <p className="text-xl font-semibold">{overallAverage(record).toFixed(2)} / 4.00</p>
+          <p className="text-xl font-semibold">{overallAverage(record).toFixed(2)} / 5.00</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">

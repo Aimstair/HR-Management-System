@@ -90,10 +90,6 @@ const Header: React.FC = () => {
           title: 'Undertime Report',
           description: 'Monitor undertime request filings and approvals.',
         },
-        '/admin/reports/requests/wfh': {
-          title: 'Work from Home Report',
-          description: 'Track work-from-home request filings and statuses.',
-        },
         '/admin/reports/requests/time-adjustment': {
           title: 'Time Adjustment Report',
           description: 'Track time adjustment requests and processing details.',
@@ -152,11 +148,6 @@ const Header: React.FC = () => {
             path: '/admin/reports/requests/undertime',
             title: 'Undertime Report',
             description: 'Monitor undertime request filings and approvals.',
-          },
-          {
-            path: '/admin/reports/requests/wfh',
-            title: 'Work from Home Report',
-            description: 'Track work-from-home request filings and statuses.',
           },
           {
             path: '/admin/reports/requests/time-adjustment',

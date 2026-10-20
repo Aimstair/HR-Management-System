@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '../../../../../components/ui/table';
 import type { EmployeeAttendanceEntry } from '../../shared/employeePortalTypes';
-import { EmployeeType } from '../../../../types';
+import { EmployeeType, RequestStatus } from '../../../../types';
 import { Badge } from '../../../../../components/ui/badge';
 import { formatDateLabel, formatTimeLabel } from '../../shared/employeePortalUtils';
 import { cn } from '../../../../../lib/utils';
@@ -23,7 +23,14 @@ interface AttendanceEntriesTableProps {
   onTeachingAppeal: (entry: EmployeeAttendanceEntry) => void;
 }
 
-type TeachingLegendStatus = 'PRESENT' | 'LATE' | 'ABSENT' | 'HOLIDAY';
+const appealStatusLabel: Record<RequestStatus, string> = {
+  [RequestStatus.PENDING]: 'Appeal pending HR review',
+  [RequestStatus.APPROVED]: 'Appeal approved',
+  [RequestStatus.REJECTED]: 'Appeal declined',
+  [RequestStatus.CANCELLED]: 'Appeal cancelled',
+};
+
+type TeachingLegendStatus ='PRESENT' | 'LATE' | 'ABSENT' | 'HOLIDAY';
 
 interface TeachingTimetableCell {
   entry: EmployeeAttendanceEntry;
@@ -556,15 +563,29 @@ const TeachingAttendanceTimetable: React.FC<TeachingAttendanceTimetableProps> = 
 
                               <p className="text-[11px]">{cell.entry.room ? `Room ${cell.entry.room}` : 'Room --'}</p>
 
+                              {cell.entry.appealStatus ? (
+                                <p
+                                  className="text-[11px] font-medium"
+                                  title={cell.entry.appealRemarks ?? undefined}
+                                >
+                                  {appealStatusLabel[cell.entry.appealStatus]}
+                                </p>
+                              ) : null}
+
                               {canAppeal ? (
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
                                   className="h-7 w-full"
+                                  disabled={cell.entry.appealStatus === RequestStatus.PENDING}
                                   onClick={() => onTeachingAppeal(cell.entry)}
                                 >
-                                  Appeal
+                                  {cell.entry.appealStatus === RequestStatus.PENDING
+                                    ? 'Appeal Pending'
+                                    : cell.entry.appealStatus === RequestStatus.REJECTED
+                                      ? 'Appeal Again'
+                                      : 'Appeal'}
                                 </Button>
                               ) : null}
                             </div>
@@ -603,13 +624,14 @@ const AttendanceEntriesTable: React.FC<AttendanceEntriesTableProps> = ({
               <TableHead>Time In</TableHead>
               <TableHead>Time Out</TableHead>
               <TableHead>Campus</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="w-20 text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No attendance entries found for the selected month.
                 </TableCell>
               </TableRow>
@@ -620,13 +642,31 @@ const AttendanceEntriesTable: React.FC<AttendanceEntriesTableProps> = ({
                   <TableCell>{formatTimeLabel(entry.timeIn)}</TableCell>
                   <TableCell>{formatTimeLabel(entry.timeOut)}</TableCell>
                   <TableCell>{entry.campus ?? '--'}</TableCell>
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      <Badge variant="outline">{entry.status ?? '--'}</Badge>
+                      {entry.appealStatus ? (
+                        <p
+                          className="text-[11px] text-muted-foreground"
+                          title={entry.appealRemarks ?? undefined}
+                        >
+                          {appealStatusLabel[entry.appealStatus]}
+                        </p>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
+                      disabled={entry.appealStatus === RequestStatus.PENDING}
                       onClick={() => onDailyEditRequest(entry)}
-                      aria-label="Request attendance edit"
+                      aria-label={
+                        entry.appealStatus === RequestStatus.PENDING
+                          ? 'Attendance request pending review'
+                          : 'Request attendance edit'
+                      }
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>

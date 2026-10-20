@@ -1,0 +1,22 @@
+# Local development database. Start with `docker compose up -d` (npm run setup does this).
+# The port can be changed with HR_DB_PORT if 5433 is taken; keep server/.env in sync.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hr_system
+    ports:
+      - "${HR_DB_PORT:-5433}:5432"
+    volumes:
+      - hr_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hr_system"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  hr_db_data:

@@ -2,7 +2,6 @@ import { RequestStatus } from '../../../types';
 
 export type RequestCategory =
   | 'leave'
-  | 'wfh'
   | 'undertime'
   | 'overtime'
   | 'adjustments'
@@ -22,6 +21,7 @@ export interface RequestRecord {
   employee: EmployeeSummary;
   requestDate: string;
   notes: string;
+  remarks?: string;
 
   duration?: string;
   scheduleFrom?: string;

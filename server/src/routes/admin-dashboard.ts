@@ -4,6 +4,7 @@ import { requireAuth, requireRoles } from '../middleware/auth.js';
 import { ApiError } from '../middleware/error.js';
 import { getScopedRequestWhere, getScopedShiftWhere, getScopedUserWhere } from '../lib/scope-filters.js';
 import type { AppRole } from '../types/auth.js';
+import { getAdminMemoWhere } from '../lib/memo-visibility.js';
 
 export const adminDashboardRouter = Router();
 
@@ -12,15 +13,14 @@ const ADMIN_ROLES: AppRole[] = [
   'ROLE_CAMPUS_HR',
 ];
 
-type DashboardRequestTypeLabel = 'Leave' | 'Undertime' | 'Overtime' | 'Work from Home' | 'Time Adjustment';
+type DashboardRequestTypeLabel = 'Leave' | 'Undertime' | 'Overtime' | 'Time Adjustment';
 
-const PRIORITY_REQUEST_TYPES = ['LEAVE', 'UNDERTIME', 'OVERTIME', 'WFH', 'TIME_ADJUSTMENT'] as const;
+const PRIORITY_REQUEST_TYPES = ['LEAVE', 'UNDERTIME', 'OVERTIME', 'TIME_ADJUSTMENT'] as const;
 
 const REQUEST_TYPE_LABELS: Record<(typeof PRIORITY_REQUEST_TYPES)[number], DashboardRequestTypeLabel> = {
   LEAVE: 'Leave',
   UNDERTIME: 'Undertime',
   OVERTIME: 'Overtime',
-  WFH: 'Work from Home',
   TIME_ADJUSTMENT: 'Time Adjustment',
 };
 
@@ -91,6 +91,7 @@ adminDashboardRouter.get(
       const scopedShiftWhere = getScopedShiftWhere(auth);
       const scopedUserWhere = getScopedUserWhere(auth, 'ROLE_EMPLOYEE');
       const campusScope = auth.role === 'ROLE_CAMPUS_HR' ? auth.schoolId ?? undefined : undefined;
+      const memoScope = getAdminMemoWhere(auth);
 
       const [
         totalTeachingEmployees,
@@ -130,7 +131,7 @@ adminDashboardRouter.get(
           where: scopedShiftWhere,
         }),
         prisma.memo.findMany({
-          where: auth.role === 'ROLE_HEAD_HR' ? {} : { campusId: auth.schoolId ?? undefined },
+          where: memoScope,
           select: {
             memoId: true,
             title: true,
@@ -163,7 +164,7 @@ adminDashboardRouter.get(
           where: {
             ...scopedRequestWhere,
             status: 'PENDING',
-            type: { in: PRIORITY_REQUEST_TYPES as unknown as string[] },
+            type: { in: PRIORITY_REQUEST_TYPES as any },
           },
           _count: {
             _all: true,
@@ -173,7 +174,7 @@ adminDashboardRouter.get(
           where: {
             ...scopedRequestWhere,
             status: 'PENDING',
-            type: { in: PRIORITY_REQUEST_TYPES as unknown as string[] },
+            type: { in: PRIORITY_REQUEST_TYPES as any },
           },
           select: {
             requestId: true,
@@ -381,8 +382,8 @@ adminDashboardRouter.get(
       const leaveCount = leaveEmployees.length;
 
       const pendingMap = new Map<string, number>();
-      pendingByType.forEach((row) => {
-        pendingMap.set(row.type, row._count._all);
+      pendingByType.forEach((row: any) => {
+        pendingMap.set(row.type, row._count?._all ?? row._count ?? 0);
       });
 
       const requestBreakdown = PRIORITY_REQUEST_TYPES.map((type) => ({
@@ -390,7 +391,7 @@ adminDashboardRouter.get(
         value: pendingMap.get(type) ?? 0,
       }));
 
-      const priorityRequestItems = priorityRequests.map((row) => ({
+      const priorityRequestItems = priorityRequests.map((row: any) => ({
         id: row.requestId,
         avatarUrl: row.employee.profileImage,
         name: `${row.employee.firstName} ${row.employee.lastName}`,

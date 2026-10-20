@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '../../../../../../components/ui/badge';
@@ -14,18 +14,22 @@ import EmployeeListPanel from '../components/EmployeeListPanel';
 import GenericReportTable from '../components/GenericReportTable';
 import ProcessorAvatar from '../components/ProcessorAvatar';
 import ScopeFilterDialog from '../components/ScopeFilterDialog';
+import { useAuth } from '../../../../../context/AuthContext';
 import ViewModeHeaderToggle from '../components/common/ViewModeHeaderToggle';
 import AddOvertimeDialog from '../components/overtime/AddOvertimeDialog';
 import OvertimeGraphsPanel from '../components/overtime/OvertimeGraphsPanel';
-import { overtimeRecords as initialRows, reportEmployees } from '../mockData';
-import type { OvertimeRecord, ScopeFilterState } from '../types';
+import { createAdminRequest, updateAdminRequestStatus, type AdminRequestRecord } from '../../../../../lib/admin-api';
+import type { OvertimeRecord, ReportEmployeeSummary, ScopeFilterState } from '../types';
+import type { GraphFilterState, GraphFilterMode } from '../attendance/types';
 import {
   formatDateTime,
   formatHours,
   formatReportRangeTitle,
   getDurationHours,
   isInScope,
+  isGraphInScope,
 } from '../utils';
+import { fetchReportEmployees, fetchReportRequests, mapRequestStatusToReportStatus, toProcessorInfo } from '../report-api';
 
 const defaultScope: ScopeFilterState = {
   mode: 'last30',
@@ -35,19 +39,86 @@ const defaultScope: ScopeFilterState = {
   rangeEnd: '',
 };
 
+const defaultGraphFilter: GraphFilterState = {
+  mode: 'last30',
+  month: '',
+  campus: 'all',
+};
+
 const OvertimeReportPage: React.FC = () => {
+  const { user } = useAuth();
+  const isHeadHr = user?.role === 'ROLE_HEAD_HR';
+
   const [scope, setScope] = useState<ScopeFilterState>(defaultScope);
   const [isScopeOpen, setIsScopeOpen] = useState<boolean>(false);
-  const [rows, setRows] = useState<OvertimeRecord[]>(initialRows);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(reportEmployees[0]?.id || null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<ReportEmployeeSummary[]>([]);
+  const [requests, setRequests] = useState<AdminRequestRecord[]>([]);
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
-  const [graphYear, setGraphYear] = useState<string>(String(new Date().getFullYear()));
+  const [graphFilter, setGraphFilter] = useState<GraphFilterState>(defaultGraphFilter);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const load = async (): Promise<void> => {
+      try {
+        const [employeeRows, requestRows] = await Promise.all([
+          fetchReportEmployees(),
+          fetchReportRequests('OVERTIME'),
+        ]);
+        if (!isActive) {
+          return;
+        }
+        setEmployees(employeeRows);
+        setRequests(requestRows);
+      } catch (error) {
+        if (isActive) {
+          const message = error instanceof Error ? error.message : 'Unable to load overtime reports.';
+          toast.error(message);
+          setEmployees([]);
+          setRequests([]);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!employees.length) {
+      setSelectedEmployeeId(null);
+      return;
+    }
+
+    const stillVisible = employees.some((employee) => employee.id === selectedEmployeeId);
+    if (!stillVisible) {
+      setSelectedEmployeeId(employees[0].id);
+    }
+  }, [employees, selectedEmployeeId]);
 
   const selectedEmployee = useMemo(
-    () => reportEmployees.find((employee) => employee.id === selectedEmployeeId) || null,
-    [selectedEmployeeId],
+    () => employees.find((employee) => employee.id === selectedEmployeeId) || null,
+    [employees, selectedEmployeeId],
   );
+
+  const rows = useMemo<OvertimeRecord[]>(() => {
+    return requests.map((request) => ({
+      id: request.id,
+      employeeId: request.employeeId,
+      requestedAt: request.createdAt,
+      overtimeStart: request.leaveStartDate ?? request.createdAt,
+      overtimeEnd: request.leaveEndDate ?? request.createdAt,
+      tasksDone: request.title,
+      notes: request.description ?? request.title,
+      status: mapRequestStatusToReportStatus(request.status),
+      processedBy: toProcessorInfo(request.reviewedBy),
+    }));
+  }, [requests]);
 
   const filteredRows = useMemo(
     () => rows.filter((item) => item.employeeId === selectedEmployeeId && isInScope(item.requestedAt, scope)),
@@ -56,18 +127,43 @@ const OvertimeReportPage: React.FC = () => {
 
   const reportLabel = useMemo(() => formatReportRangeTitle(scope, 'Overtime Report'), [scope]);
 
+  const campusOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    employees.forEach((employee) => {
+      if (employee.campusId) {
+        map.set(employee.campusId, employee.campus);
+      }
+    });
+
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [employees]);
+
+  useEffect(() => {
+    if (graphFilter.campus === 'all') {
+      return;
+    }
+
+    const exists = campusOptions.some((campus) => campus.id === graphFilter.campus);
+    if (!exists) {
+      setGraphFilter((current) => ({ ...current, campus: 'all' }));
+    }
+  }, [campusOptions, graphFilter.campus]);
+
   const filteredByYear = useMemo(() => {
-    return rows.filter((item) => new Date(item.requestedAt).getFullYear() === Number.parseInt(graphYear, 10));
-  }, [rows, graphYear]);
+    const campusFilteredEmployees =
+      graphFilter.campus === 'all'
+        ? employees
+        : employees.filter((employee) => (employee.campusId ?? employee.campus) === graphFilter.campus);
+
+    const allowedIds = new Set(campusFilteredEmployees.map((employee) => employee.id));
+    return rows.filter((item) => allowedIds.has(item.employeeId) && isGraphInScope(item.requestedAt, graphFilter));
+  }, [rows, graphFilter, employees]);
 
   const employeeMap = useMemo(() => {
-    return new Map(reportEmployees.map((employee) => [employee.id, employee]));
-  }, []);
-
-  const years = useMemo(() => {
-    const unique = new Set(rows.map((item) => String(new Date(item.requestedAt).getFullYear())));
-    return Array.from(unique).sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10));
-  }, [rows]);
+    return new Map(employees.map((employee) => [employee.id, employee]));
+  }, [employees]);
 
   const monthlyData = useMemo(() => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -128,19 +224,56 @@ const OvertimeReportPage: React.FC = () => {
 
     return Array.from(aggregate.values())
       .map((item) => ({ ...item, totalHours: Number(item.totalHours.toFixed(2)) }))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => b.totalHours - a.totalHours)
       .slice(0, 10);
   }, [filteredByYear, employeeMap]);
 
-  const addOvertime = (record: OvertimeRecord): void => {
-    setRows((current) => [record, ...current]);
-    toast.success('Overtime request added.');
-  };
+  const cancelOvertime = useCallback(
+    async (rowId: string): Promise<void> => {
+      try {
+        const response = await updateAdminRequestStatus(rowId, 'CANCELLED', 'Cancelled by HR.');
+        setRequests((current) => current.map((item) => (item.id === rowId ? response.request : item)));
+        toast.success('Overtime request cancelled.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to cancel overtime request.';
+        toast.error(message);
+      }
+    },
+    [],
+  );
 
-  const cancelOvertime = (rowId: string): void => {
-    setRows((current) => current.map((item) => (item.id === rowId ? { ...item, status: 'Cancelled' } : item)));
-    toast.success('Overtime request cancelled.');
-  };
+  const createOvertime = useCallback(
+    async (record: OvertimeRecord): Promise<void> => {
+      if (isCreating) {
+        return;
+      }
+
+      setIsCreating(true);
+
+      try {
+        const response = await createAdminRequest({
+          type: 'OVERTIME',
+          employeeId: record.employeeId,
+          title: record.tasksDone,
+          description: record.notes.trim() ? record.notes.trim() : null,
+          leaveStartDate: record.overtimeStart,
+          leaveEndDate: record.overtimeEnd,
+        });
+
+        setRequests((current) => [
+          response.request,
+          ...current.filter((item) => item.id !== response.request.id),
+        ]);
+        toast.success('Overtime request created.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to create overtime request.';
+        toast.error(message);
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [isCreating],
+  );
 
   return (
     <div className="space-y-4">
@@ -151,7 +284,7 @@ const OvertimeReportPage: React.FC = () => {
           <EmployeeListPanel
             title="Overtime Report Employees"
             metricLabel="Overtime Count"
-            employees={reportEmployees}
+            employees={employees}
             selectedEmployeeId={selectedEmployeeId}
             scope={scope}
             onSelectEmployee={setSelectedEmployeeId}
@@ -184,10 +317,10 @@ const OvertimeReportPage: React.FC = () => {
                     </CardDescription>
                   </div>
 
-                  <Button onClick={() => setIsAddOpen(true)} disabled={!selectedEmployee}>
+                  {/* <Button onClick={() => setIsAddOpen(true)} disabled={!selectedEmployee || isCreating}>
                     <Plus className="h-4 w-4" />
                     Add Overtime
-                  </Button>
+                  </Button> */}
                 </div>
               </CardHeader>
             </Card>
@@ -244,9 +377,14 @@ const OvertimeReportPage: React.FC = () => {
         </div>
       ) : (
         <OvertimeGraphsPanel
-          year={graphYear}
-          years={years}
-          onChangeYear={setGraphYear}
+          isHeadHr={isHeadHr}
+          campuses={campusOptions}
+          graphMode={graphFilter.mode}
+          graphMonth={graphFilter.month}
+          graphCampus={graphFilter.campus}
+          onChangeMode={(mode) => setGraphFilter((current) => ({ ...current, mode }))}
+          onChangeMonth={(month) => setGraphFilter((current) => ({ ...current, month }))}
+          onChangeCampus={(campus) => setGraphFilter((current) => ({ ...current, campus }))}
           monthlyData={monthlyData}
           departmentCountData={departmentCountData}
           departmentDurationData={departmentDurationData}
@@ -266,7 +404,7 @@ const OvertimeReportPage: React.FC = () => {
         open={isAddOpen}
         employee={selectedEmployee}
         onClose={() => setIsAddOpen(false)}
-        onSubmit={addOvertime}
+        onSubmit={createOvertime}
       />
     </div>
   );

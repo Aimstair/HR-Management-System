@@ -113,12 +113,12 @@ const Sidebar: React.FC = () => {
             icon: <FileText className="w-5 h-5" />,
             requiredRole: ADMIN_ROLES,
           },
-          {
-            label: 'Shifts',
-            href: '/admin/shifts',
-            icon: <Calendar className="w-5 h-5" />,
-            requiredRole: ADMIN_ROLES,
-          },
+          // {
+          //   label: 'Shifts',
+          //   href: '/admin/shifts',
+          //   icon: <Calendar className="w-5 h-5" />,
+          //   requiredRole: ADMIN_ROLES,
+          // },
           {
             label: 'Memo',
             href: '/admin/memo',
@@ -189,7 +189,7 @@ const Sidebar: React.FC = () => {
                 >
                   Attendance Report
                 </Link>
-                <Link
+                {/* <Link
                   to="/admin/reports/tardiness"
                   className={cn(
                     'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -199,7 +199,7 @@ const Sidebar: React.FC = () => {
                   )}
                 >
                   Tardiness Report
-                </Link>
+                </Link> */}
                 <Link
                   to="/admin/reports/evaluations"
                   className={cn(
@@ -260,17 +260,6 @@ const Sidebar: React.FC = () => {
                       )}
                     >
                       Undertime Report
-                    </Link>
-                    <Link
-                      to="/admin/reports/requests/wfh"
-                      className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive('/admin/reports/requests/wfh')
-                          ? 'bg-secondary/25 text-secondary-foreground'
-                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                      )}
-                    >
-                      Work from Home Report
                     </Link>
                     <Link
                       to="/admin/reports/requests/time-adjustment"

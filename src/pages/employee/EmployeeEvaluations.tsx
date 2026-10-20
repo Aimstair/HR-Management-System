@@ -1,14 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../../components/ui/card';
 import { Progress } from '../../../components/ui/progress';
 import { Badge } from '../../../components/ui/badge';
 import { useAuth } from '../../context/AuthContext';
 import { EmployeeType } from '../../types';
 import EmployeeTypeSegmentedControl from '../../components/hr/EmployeeTypeSegmentedControl';
+import { fetchEmployeeEvaluations } from '../../lib/employee-api';
 
 interface PerformanceAreaData {
+  id?: string;
   areaCode: string;
   areaName: string;
   participantCount: number;
@@ -16,83 +18,28 @@ interface PerformanceAreaData {
   performanceLevel: 'excellent' | 'good' | 'satisfactory' | 'needs-improvement';
 }
 
-const teachingPerformanceData: PerformanceAreaData[] = [
-  {
-    areaCode: 'CS101',
-    areaName: 'Introduction to Computer Science',
-    participantCount: 32,
-    avgRating: 4.7,
-    performanceLevel: 'excellent',
-  },
-  {
-    areaCode: 'MATH202',
-    areaName: 'Advanced Mathematics',
-    participantCount: 28,
-    avgRating: 4.3,
-    performanceLevel: 'good',
-  },
-  {
-    areaCode: 'PHYS301',
-    areaName: 'Physics - Mechanics',
-    participantCount: 24,
-    avgRating: 4.1,
-    performanceLevel: 'good',
-  },
-  {
-    areaCode: 'CHEM150',
-    areaName: 'General Chemistry',
-    participantCount: 35,
-    avgRating: 3.8,
-    performanceLevel: 'satisfactory',
-  },
-  {
-    areaCode: 'BIO200',
-    areaName: 'Biology Fundamentals',
-    participantCount: 30,
-    avgRating: 4.5,
-    performanceLevel: 'excellent',
-  },
-];
-
-const nonTeachingPerformanceData: PerformanceAreaData[] = [
-  {
-    areaCode: 'OPS-QA',
-    areaName: 'Process Compliance',
-    participantCount: 14,
-    avgRating: 4.4,
-    performanceLevel: 'good',
-  },
-  {
-    areaCode: 'SRV-01',
-    areaName: 'Service Delivery',
-    participantCount: 20,
-    avgRating: 4.5,
-    performanceLevel: 'excellent',
-  },
-  {
-    areaCode: 'TEAM-09',
-    areaName: 'Collaboration and Teamwork',
-    participantCount: 18,
-    avgRating: 4.2,
-    performanceLevel: 'good',
-  },
-  {
-    areaCode: 'TIME-05',
-    areaName: 'Punctuality and Reliability',
-    participantCount: 18,
-    avgRating: 3.9,
-    performanceLevel: 'satisfactory',
-  },
-];
-
 const EmployeeEvaluations: React.FC = () => {
   const { user } = useAuth();
   const employeeType = user?.employeeType ?? EmployeeType.NON_TEACHING;
+  
+  const [evaluationsData, setEvaluationsData] = useState<PerformanceAreaData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const evaluationsData =
-    employeeType === EmployeeType.TEACHING
-      ? teachingPerformanceData
-      : nonTeachingPerformanceData;
+  useEffect(() => {
+    const loadEvaluations = async () => {
+      try {
+        setLoading(true);
+        const res = await fetchEmployeeEvaluations();
+        setEvaluationsData(res.data || []);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load evaluations');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEvaluations();
+  }, []);
 
   const getPerformanceBadgeColor = (level: string) => {
     switch (level) {
@@ -123,6 +70,18 @@ const EmployeeEvaluations: React.FC = () => {
         return 'N/A';
     }
   };
+
+  if (loading) {
+    return <div className="flex h-40 items-center justify-center text-muted-foreground">Loading evaluations...</div>;
+  }
+
+  if (error) {
+    return <div className="flex h-40 items-center justify-center text-destructive">{error}</div>;
+  }
+
+  if (evaluationsData.length === 0) {
+    return <div className="flex h-40 items-center justify-center text-muted-foreground">No evaluation records found.</div>;
+  }
 
   const overallAvg =
     evaluationsData.reduce((sum, evaluation) => sum + evaluation.avgRating, 0) /
@@ -175,7 +134,7 @@ const EmployeeEvaluations: React.FC = () => {
           </h2>
         </div>
         {evaluationsData.map((evaluation) => (
-          <Card key={evaluation.areaCode} className="p-6 hover:shadow-lg transition-shadow">
+          <Card key={evaluation.id || evaluation.areaCode} className="p-6 hover:shadow-lg transition-shadow">
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">

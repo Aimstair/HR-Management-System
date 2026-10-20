@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
   Breadcrumb,
@@ -9,6 +10,24 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '../../../../components/ui/breadcrumb';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../../components/ui/dialog';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../../components/ui/select';
 import ViewHeader from './components/ViewHeader';
 import CampusGrid from './components/CampusGrid';
 import DepartmentGrid from './components/DepartmentGrid';
@@ -17,11 +36,54 @@ import OrganizationTree from './components/OrganizationTree';
 import EmployeeGrid from './components/EmployeeGrid';
 import EmployeeDetail from './profile/EmployeeDetail';
 import OnboardingWizard from './profile/OnboardingWizard';
-import { campuses as initialCampuses } from './mockData';
+import { useAuth } from '../../../context/AuthContext';
+import {
+  createAdminCampus,
+  createAdminDepartment,
+  createAdminSchool,
+  getAdminEmployeeById,
+  getAdminEmployees,
+  getAdminOrganizationCampuses,
+  updateAdminCampus,
+  type AdminEmployeeRecord,
+  type AdminOrganizationCampus,
+  type AdminOrganizationDepartment,
+  type AdminOrganizationSchool,
+} from '../../../lib/admin-api';
+import { UserRole } from '../../../types';
 import type { CampusNode, EmployeeNode, NavState, DepartmentNode, SchoolNode } from './types';
 
+interface CampusFormValues {
+  name: string;
+  code: string;
+  address: string;
+  contact: string;
+  email: string;
+  status: 'Active' | 'Inactive';
+  picture: string;
+}
+
+interface SchoolFormValues {
+  name: string;
+  location: string;
+  contact: string;
+  email: string;
+  status: 'Active' | 'Inactive';
+  picture: string;
+}
+
+interface DepartmentFormValues {
+  name: string;
+  location: string;
+  contact: string;
+  email: string;
+  status: 'Active' | 'Inactive';
+  picture: string;
+}
+
 const AdminEmployeesPage: React.FC = () => {
-  const [campuses, setCampuses] = useState<CampusNode[]>(initialCampuses);
+  const { user } = useAuth();
+  const [campuses, setCampuses] = useState<CampusNode[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [navState, setNavState] = useState<NavState>({
     level: 'campus',
@@ -35,6 +97,47 @@ const AdminEmployeesPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'tree'>('grid');
   const [isWizardOpen, setIsWizardOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCampusDialogOpen, setIsCampusDialogOpen] = useState<boolean>(false);
+  const [isSchoolDialogOpen, setIsSchoolDialogOpen] = useState<boolean>(false);
+  const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState<boolean>(false);
+  const [editingCampus, setEditingCampus] = useState<CampusNode | null>(null);
+  const [employeeCache, setEmployeeCache] = useState<Record<string, EmployeeNode[]>>({});
+  const [isEmployeeLoading, setIsEmployeeLoading] = useState<boolean>(false);
+
+  const campusForm = useForm<CampusFormValues>({
+    defaultValues: {
+      name: '',
+      code: '',
+      address: '',
+      contact: '',
+      email: '',
+      status: 'Active',
+      picture: '',
+    },
+  });
+
+  const schoolForm = useForm<SchoolFormValues>({
+    defaultValues: {
+      name: '',
+      location: '',
+      contact: '',
+      email: '',
+      status: 'Active',
+      picture: '',
+    },
+  });
+
+  const departmentForm = useForm<DepartmentFormValues>({
+    defaultValues: {
+      name: '',
+      location: '',
+      contact: '',
+      email: '',
+      status: 'Active',
+      picture: '',
+    },
+  });
 
   const selectedCampus = useMemo(
     () => campuses.find((campus) => campus.id === navState.campus) ?? null,
@@ -52,17 +155,152 @@ const AdminEmployeesPage: React.FC = () => {
   );
 
   const employeesForCurrentScope = useMemo(() => {
-    if (selectedSchool) {
-      return selectedSchool.employees;
-    }
+    const scopeKey = navState.school
+      ? `school:${navState.school}`
+      : navState.department
+        ? `department:${navState.department}`
+        : '';
 
-    return selectedDepartment?.employees ?? [];
-  }, [selectedDepartment, selectedSchool]);
+    return scopeKey ? employeeCache[scopeKey] ?? [] : [];
+  }, [employeeCache, navState.department, navState.school]);
 
   const selectedEmployee = useMemo(
     () => employeesForCurrentScope.find((employee) => employee.id === navState.employeeId) ?? null,
     [employeesForCurrentScope, navState.employeeId],
   );
+
+  const canManageCampuses = user?.role === UserRole.HEAD_HR;
+  const canManageSchools = user?.role === UserRole.HEAD_HR || user?.role === UserRole.CAMPUS_HR;
+  const canManageDepartments = user?.role === UserRole.HEAD_HR || user?.role === UserRole.CAMPUS_HR;
+
+  const buildEmployeeNode = (employee: AdminEmployeeRecord): EmployeeNode => {
+    return {
+      id: employee.id,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      employeeType: employee.employeeType,
+      isActive: employee.isActive,
+      status: employee.isActive ? 'Active' : 'Inactive',
+      position: employee.position,
+      profileImage: employee.profileImage,
+      schoolId: employee.schoolId,
+      schoolBranch: employee.schoolBranch,
+      departmentId: employee.departmentId,
+      department: employee.department,
+      joinDate: employee.joinDate,
+    };
+  };
+
+  const fetchOrganization = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const response = await getAdminOrganizationCampuses();
+      const mapped = response.campuses.map((campus: AdminOrganizationCampus): CampusNode => {
+        const teachingDepartment: DepartmentNode = {
+          id: `${campus.id}-TEACHING`,
+          name: 'Teaching Faculties',
+          location: campus.name,
+          contact: campus.contact,
+          email: campus.email,
+          status: campus.status,
+          picture: campus.picture,
+          schools: campus.teachingSchools.map((school: AdminOrganizationSchool): SchoolNode => ({
+            id: school.id,
+            name: school.name,
+            location: school.location,
+            contact: school.contact,
+            email: school.email,
+            status: school.status,
+            picture: school.picture,
+            departments: (school.departments ?? []).map((department: AdminOrganizationDepartment): DepartmentNode => ({
+              id: department.id,
+              name: department.name,
+              location: department.location,
+              contact: department.contact,
+              email: department.email,
+              status: department.status,
+              picture: department.picture,
+            })),
+          })),
+        };
+
+        const nonTeachingDepartments = campus.nonTeachingDepartments.map(
+          (department: AdminOrganizationDepartment): DepartmentNode => ({
+            id: department.id,
+            name: department.name,
+            location: department.location,
+            contact: department.contact,
+            email: department.email,
+            status: department.status,
+            picture: department.picture,
+          }),
+        );
+
+        return {
+          id: campus.id,
+          name: campus.name,
+          address: campus.address,
+          contact: campus.contact,
+          email: campus.email,
+          status: campus.status,
+          picture: campus.picture,
+          departments: [teachingDepartment, ...nonTeachingDepartments],
+        };
+      });
+
+      setCampuses(mapped);
+      if (mapped.length > 0 && navState.campus === null && user?.role === UserRole.CAMPUS_HR) {
+        setNavState((current) => ({
+          ...current,
+          level: 'department',
+          campus: mapped[0].id,
+          department: null,
+          school: null,
+          employeeId: null,
+        }));
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load organization data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadEmployees = async (scope: { campusId: string; departmentId?: string; teachingSchoolId?: string }): Promise<void> => {
+    setIsEmployeeLoading(true);
+    try {
+      const response = await getAdminEmployees({
+        schoolId: scope.campusId,
+        departmentId: scope.departmentId,
+        teachingSchoolId: scope.teachingSchoolId,
+        limit: 200,
+        page: 1,
+      });
+
+      const scopedEmployees = response.rows.map(buildEmployeeNode);
+      const cacheKey = scope.teachingSchoolId
+        ? `school:${scope.teachingSchoolId}`
+        : scope.departmentId
+          ? `department:${scope.departmentId}`
+          : '';
+
+      if (cacheKey) {
+        setEmployeeCache((current) => ({
+          ...current,
+          [cacheKey]: scopedEmployees,
+        }));
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load employees.');
+    } finally {
+      setIsEmployeeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchOrganization();
+  }, []);
 
   useEffect(() => {
     const employeeId = searchParams.get('employeeId');
@@ -70,41 +308,58 @@ const AdminEmployeesPage: React.FC = () => {
       return;
     }
 
-    for (const campus of campuses) {
-      for (const department of campus.departments) {
-        if (department.schools && department.schools.length > 0) {
-          for (const school of department.schools) {
-            if (school.employees.some((employee) => employee.id === employeeId)) {
-              setNavState({
-                level: 'profile',
-                campus: campus.id,
-                department: department.id,
-                school: school.id,
-                employeeId,
-              });
-              const nextParams = new URLSearchParams(searchParams);
-              nextParams.delete('employeeId');
-              setSearchParams(nextParams, { replace: true });
-              return;
-            }
-          }
-        }
+    const loadById = async (): Promise<void> => {
+      try {
+        const response = await getAdminEmployeeById(employeeId);
+        const employee = buildEmployeeNode(response.employee);
 
-        if (department.employees?.some((employee) => employee.id === employeeId)) {
-          setNavState({
-            level: 'profile',
-            campus: campus.id,
-            department: department.id,
-            school: null,
-            employeeId,
-          });
-          const nextParams = new URLSearchParams(searchParams);
-          nextParams.delete('employeeId');
-          setSearchParams(nextParams, { replace: true });
+        const campus = campuses.find((item) => item.id === employee.schoolId);
+        const department = campus?.departments.find((item) => item.id === employee.departmentId) ?? null;
+        const teachingDepartment = campus?.departments.find((item) => item.name === 'Teaching Faculties') ?? null;
+        const teachingSchool = teachingDepartment?.schools?.find((school) =>
+          school.departments?.some((dept) => dept.id === employee.departmentId),
+        ) ?? null;
+
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('employeeId');
+        setSearchParams(nextParams, { replace: true });
+
+        if (!campus) {
           return;
         }
+
+        setEmployeeCache((current) => {
+          const cacheKey = teachingSchool
+            ? `school:${teachingSchool.id}`
+            : department
+              ? `department:${department.id}`
+              : '';
+          if (!cacheKey) {
+            return current;
+          }
+
+          const existing = current[cacheKey] ?? [];
+          return {
+            ...current,
+            [cacheKey]: existing.some((item) => item.id === employee.id)
+              ? existing
+              : [employee, ...existing],
+          };
+        });
+
+        setNavState({
+          level: 'profile',
+          campus: campus.id,
+          department: department?.id ?? teachingDepartment?.id ?? null,
+          school: teachingSchool?.id ?? null,
+          employeeId,
+        });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Unable to load employee profile.');
       }
-    }
+    };
+
+    void loadById();
   }, [campuses, searchParams, setSearchParams]);
 
   const schoolOptionsForSelectedDepartment = selectedDepartment?.schools ?? [];
@@ -181,6 +436,10 @@ const AdminEmployeesPage: React.FC = () => {
       employeeId: null,
     }));
     resetFilters();
+
+    if (targetLevel === 'employee' && currentCampusId()) {
+      void loadEmployees({ campusId: currentCampusId()!, departmentId: department.id });
+    }
   };
 
   const handleSelectSchool = (school: SchoolNode): void => {
@@ -192,6 +451,10 @@ const AdminEmployeesPage: React.FC = () => {
       employeeId: null,
     }));
     resetFilters();
+
+    if (currentCampusId()) {
+      void loadEmployees({ campusId: currentCampusId()!, teachingSchoolId: school.id });
+    }
   };
 
   const handleSelectEmployee = (employeeId: string): void => {
@@ -203,94 +466,191 @@ const AdminEmployeesPage: React.FC = () => {
   };
 
   const handleSaveEmployee = (updated: EmployeeNode): void => {
-    setCampuses((current) =>
-      current.map((campus) => ({
-        ...campus,
-        departments: campus.departments.map((department) => {
-          if (department.id !== navState.department) {
-            return department;
-          }
+    setEmployeeCache((current) => {
+      const cacheKey = navState.school
+        ? `school:${navState.school}`
+        : navState.department
+          ? `department:${navState.department}`
+          : null;
 
-          if (navState.school && department.schools) {
-            return {
-              ...department,
-              schools: department.schools.map((school) =>
-                school.id === navState.school
-                  ? {
-                      ...school,
-                      employees: school.employees.map((employee) =>
-                        employee.id === updated.id ? updated : employee,
-                      ),
-                    }
-                  : school,
-              ),
-            };
-          }
+      if (!cacheKey) {
+        return current;
+      }
 
-          return {
-            ...department,
-            employees: (department.employees ?? []).map((employee) =>
-              employee.id === updated.id ? updated : employee,
-            ),
-          };
-        }),
-      })),
-    );
+      const currentEmployees = current[cacheKey] ?? [];
+      return {
+        ...current,
+        [cacheKey]: currentEmployees.map((employee) =>
+          employee.id === updated.id ? updated : employee,
+        ),
+      };
+    });
   };
 
   const handleWizardCreate = (
     employee: EmployeeNode,
-    campusId: string,
-    departmentId: string,
-    schoolId: string | null,
+    scope: { campusId: string; departmentId: string | null; teachingSchoolId: string | null },
   ): void => {
-    setCampuses((current) =>
-      current.map((campus) => {
-        if (campus.id !== campusId) {
-          return campus;
-        }
+    const cacheKey = scope.teachingSchoolId
+      ? `school:${scope.teachingSchoolId}`
+      : scope.departmentId
+        ? `department:${scope.departmentId}`
+        : null;
 
-        return {
-          ...campus,
-          departments: campus.departments.map((department) => {
-            if (department.id !== departmentId) {
-              return department;
-            }
-
-            if (schoolId && department.schools) {
-              return {
-                ...department,
-                schools: department.schools.map((school) =>
-                  school.id === schoolId
-                    ? { ...school, employees: [employee, ...school.employees] }
-                    : school,
-                ),
-              };
-            }
-
-            return {
-              ...department,
-              employees: [employee, ...(department.employees ?? [])],
-            };
-          }),
-        };
-      }),
-    );
+    if (cacheKey) {
+      setEmployeeCache((current) => ({
+        ...current,
+        [cacheKey]: [employee, ...(current[cacheKey] ?? [])],
+      }));
+    }
 
     setNavState({
       level: 'employee',
-      campus: campusId,
-      department: departmentId,
-      school: schoolId,
+      campus: scope.campusId,
+      department: scope.departmentId,
+      school: scope.teachingSchoolId,
       employeeId: null,
     });
+  };
+
+  const currentCampusId = (): string | null => navState.campus;
+
+  const openCampusDialog = (campus?: CampusNode): void => {
+    if (campus) {
+      setEditingCampus(campus);
+      campusForm.reset({
+        name: campus.name,
+        code: '',
+        address: campus.address ?? '',
+        contact: campus.contact ?? '',
+        email: campus.email ?? '',
+        status: campus.status,
+        picture: campus.picture ?? '',
+      });
+    } else {
+      setEditingCampus(null);
+      campusForm.reset({
+        name: '',
+        code: '',
+        address: '',
+        contact: '',
+        email: '',
+        status: 'Active',
+        picture: '',
+      });
+    }
+    setIsCampusDialogOpen(true);
+  };
+
+  const openSchoolDialog = (): void => {
+    schoolForm.reset({
+      name: '',
+      location: selectedCampus?.name ?? '',
+      contact: selectedCampus?.contact ?? '',
+      email: '',
+      status: 'Active',
+      picture: '',
+    });
+    setIsSchoolDialogOpen(true);
+  };
+
+  const openDepartmentDialog = (): void => {
+    departmentForm.reset({
+      name: '',
+      location: selectedCampus?.name ?? '',
+      contact: selectedCampus?.contact ?? '',
+      email: '',
+      status: 'Active',
+      picture: '',
+    });
+    setIsDepartmentDialogOpen(true);
+  };
+
+  const saveCampus = async (values: CampusFormValues): Promise<void> => {
+    try {
+      if (editingCampus) {
+        await updateAdminCampus(editingCampus.id, {
+          name: values.name,
+          address: values.address || null,
+          contact: values.contact || null,
+          email: values.email || null,
+          status: values.status,
+          picture: values.picture || null,
+        });
+        toast.success('Campus updated.');
+      } else {
+        await createAdminCampus({
+          name: values.name,
+          code: values.code || undefined,
+          address: values.address || null,
+          contact: values.contact || null,
+          email: values.email || null,
+          status: values.status,
+          picture: values.picture || null,
+        });
+        toast.success('Campus created.');
+      }
+
+      setIsCampusDialogOpen(false);
+      await fetchOrganization();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save campus.');
+    }
+  };
+
+  const saveSchool = async (values: SchoolFormValues): Promise<void> => {
+    if (!selectedCampus) {
+      toast.error('Select a campus first.');
+      return;
+    }
+
+    try {
+      await createAdminSchool({
+        campusId: selectedCampus.id,
+        name: values.name,
+        location: values.location || null,
+        contact: values.contact || null,
+        email: values.email || null,
+        status: values.status,
+        picture: values.picture || null,
+      });
+      toast.success('Teaching school created.');
+      setIsSchoolDialogOpen(false);
+      await fetchOrganization();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create school.');
+    }
+  };
+
+  const saveDepartment = async (values: DepartmentFormValues): Promise<void> => {
+    if (!selectedCampus) {
+      toast.error('Select a campus first.');
+      return;
+    }
+
+    try {
+      await createAdminDepartment({
+        campusId: selectedCampus.id,
+        name: values.name,
+        location: values.location || null,
+        contact: values.contact || null,
+        email: values.email || null,
+        status: values.status,
+        picture: values.picture || null,
+      });
+      toast.success('Department created.');
+      setIsDepartmentDialogOpen(false);
+      await fetchOrganization();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create department.');
+    }
   };
 
   const breadcrumbName = {
     campus: selectedCampus?.name,
     department: selectedDepartment?.name,
     school: selectedSchool?.name,
-    employee: selectedEmployee?.fullName,
+    employee: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : null,
   };
 
   return (
@@ -374,6 +734,10 @@ const AdminEmployeesPage: React.FC = () => {
         </BreadcrumbList>
       </Breadcrumb>
 
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading organization data...</p>
+      ) : null}
+
       {navState.level === 'campus' ? (
         <>
           <ViewHeader
@@ -382,27 +746,32 @@ const AdminEmployeesPage: React.FC = () => {
             statusFilter={statusFilter}
             viewMode={viewMode}
             showViewToggle={false}
+            canAdd={canManageCampuses}
             onSearch={setSearch}
             onFilterStatus={setStatusFilter}
             onToggleView={setViewMode}
-            onAddNew={() => setIsWizardOpen(true)}
+            onAddNew={() => openCampusDialog()}
           />
           <CampusGrid
             campuses={campuses}
             search={search}
             statusFilter={statusFilter}
             onSelectCampus={handleSelectCampus}
+            canManage={canManageCampuses}
             onToggleStatus={(campusId) => {
-              setCampuses((current) =>
-                current.map((campus) =>
-                  campus.id === campusId
-                    ? { ...campus, status: campus.status === 'Active' ? 'Inactive' : 'Active' }
-                    : campus,
-                ),
-              );
-              toast.success('Campus status updated.');
+              const campus = campuses.find((item) => item.id === campusId);
+              if (!campus) {
+                return;
+              }
+              openCampusDialog(campus);
             }}
-            onEditCampus={() => toast.success('Campus edit placeholder opened.')}
+            onEditCampus={(campusId) => {
+              const campus = campuses.find((item) => item.id === campusId);
+              if (!campus) {
+                return;
+              }
+              openCampusDialog(campus);
+            }}
           />
         </>
       ) : null}
@@ -415,10 +784,11 @@ const AdminEmployeesPage: React.FC = () => {
             statusFilter={statusFilter}
             viewMode={viewMode}
             showViewToggle={false}
+            canAdd={canManageDepartments}
             onSearch={setSearch}
             onFilterStatus={setStatusFilter}
             onToggleView={setViewMode}
-            onAddNew={() => setIsWizardOpen(true)}
+            onAddNew={() => openDepartmentDialog()}
           />
           <DepartmentGrid
             campus={selectedCampus}
@@ -437,10 +807,11 @@ const AdminEmployeesPage: React.FC = () => {
             statusFilter={statusFilter}
             viewMode={viewMode}
             showViewToggle={false}
+            canAdd={canManageSchools}
             onSearch={setSearch}
             onFilterStatus={setStatusFilter}
             onToggleView={setViewMode}
-            onAddNew={() => setIsWizardOpen(true)}
+            onAddNew={() => openSchoolDialog()}
           />
           <SchoolGrid
             campus={selectedCampus}
@@ -486,13 +857,16 @@ const AdminEmployeesPage: React.FC = () => {
               onSelectEmployee={handleSelectEmployee}
             />
           )}
+          {isEmployeeLoading ? (
+            <p className="text-xs text-muted-foreground">Loading employees...</p>
+          ) : null}
         </>
       ) : null}
 
       {navState.level === 'profile' && selectedEmployee ? (
         <EmployeeDetail
           employee={selectedEmployee}
-          inSchoolContext={Boolean(navState.school)}
+          campuses={campuses}
           onBack={() => jumpToLevel('employee')}
           onSaveEmployee={handleSaveEmployee}
         />
@@ -504,6 +878,191 @@ const AdminEmployeesPage: React.FC = () => {
         onOpenChange={setIsWizardOpen}
         onCreated={handleWizardCreate}
       />
+
+      <Dialog open={isCampusDialogOpen} onOpenChange={setIsCampusDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{editingCampus ? 'Edit Campus' : 'Add Campus'}</DialogTitle>
+            <DialogDescription>Update campus metadata and status.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={campusForm.handleSubmit(saveCampus)}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input {...campusForm.register('name', { required: true })} />
+              </div>
+              {!editingCampus ? (
+                <div className="space-y-2">
+                  <Label>Code</Label>
+                  <Input {...campusForm.register('code')} />
+                </div>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Input {...campusForm.register('address')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact</Label>
+                <Input {...campusForm.register('contact')} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" {...campusForm.register('email')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Controller
+                  control={campusForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Picture URL</Label>
+              <Input {...campusForm.register('picture')} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCampusDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={campusForm.formState.isSubmitting}>
+                {editingCampus ? 'Save Changes' : 'Create Campus'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSchoolDialogOpen} onOpenChange={setIsSchoolDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Add Teaching School</DialogTitle>
+            <DialogDescription>Create a new school under the current campus.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={schoolForm.handleSubmit(saveSchool)}>
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input {...schoolForm.register('name', { required: true })} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input {...schoolForm.register('location')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact</Label>
+                <Input {...schoolForm.register('contact')} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" {...schoolForm.register('email')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Controller
+                  control={schoolForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Picture URL</Label>
+              <Input {...schoolForm.register('picture')} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsSchoolDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={schoolForm.formState.isSubmitting}>
+                Create School
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDepartmentDialogOpen} onOpenChange={setIsDepartmentDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Add Department</DialogTitle>
+            <DialogDescription>Create a new non-teaching department.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={departmentForm.handleSubmit(saveDepartment)}>
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input {...departmentForm.register('name', { required: true })} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input {...departmentForm.register('location')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact</Label>
+                <Input {...departmentForm.register('contact')} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" {...departmentForm.register('email')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Controller
+                  control={departmentForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Picture URL</Label>
+              <Input {...departmentForm.register('picture')} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDepartmentDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={departmentForm.formState.isSubmitting}>
+                Create Department
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

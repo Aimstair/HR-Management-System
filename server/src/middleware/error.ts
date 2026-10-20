@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { ZodError } from 'zod';
 
 export class ApiError extends Error {
   constructor(
@@ -21,6 +22,16 @@ export const errorHandler = (error: unknown, _req: Request, res: Response, _next
       error: {
         message: error.message,
         details: error.details ?? null,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof ZodError) {
+    res.status(400).json({
+      error: {
+        message: 'Invalid request payload',
+        details: error.flatten(),
       },
     });
     return;

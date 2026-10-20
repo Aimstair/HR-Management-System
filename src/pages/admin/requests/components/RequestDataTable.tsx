@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Checkbox } from '../../../../../components/ui/checkbox';
 import {
@@ -25,21 +25,30 @@ interface RequestDataTableProps {
   selectedIds: Set<string>;
   onToggleAllVisible: (checked: boolean, visibleIds: string[]) => void;
   onToggleOne: (id: string, checked: boolean) => void;
+  sort: SortState;
+  onSortChange: (sort: SortState) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  pageSize?: number;
 }
 
-const PAGE_SIZE = 11;
-const ROW_HEIGHT_CLASS = 'h-[55px]';
+const DEFAULT_PAGE_SIZE = 11;
+const ROW_HEIGHT_CLASS = 'h-[57px]';
 
-const RequestDataTable: React.FC<RequestDataTableProps> = ({
+const   RequestDataTable: React.FC<RequestDataTableProps> = ({
   columns,
   rows,
   selectedIds,
   onToggleAllVisible,
   onToggleOne,
+  sort,
+  onSortChange,
+  page,
+  totalPages,
+  onPageChange,
+  pageSize = DEFAULT_PAGE_SIZE,
 }) => {
-  const [sort, setSort] = useState<SortState>({ key: 'requestDate', direction: 'desc' });
-  const [page, setPage] = useState<number>(1);
-
   const sortedRows = useMemo(() => {
     const targetColumn = columns.find((column) => column.id === sort.key);
     if (!targetColumn || !targetColumn.sortable) {
@@ -61,34 +70,35 @@ const RequestDataTable: React.FC<RequestDataTableProps> = ({
     });
   }, [columns, rows, sort]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * PAGE_SIZE;
-  const paginated = sortedRows.slice(start, start + PAGE_SIZE);
-  const blankRows = Math.max(0, PAGE_SIZE - paginated.length);
-
-  React.useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
+  const safePage = Math.min(Math.max(1, page), Math.max(1, totalPages));
+  const blankRows = Math.max(0, pageSize - sortedRows.length);
+  const paginationPages = useMemo(() => {
+    if (totalPages <= 3) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
-  }, [page, totalPages]);
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [rows, sort]);
+    if (safePage <= 2) {
+      return [1, 2, 3];
+    }
 
-  const visibleIds = paginated.map((row) => row.id);
+    if (safePage >= totalPages - 1) {
+      return [totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [safePage - 1, safePage, safePage + 1];
+  }, [safePage, totalPages]);
+
+  const visibleIds = sortedRows.map((row) => row.id);
   const selectedVisibleCount = visibleIds.filter((id) => selectedIds.has(id)).length;
   const allVisibleChecked = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
   const someVisibleChecked = selectedVisibleCount > 0 && !allVisibleChecked;
 
   const toggleSort = (key: string): void => {
-    setSort((current) => {
-      if (current.key === key) {
-        return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
-      }
-      return { key, direction: 'asc' };
-    });
+    onSortChange(
+      sort.key === key
+        ? { key, direction: sort.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' },
+    );
   };
 
   const sortIcon = (columnId: string, sortable?: boolean): React.ReactNode => {
@@ -130,7 +140,7 @@ const RequestDataTable: React.FC<RequestDataTableProps> = ({
           </TableHeader>
 
           <TableBody>
-            {paginated.map((row) => (
+            {sortedRows.map((row) => (
               <TableRow key={row.id} className={ROW_HEIGHT_CLASS}>
                 <TableCell className={`${ROW_HEIGHT_CLASS} overflow-hidden align-middle`}>
                   <Checkbox
@@ -175,11 +185,11 @@ const RequestDataTable: React.FC<RequestDataTableProps> = ({
               href="#"
               onClick={(event) => {
                 event.preventDefault();
-                setPage((current) => Math.max(1, current - 1));
+                onPageChange(Math.max(1, safePage - 1));
               }}
             />
           </PaginationItem>
-          {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+          {paginationPages.map((pageNumber) => (
             <PaginationItem key={pageNumber}>
               <PaginationLink
                 size="icon"
@@ -187,7 +197,7 @@ const RequestDataTable: React.FC<RequestDataTableProps> = ({
                 isActive={safePage === pageNumber}
                 onClick={(event) => {
                   event.preventDefault();
-                  setPage(pageNumber);
+                  onPageChange(pageNumber);
                 }}
               >
                 {pageNumber}
@@ -200,7 +210,7 @@ const RequestDataTable: React.FC<RequestDataTableProps> = ({
               href="#"
               onClick={(event) => {
                 event.preventDefault();
-                setPage((current) => Math.min(totalPages, current + 1));
+                onPageChange(Math.min(totalPages, safePage + 1));
               }}
             />
           </PaginationItem>

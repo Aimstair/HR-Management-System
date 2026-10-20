@@ -18,6 +18,7 @@ const listEmployeesQuerySchema = z.object({
   search: z.string().trim().optional(),
   schoolId: z.string().trim().optional(),
   departmentId: z.string().trim().optional(),
+  teachingSchoolId: z.string().trim().optional(),
   isActive: z.enum(['true', 'false']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(25),
@@ -52,6 +53,11 @@ const updateEmployeeBodySchema = z
     position: z.string().trim().nullable().optional(),
     profileImage: z.string().trim().nullable().optional(),
     isActive: z.boolean().optional(),
+    idNumber: z.string().trim().nullable().optional(),
+    sssId: z.string().trim().nullable().optional(),
+    pagIbigId: z.string().trim().nullable().optional(),
+    tinNo: z.string().trim().nullable().optional(),
+    philhealthNo: z.string().trim().nullable().optional(),
   })
   .refine((value) => Object.values(value).some((item) => item !== undefined), {
     message: 'At least one field must be provided for update',
@@ -59,7 +65,7 @@ const updateEmployeeBodySchema = z
 
 
 const employeeSelect = {
-  id: true,
+  userId: true,
   email: true,
   firstName: true,
   lastName: true,
@@ -73,6 +79,11 @@ const employeeSelect = {
   position: true,
   profileImage: true,
   joinDate: true,
+  idNumber: true,
+  sssId: true,
+  pagIbigId: true,
+  tinNo: true,
+  philhealthNo: true,
   school: {
     select: {
       campusId: true,
@@ -104,6 +115,28 @@ const assertScopeFilters = (
   }
 
   void departmentId;
+};
+
+const assertTeachingSchoolScope = async (
+  auth: AdminAuth,
+  teachingSchoolId?: string,
+): Promise<void> => {
+  if (!teachingSchoolId) {
+    return;
+  }
+
+  const teachingSchool = await prisma.school.findUnique({
+    where: { schoolId: teachingSchoolId },
+    select: { campusId: true },
+  });
+
+  if (!teachingSchool) {
+    throw new ApiError(404, 'Teaching school not found');
+  }
+
+  if (auth.role === 'ROLE_CAMPUS_HR' && teachingSchool.campusId !== auth.schoolId) {
+    throw new ApiError(403, 'Requested school is outside your admin scope');
+  }
 };
 
 const assertMutationScope = (auth: AdminAuth, schoolId: string, departmentId: string | null): void => {
@@ -139,7 +172,11 @@ const resolveScopeTargets = async (schoolId: string, departmentId: string | null
     select: {
       departmentId: true,
       name: true,
-      schoolId: true,
+      school: {
+        select: {
+          campusId: true,
+        },
+      },
     },
   });
 
@@ -147,7 +184,7 @@ const resolveScopeTargets = async (schoolId: string, departmentId: string | null
     throw new ApiError(400, 'The selected department does not exist');
   }
 
-  if (department.schoolId !== schoolId) {
+  if (department.school.campusId !== schoolId) {
     throw new ApiError(400, 'The selected department does not belong to the selected school');
   }
 
@@ -158,7 +195,7 @@ const resolveScopeTargets = async (schoolId: string, departmentId: string | null
 };
 
 const normalizeEmployeeRow = (employee: {
-  id: string;
+  userId: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -175,9 +212,24 @@ const normalizeEmployeeRow = (employee: {
   school: { campusId: string; name: string } | null;
   departmentModel: { departmentId: string; name: string } | null;
 }) => {
+  const { userId, school, departmentModel, joinDate, ...rest } = employee;
+
   return {
-    ...employee,
-    joinDate: employee.joinDate.toISOString(),
+    ...rest,
+    id: userId,
+    school: school
+      ? {
+          id: school.campusId,
+          name: school.name,
+        }
+      : null,
+    departmentModel: departmentModel
+      ? {
+          id: departmentModel.departmentId,
+          name: departmentModel.name,
+        }
+      : null,
+    joinDate: joinDate.toISOString(),
   };
 };
 
@@ -213,6 +265,7 @@ adminEmployeesRouter.get(
 
       const query = listEmployeesQuerySchema.parse(req.query);
       assertScopeFilters(auth, query.schoolId, query.departmentId);
+      await assertTeachingSchoolScope(auth, query.teachingSchoolId);
       const isActiveFilter =
         query.isActive === undefined ? undefined : query.isActive === 'true';
 
@@ -221,6 +274,9 @@ adminEmployeesRouter.get(
         ...scopedWhere,
         ...(query.schoolId ? { schoolId: query.schoolId } : {}),
         ...(query.departmentId ? { departmentId: query.departmentId } : {}),
+        ...(query.teachingSchoolId
+          ? { departmentModel: { schoolId: query.teachingSchoolId } }
+          : {}),
         ...(isActiveFilter === undefined ? {} : { isActive: isActiveFilter }),
         ...(query.search
           ? {
@@ -275,7 +331,7 @@ adminEmployeesRouter.get(
       const employee = await prisma.user.findFirst({
         where: {
           ...scopedWhere,
-          id: employeeId,
+          userId: employeeId,
         },
         select: employeeSelect,
       });
@@ -312,7 +368,7 @@ adminEmployeesRouter.post(
 
       const duplicate = await prisma.user.findUnique({
         where: { email },
-        select: { id: true },
+        select: { userId: true },
       });
 
       if (duplicate) {
@@ -372,10 +428,10 @@ adminEmployeesRouter.patch(
       const existingEmployee = await prisma.user.findFirst({
         where: {
           ...scopedWhere,
-          id: employeeId,
+          userId: employeeId,
         },
         select: {
-          id: true,
+          userId: true,
           email: true,
           schoolId: true,
           departmentId: true,
@@ -390,7 +446,7 @@ adminEmployeesRouter.patch(
       if (normalizedEmail && normalizedEmail !== existingEmployee.email) {
         const duplicate = await prisma.user.findUnique({
           where: { email: normalizedEmail },
-          select: { id: true },
+          select: { userId: true },
         });
 
         if (duplicate) {
@@ -410,7 +466,7 @@ adminEmployeesRouter.patch(
       const { school, department } = await resolveScopeTargets(targetSchoolId, targetDepartmentId);
 
       const employee = await prisma.user.update({
-        where: { id: existingEmployee.id },
+        where: { userId: existingEmployee.userId },
         data: {
           ...(normalizedEmail ? { email: normalizedEmail } : {}),
           ...(payload.firstName !== undefined ? { firstName: payload.firstName } : {}),

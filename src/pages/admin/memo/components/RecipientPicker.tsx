@@ -8,7 +8,7 @@ import type { MemoRecipient, RecipientType } from '../types';
 
 interface RecipientPickerProps {
   recipientType: RecipientType;
-  availableItems: Array<{ id: string; name: string; position?: string; avatarUrl?: string }>;
+  availableItems: Array<{ id: string; name: string; position?: string; avatarUrl?: string; meta?: string }>;
   selected: MemoRecipient[];
   onChange: (selected: MemoRecipient[]) => void;
 }
@@ -25,10 +25,17 @@ const RecipientPicker: React.FC<RecipientPickerProps> = ({
 
   const visibleItems = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return availableItems.filter((item) => item.name.toLowerCase().includes(term));
+    return availableItems.filter((item) => {
+      if (!term) {
+        return true;
+      }
+
+      const meta = item.meta?.toLowerCase() ?? '';
+      return item.name.toLowerCase().includes(term) || meta.includes(term);
+    });
   }, [availableItems, search]);
 
-  const addOne = (item: { id: string; name: string; position?: string; avatarUrl?: string }): void => {
+  const addOne = (item: { id: string; name: string; position?: string; avatarUrl?: string; meta?: string }): void => {
     if (selectedMap.has(item.id)) {
       return;
     }
@@ -74,7 +81,12 @@ const RecipientPicker: React.FC<RecipientPickerProps> = ({
                   onClick={() => addOne(item)}
                   className="flex w-full items-center justify-between rounded-sm px-2 py-1 text-left text-sm hover:bg-muted"
                 >
-                  <span className="truncate">{item.name}</span>
+                  <span className="flex min-w-0 flex-col text-left">
+                    <span className="truncate">{item.name}</span>
+                    {item.meta ? (
+                      <span className="truncate text-[11px] text-muted-foreground">{item.meta}</span>
+                    ) : null}
+                  </span>
                   <Plus className="h-3.5 w-3.5" />
                 </button>
               ))}
@@ -93,7 +105,12 @@ const RecipientPicker: React.FC<RecipientPickerProps> = ({
               ) : selected.map((item) => (
                 <Badge key={item.id} variant="secondary" className="gap-1">
                   <Users className="h-3 w-3" />
-                  {item.name}
+                  <span className="flex flex-col items-start">
+                    <span className="leading-tight">{item.name}</span>
+                    {item.meta ? (
+                      <span className="text-[10px] text-muted-foreground">{item.meta}</span>
+                    ) : null}
+                  </span>
                   <button type="button" onClick={() => removeOne(item.id)}>
                     <X className="h-3 w-3" />
                   </button>

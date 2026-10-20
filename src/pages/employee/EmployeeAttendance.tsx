@@ -53,19 +53,18 @@ const EmployeeAttendance: React.FC = () => {
   }, [visibleEntries]);
 
   const handleSubmitAttendanceEdit = React.useCallback(
-    (payload: { timeIn: string; timeOut: string; reason: string }) => {
-      if (isTeaching) {
-        if (!selectedEntry) {
-          return;
-        }
+    async (payload: { timeIn: string; timeOut: string; reason: string }) => {
+      if (!selectedEntry) {
+        return;
+      }
 
-        const status = selectedEntry.status;
-        if (status !== 'LATE' && status !== 'ABSENT') {
-          toast.error('Appeals are available only for Late or Absent session marks.');
-          return;
-        }
+      if (isTeaching && selectedEntry.status !== 'LATE' && selectedEntry.status !== 'ABSENT') {
+        toast.error('Appeals are available only for Late or Absent session marks.');
+        return;
+      }
 
-        const record = submitAttendanceEditRequest({
+      try {
+        const record = await submitAttendanceEditRequest({
           attendanceEntryId: selectedEntry.id,
           timeIn: payload.timeIn,
           timeOut: payload.timeOut,
@@ -73,33 +72,19 @@ const EmployeeAttendance: React.FC = () => {
         });
 
         if (!record) {
-          toast.error('Unable to file attendance appeal. Please try again.');
-          return;
+          throw new Error('Attendance record not found.');
         }
 
         setSelectedEntry(null);
-        toast.success('Attendance appeal filed for supervisor review.');
-        return;
+        toast.success(
+          isTeaching
+            ? 'Attendance appeal sent to HR for review.'
+            : 'Attendance edit request sent to HR for review.',
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Please try again.';
+        toast.error(`Unable to file attendance ${isTeaching ? 'appeal' : 'edit request'}: ${message}`);
       }
-
-      if (!selectedEntry) {
-        return;
-      }
-
-      const record = submitAttendanceEditRequest({
-        attendanceEntryId: selectedEntry.id,
-        timeIn: payload.timeIn,
-        timeOut: payload.timeOut,
-        reason: payload.reason,
-      });
-
-      if (!record) {
-        toast.error('Unable to file attendance edit request. Please try again.');
-        return;
-      }
-
-      setSelectedEntry(null);
-      toast.success('Attendance edit request filed as pending.');
     },
     [isTeaching, selectedEntry, submitAttendanceEditRequest],
   );

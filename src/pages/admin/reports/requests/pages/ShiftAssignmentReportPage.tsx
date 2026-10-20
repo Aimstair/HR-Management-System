@@ -102,7 +102,7 @@ const ShiftAssignmentReportPage: React.FC = () => {
 
       <ScopeFilterDialog
         open={isScopeOpen}
-        mode={scope.mode === 'today' || scope.mode === 'last30' ? 'month' : scope.mode}
+        mode={scope.mode === 'today' || scope.mode === '  last30' ? 'month' : scope.mode}
         value={scope}
         onClose={() => setIsScopeOpen(false)}
         onApply={setScope}

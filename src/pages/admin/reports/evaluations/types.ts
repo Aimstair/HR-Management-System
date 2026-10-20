@@ -17,6 +17,7 @@ export interface FacultyEvaluationRecord {
   facultyId: string;
   facultyName: string;
   position: string;
+  campus: string;
   school: string;
   department: string;
   subjectCode: string;

@@ -28,12 +28,14 @@ const SchoolGrid: React.FC<SchoolGridProps> = ({
     const query = search.trim().toLowerCase();
 
     return schools.filter((school) => {
-      const matchesCampus = school.location.toLowerCase().includes(campus.name.toLowerCase().split(' ')[0].toLowerCase());
+      const matchesCampus = (school.location ?? '')
+        .toLowerCase()
+        .includes(campus.name.toLowerCase().split(' ')[0].toLowerCase());
       const matchesSearch =
         !query ||
         school.name.toLowerCase().includes(query) ||
-        school.location.toLowerCase().includes(query) ||
-        school.email.toLowerCase().includes(query);
+        (school.location ?? '').toLowerCase().includes(query) ||
+        (school.email ?? '').toLowerCase().includes(query);
 
       const matchesStatus =
         statusFilter === 'all' ||
@@ -59,9 +61,9 @@ const SchoolGrid: React.FC<SchoolGridProps> = ({
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{school.location}</p>
-                <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{school.contact}</p>
-                <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{school.email}</p>
+                <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{school.location ?? 'N/A'}</p>
+                <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{school.contact ?? 'N/A'}</p>
+                <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{school.email ?? 'N/A'}</p>
               </CardContent>
             </Card>
           </button>

@@ -35,21 +35,6 @@ export const initialRequests: RequestRecord[] = [
     reliever: 'N/A',
   },
   {
-    id: 'REQ-W-1005',
-    category: 'wfh',
-    status: RequestStatus.PENDING,
-    employee: {
-      name: 'Emma Davis',
-      position: 'Assistant Professor',
-      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop',
-    },
-    requestDate: '2026-03-11T08:22:00',
-    notes: 'Campus maintenance and commute disruption.',
-    duration: '1d',
-    scheduleFrom: '2026-03-18T08:00:00',
-    scheduleTo: '2026-03-18T17:00:00',
-  },
-  {
     id: 'REQ-U-1006',
     category: 'undertime',
     status: RequestStatus.APPROVED,

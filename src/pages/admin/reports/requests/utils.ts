@@ -1,4 +1,5 @@
 import type { ScopeFilterState } from './types';
+import type { GraphFilterState } from '../attendance/types';
 
 export const formatDateTime = (value: string): string => {
   return new Intl.DateTimeFormat('en-US', {
@@ -83,6 +84,40 @@ export const isInScope = (dateIso: string, filter: ScopeFilterState): boolean =>
   const start = new Date(filter.rangeStart);
   const end = new Date(filter.rangeEnd);
   return target >= start && target <= end;
+};
+
+export const isGraphInScope = (dateIso: string, filter: GraphFilterState): boolean => {
+  const target = new Date(dateIso);
+  if (Number.isNaN(target.getTime())) {
+    return false;
+  }
+
+  const now = new Date();
+
+  if (filter.mode === 'last30') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 30);
+    return target >= start && target <= now;
+  }
+
+  if (filter.mode === 'thisWeek') {
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const start = new Date(now);
+    start.setDate(now.getDate() + diff);
+    start.setHours(0, 0, 0, 0);
+    return target >= start && target <= now;
+  }
+
+  if (filter.mode === 'month' && filter.month) {
+    const [year, month] = filter.month.split('-').map(Number);
+    const start = new Date(year, (month || 1) - 1, 1, 0, 0, 0);
+    const end = new Date(year, month || 1, 0, 23, 59, 59);
+    return target >= start && target <= end;
+  }
+
+  const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+  return target >= start && target <= now;
 };
 
 export const paginate = <T,>(items: T[], page: number, pageSize: number): { rows: T[]; totalPages: number; safePage: number } => {

@@ -7,8 +7,7 @@ export type EmployeeRequestType =
   | 'undertime'
   | 'overtime'
   | 'change_shift'
-  | 'swap'
-  | 'remote';
+  | 'swap';
 
 export type TeachingAttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
 
@@ -30,6 +29,8 @@ export interface EmployeeAttendanceEntry {
   room?: string | null;
   sessionStart?: string | null;
   sessionEnd?: string | null;
+  appealStatus?: RequestStatus | null;
+  appealRemarks?: string | null;
 }
 
 export type EmployeeRequestFieldValue = string | number | string[] | null;
@@ -42,6 +43,9 @@ export interface EmployeeRequestRecord {
   submittedAt: string;
   summary: string;
   fields: EmployeeRequestFields;
+  scheduleFrom?: string | null;
+  scheduleTo?: string | null;
+  remarks?: string | null;
 }
 
 export interface EmployeeRequestDraft {
@@ -77,11 +81,12 @@ export interface EmployeePortalContextValue {
   attendanceEntries: EmployeeAttendanceEntry[];
   requests: EmployeeRequestRecord[];
   memos: MemoItem[];
-  submitRequest: (draft: EmployeeRequestDraft) => EmployeeRequestRecord;
+  submitRequest: (draft: EmployeeRequestDraft) => Promise<unknown>;
   submitAttendanceEditRequest: (payload: {
     attendanceEntryId: string;
     timeIn: string;
     timeOut: string;
     reason: string;
-  }) => EmployeeRequestRecord | null;
+  }) => Promise<unknown>;
+  acknowledgeMemo: (memoId: string) => Promise<void>;
 }

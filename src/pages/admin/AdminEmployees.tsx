@@ -406,6 +406,10 @@ const AdminEmployees: React.FC = () => {
     setIsDialogOpen(true);
   };
 
+  const onInvalid = (): void => {
+    toast.error('Please complete all required fields.');
+  };
+
   const onSubmit = (values: EmployeeFormValues): void => {
     const payload: Omit<EmployeeRecord, 'id'> = {
       name: values.name.trim(),
@@ -622,7 +626,7 @@ const AdminEmployees: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form id="employee-form" className="space-y-4" onSubmit={handleSubmit(onSubmit, onInvalid)}>
             <div className="space-y-2">
               <Label htmlFor="employee-name">Name</Label>
               <Input
@@ -671,6 +675,7 @@ const AdminEmployees: React.FC = () => {
                   </RadioGroup>
                 )}
               />
+              {errors.employeeType && <p className="text-xs text-destructive">Select an employee type.</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -695,6 +700,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.division && <p className="text-xs text-destructive">Select a division.</p>}
               </div>
 
               <div className="space-y-2">
@@ -718,6 +724,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.department && <p className="text-xs text-destructive">Select a department.</p>}
               </div>
             </div>
 
@@ -743,6 +750,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.title && <p className="text-xs text-destructive">Select a title.</p>}
               </div>
 
               <div className="space-y-2">
@@ -766,6 +774,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.status && <p className="text-xs text-destructive">Select a status.</p>}
               </div>
             </div>
 
@@ -773,7 +782,7 @@ const AdminEmployees: React.FC = () => {
               <Button type="button" variant="outline" onClick={closeModal}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" form="employee-form" disabled={isSubmitting}>
                 {editingEmployeeId ? 'Save Changes' : 'Add Employee'}
               </Button>
             </DialogFooter>

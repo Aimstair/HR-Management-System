@@ -1,3 +1,5 @@
+import { refreshRequest, type ApiUser } from './auth-api';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 const AUTH_SESSION_KEY = 'auth.session';
 
@@ -9,13 +11,13 @@ interface ApiErrorPayload {
 
 interface StoredSession {
   accessToken: string;
+  user?: ApiUser;
 }
 
 export type DashboardRequestTypeLabel =
   | 'Leave'
   | 'Undertime'
   | 'Overtime'
-  | 'Work from Home'
   | 'Time Adjustment';
 
 export interface AdminDashboardSummary {
@@ -91,6 +93,11 @@ export interface AdminEmployeeRecord {
   position: string | null;
   profileImage: string | null;
   joinDate: string;
+  idNumber?: string | null;
+  sssId?: string | null;
+  pagIbigId?: string | null;
+  tinNo?: string | null;
+  philhealthNo?: string | null;
   school: { id: string; name: string } | null;
   departmentModel: { id: string; name: string } | null;
 }
@@ -99,11 +106,86 @@ export interface AdminEmployeeListQuery {
   search?: string;
   schoolId?: string;
   departmentId?: string;
+  teachingSchoolId?: string;
   isActive?: boolean;
   page?: number;
   limit?: number;
   sortBy?: 'firstName' | 'lastName' | 'email' | 'joinDate';
   sortDirection?: 'asc' | 'desc';
+}
+
+export interface AdminOrganizationSchool {
+  id: string;
+  name: string;
+  campusId: string;
+  type: 'TEACHING' | 'NON_TEACHING';
+  location: string | null;
+  contact: string | null;
+  email: string | null;
+  status: 'Active' | 'Inactive';
+  picture: string | null;
+  departments?: AdminOrganizationDepartment[];
+}
+
+export interface AdminOrganizationDepartment {
+  id: string;
+  name: string;
+  schoolId: string;
+  location: string | null;
+  contact: string | null;
+  email: string | null;
+  status: 'Active' | 'Inactive';
+  picture: string | null;
+}
+
+export interface AdminOrganizationCampus {
+  id: string;
+  name: string;
+  code: string | null;
+  address: string | null;
+  contact: string | null;
+  email: string | null;
+  status: 'Active' | 'Inactive';
+  picture: string | null;
+  teachingSchools: AdminOrganizationSchool[];
+  nonTeachingDepartments: AdminOrganizationDepartment[];
+}
+
+export interface AdminOrganizationResponse {
+  campuses: AdminOrganizationCampus[];
+}
+
+export interface AdminCampusPayload {
+  campusId?: string;
+  code?: string;
+  name: string;
+  address?: string | null;
+  contact?: string | null;
+  email?: string | null;
+  status?: 'Active' | 'Inactive';
+  picture?: string | null;
+}
+
+export interface AdminSchoolPayload {
+  schoolId?: string;
+  campusId: string;
+  name: string;
+  location?: string | null;
+  contact?: string | null;
+  email?: string | null;
+  status?: 'Active' | 'Inactive';
+  picture?: string | null;
+}
+
+export interface AdminDepartmentPayload {
+  departmentId?: string;
+  campusId: string;
+  name: string;
+  location?: string | null;
+  contact?: string | null;
+  email?: string | null;
+  status?: 'Active' | 'Inactive';
+  picture?: string | null;
 }
 
 export interface AdminEmployeeListResponse {
@@ -126,6 +208,11 @@ export interface CreateAdminEmployeePayload {
   position?: string | null;
   profileImage?: string | null;
   temporaryPassword?: string;
+  idNumber?: string | null;
+  sssId?: string | null;
+  pagIbigId?: string | null;
+  tinNo?: string | null;
+  philhealthNo?: string | null;
 }
 
 export interface UpdateAdminEmployeePayload {
@@ -138,6 +225,11 @@ export interface UpdateAdminEmployeePayload {
   position?: string | null;
   profileImage?: string | null;
   isActive?: boolean;
+  idNumber?: string | null;
+  sssId?: string | null;
+  pagIbigId?: string | null;
+  tinNo?: string | null;
+  philhealthNo?: string | null;
 }
 
 export type AdminRequestType =
@@ -146,7 +238,6 @@ export type AdminRequestType =
   | 'FUND'
   | 'OVERTIME'
   | 'UNDERTIME'
-  | 'WFH'
   | 'TIME_ADJUSTMENT'
   | 'SHIFT_ASSIGNMENT'
   | 'SWAP_REQUEST';
@@ -159,6 +250,7 @@ export interface AdminRequestRecord {
   status: AdminRequestStatus;
   title: string;
   description: string | null;
+  remarks: string | null;
   leaveStartDate: string | null;
   leaveEndDate: string | null;
   employeeId: string;
@@ -197,6 +289,10 @@ export interface AdminRequestListQuery {
   status?: AdminRequestStatus;
   schoolId?: string;
   departmentId?: string;
+  requestDateFrom?: string;
+  requestDateTo?: string;
+  scheduleFrom?: string;
+  scheduleTo?: string;
   page?: number;
   limit?: number;
 }
@@ -209,6 +305,68 @@ export interface AdminRequestListResponse {
     total: number;
     totalPages: number;
   };
+}
+
+export interface CreateAdminRequestPayload {
+  type: AdminRequestType;
+  employeeId: string;
+  title: string;
+  description?: string | null;
+  remarks?: string | null;
+  leaveStartDate?: string | null;
+  leaveEndDate?: string | null;
+  status?: AdminRequestStatus;
+}
+
+export type AdminMemoRecipientType = 'All' | 'Campus' | 'School' | 'Department' | 'Employees';
+
+export interface AdminMemoRecipient {
+  id: string;
+  name: string;
+  type: AdminMemoRecipientType;
+  position?: string;
+  avatarUrl?: string;
+}
+
+export interface AdminMemoAcknowledge {
+  id: string;
+  name: string;
+  position: string;
+  avatarUrl?: string;
+  acknowledgedAt: string;
+}
+
+export interface AdminMemoRecord {
+  id: string;
+  memoType: string;
+  to: AdminMemoRecipient[];
+  agenda: string;
+  content: string;
+  attachments: string[];
+  dateCreated: string;
+  effectiveDate: string;
+  status: 'Upcoming' | 'Sent';
+  requiresAcknowledgement: boolean;
+  acknowledgements: AdminMemoAcknowledge[];
+}
+
+export interface AdminMemoListResponse {
+  memos: AdminMemoRecord[];
+}
+
+export interface CreateAdminMemoPayload {
+  memoType: string;
+  agenda: string;
+  content: string;
+  attachments?: string[];
+  dateCreated?: string;
+  effectiveDate?: string;
+  recipientType: AdminMemoRecipientType;
+  recipientIds?: string[];
+}
+
+export interface AdminMemoAttachmentResponse {
+  attachments: string[];
 }
 
 export type TeachingAttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
@@ -287,6 +445,68 @@ export interface AdminNonTeachingAttendanceRecord {
   } | null;
 }
 
+export interface AdminTeachingClassSessionRecord {
+  id: string;
+  sessionDate: string;
+  startsAt: string;
+  endsAt: string;
+  room: string | null;
+  subject: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  school: {
+    id: string;
+    campusId: string;
+    name: string;
+  };
+  department: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface CreateAdminTeachingAttendancePayload {
+  employeeId: string;
+  classSessionId: string;
+  status: TeachingAttendanceStatus;
+  remarks?: string | null;
+  minutesLate?: number | null;
+}
+
+export interface UpdateAdminTeachingAttendancePayload {
+  employeeId?: string;
+  classSessionId?: string;
+  status?: TeachingAttendanceStatus;
+  remarks?: string | null;
+  minutesLate?: number | null;
+}
+
+export interface CreateAdminNonTeachingAttendancePayload {
+  employeeId: string;
+  schoolId?: string;
+  departmentId?: string | null;
+  attendanceDate: string;
+  status: NonTeachingAttendanceStatus;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  remarks?: string | null;
+  minutesLate?: number | null;
+}
+
+export interface UpdateAdminNonTeachingAttendancePayload {
+  employeeId?: string;
+  schoolId?: string;
+  departmentId?: string | null;
+  attendanceDate?: string;
+  status?: NonTeachingAttendanceStatus;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  remarks?: string | null;
+  minutesLate?: number | null;
+}
+
 export interface AdminPerformanceEvaluationRecord {
   id: string;
   employeeId: string;
@@ -322,6 +542,9 @@ export interface AdminPerformanceEvaluationRecord {
   department: {
     id: string;
     name: string;
+    school: {
+      name: string;
+    };
   } | null;
 }
 
@@ -337,6 +560,10 @@ export interface AdminAttendanceListQuery {
 
 export interface AdminTeachingAttendanceListQuery extends AdminAttendanceListQuery {
   status?: TeachingAttendanceStatus;
+}
+
+export interface AdminTeachingClassSessionListQuery extends AdminAttendanceListQuery {
+  employeeId: string;
 }
 
 export interface AdminNonTeachingAttendanceListQuery extends AdminAttendanceListQuery {
@@ -372,6 +599,20 @@ const getAccessToken = (): string => {
   return parsed.accessToken;
 };
 
+const saveStoredSession = (session: StoredSession): void => {
+  localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+};
+
+const clearStoredSession = (): void => {
+  localStorage.removeItem(AUTH_SESSION_KEY);
+};
+
+const refreshAccessToken = async (): Promise<string> => {
+  const refreshed = await refreshRequest();
+  saveStoredSession({ accessToken: refreshed.accessToken, user: refreshed.user });
+  return refreshed.accessToken;
+};
+
 const toApiError = async (response: Response): Promise<Error> => {
   let message = `Request failed with status ${response.status}`;
 
@@ -390,15 +631,60 @@ const toApiError = async (response: Response): Promise<Error> => {
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const accessToken = getAccessToken();
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
+  const makeRequest = async (token: string): Promise<Response> =>
+    fetch(`${API_BASE_URL}${path}`, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+
+  let response = await makeRequest(accessToken);
+
+  if (response.status === 401) {
+    try {
+      const refreshedToken = await refreshAccessToken();
+      response = await makeRequest(refreshedToken);
+    } catch (error) {
+      clearStoredSession();
+      throw error instanceof Error ? error : await toApiError(response);
+    }
+  }
+
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+
+  return (await response.json()) as T;
+};
+
+const requestFormData = async <T>(path: string, formData: FormData): Promise<T> => {
+  const accessToken = getAccessToken();
+
+  const makeRequest = async (token: string): Promise<Response> =>
+    fetch(`${API_BASE_URL}${path}`, {
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      method: 'POST',
+      body: formData,
+    });
+
+  let response = await makeRequest(accessToken);
+
+  if (response.status === 401) {
+    try {
+      const refreshedToken = await refreshAccessToken();
+      response = await makeRequest(refreshedToken);
+    } catch (error) {
+      clearStoredSession();
+      throw error instanceof Error ? error : await toApiError(response);
+    }
+  }
 
   if (!response.ok) {
     throw await toApiError(response);
@@ -436,6 +722,7 @@ export const getAdminEmployees = (
       search: query.search,
       schoolId: query.schoolId,
       departmentId: query.departmentId,
+      teachingSchoolId: query.teachingSchoolId,
       isActive: query.isActive,
       page: query.page,
       limit: query.limit,
@@ -444,6 +731,68 @@ export const getAdminEmployees = (
     })}`,
     {
       method: 'GET',
+    },
+  );
+};
+
+export const getAdminOrganizationCampuses = (): Promise<AdminOrganizationResponse> => {
+  return request<AdminOrganizationResponse>('/admin/organization/campuses', {
+    method: 'GET',
+  });
+};
+
+export const createAdminCampus = (payload: AdminCampusPayload): Promise<{ campus: AdminOrganizationCampus }> => {
+  return request<{ campus: AdminOrganizationCampus }>('/admin/organization/campuses', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAdminCampus = (
+  campusId: string,
+  payload: Partial<AdminCampusPayload>,
+): Promise<{ campus: AdminOrganizationCampus }> => {
+  return request<{ campus: AdminOrganizationCampus }>(`/admin/organization/campuses/${campusId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const createAdminSchool = (payload: AdminSchoolPayload): Promise<{ school: AdminOrganizationSchool }> => {
+  return request<{ school: AdminOrganizationSchool }>('/admin/organization/schools', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAdminSchool = (
+  schoolId: string,
+  payload: Partial<AdminSchoolPayload>,
+): Promise<{ school: AdminOrganizationSchool }> => {
+  return request<{ school: AdminOrganizationSchool }>(`/admin/organization/schools/${schoolId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const createAdminDepartment = (
+  payload: AdminDepartmentPayload,
+): Promise<{ department: AdminOrganizationDepartment }> => {
+  return request<{ department: AdminOrganizationDepartment }>('/admin/organization/departments', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAdminDepartment = (
+  departmentId: string,
+  payload: Partial<AdminDepartmentPayload>,
+): Promise<{ department: AdminOrganizationDepartment }> => {
+  return request<{ department: AdminOrganizationDepartment }>(
+    `/admin/organization/departments/${departmentId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
     },
   );
 };
@@ -492,6 +841,10 @@ export const getAdminRequests = (
       status: query.status,
       schoolId: query.schoolId,
       departmentId: query.departmentId,
+      requestDateFrom: query.requestDateFrom,
+      requestDateTo: query.requestDateTo,
+      scheduleFrom: query.scheduleFrom,
+      scheduleTo: query.scheduleTo,
       page: query.page,
       limit: query.limit,
     })}`,
@@ -509,24 +862,61 @@ export const getAdminRequestById = (
   });
 };
 
+export const createAdminRequest = (
+  payload: CreateAdminRequestPayload,
+): Promise<{ request: AdminRequestRecord }> => {
+  return request<{ request: AdminRequestRecord }>('/admin/requests/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
 export const updateAdminRequestStatus = (
   requestId: string,
   status: AdminRequestStatus,
+  remarks?: string | null,
 ): Promise<{ request: AdminRequestRecord }> => {
   return request<{ request: AdminRequestRecord }>(`/admin/requests/${requestId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, remarks }),
   });
 };
 
 export const bulkUpdateAdminRequestStatus = (
   ids: string[],
   status: AdminRequestStatus,
+  remarks?: string | null,
 ): Promise<{ updated: number; requests: AdminRequestRecord[] }> => {
   return request<{ updated: number; requests: AdminRequestRecord[] }>('/admin/requests/bulk-status', {
     method: 'PATCH',
-    body: JSON.stringify({ ids, status }),
+    body: JSON.stringify({ ids, status, remarks }),
   });
+};
+
+export const getAdminMemos = (search?: string): Promise<AdminMemoListResponse> => {
+  return request<AdminMemoListResponse>(
+    `/admin/memos/list${buildQuery({ search })}`,
+    {
+      method: 'GET',
+    },
+  );
+};
+
+export const createAdminMemo = (
+  payload: CreateAdminMemoPayload,
+): Promise<AdminMemoListResponse> => {
+  return request<AdminMemoListResponse>('/admin/memos', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const uploadAdminMemoAttachments = (
+  files: File[],
+): Promise<AdminMemoAttachmentResponse> => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+  return requestFormData<AdminMemoAttachmentResponse>('/admin/memos/attachments', formData);
 };
 
 export const getAdminTeachingAttendance = (
@@ -540,6 +930,25 @@ export const getAdminTeachingAttendance = (
       from: query.from,
       to: query.to,
       status: query.status,
+      page: query.page,
+      limit: query.limit,
+    })}`,
+    {
+      method: 'GET',
+    },
+  );
+};
+
+export const getAdminTeachingClassSessions = (
+  query: AdminTeachingClassSessionListQuery,
+): Promise<PaginatedResponse<AdminTeachingClassSessionRecord>> => {
+  return request<PaginatedResponse<AdminTeachingClassSessionRecord>>(
+    `/admin/attendance/teaching/sessions/list${buildQuery({
+      employeeId: query.employeeId,
+      schoolId: query.schoolId,
+      departmentId: query.departmentId,
+      from: query.from,
+      to: query.to,
       page: query.page,
       limit: query.limit,
     })}`,
@@ -565,6 +974,50 @@ export const getAdminNonTeachingAttendance = (
     })}`,
     {
       method: 'GET',
+    },
+  );
+};
+
+export const createAdminTeachingAttendance = (
+  payload: CreateAdminTeachingAttendancePayload,
+): Promise<{ attendance: AdminTeachingAttendanceRecord }> => {
+  return request<{ attendance: AdminTeachingAttendanceRecord }>('/admin/attendance/teaching/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAdminTeachingAttendance = (
+  attendanceId: string,
+  payload: UpdateAdminTeachingAttendancePayload,
+): Promise<{ attendance: AdminTeachingAttendanceRecord }> => {
+  return request<{ attendance: AdminTeachingAttendanceRecord }>(
+    `/admin/attendance/teaching/${attendanceId}/update`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  );
+};
+
+export const createAdminNonTeachingAttendance = (
+  payload: CreateAdminNonTeachingAttendancePayload,
+): Promise<{ attendance: AdminNonTeachingAttendanceRecord }> => {
+  return request<{ attendance: AdminNonTeachingAttendanceRecord }>('/admin/attendance/non-teaching/create', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAdminNonTeachingAttendance = (
+  attendanceId: string,
+  payload: UpdateAdminNonTeachingAttendancePayload,
+): Promise<{ attendance: AdminNonTeachingAttendanceRecord }> => {
+  return request<{ attendance: AdminNonTeachingAttendanceRecord }>(
+    `/admin/attendance/non-teaching/${attendanceId}/update`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
     },
   );
 };

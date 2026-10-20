@@ -15,6 +15,23 @@ interface PaginatorProps {
 }
 
 const Paginator: React.FC<PaginatorProps> = ({ currentPage, totalPages, onPageChange }) => {
+  const safePage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+  const pageNumbers = (() => {
+    if (totalPages <= 3) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    if (safePage <= 2) {
+      return [1, 2, 3];
+    }
+
+    if (safePage >= totalPages - 1) {
+      return [totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [safePage - 1, safePage, safePage + 1];
+  })();
+
   return (
     <Pagination>
       <PaginationContent>
@@ -23,16 +40,16 @@ const Paginator: React.FC<PaginatorProps> = ({ currentPage, totalPages, onPageCh
             href="#"
             onClick={(event) => {
               event.preventDefault();
-              onPageChange(Math.max(1, currentPage - 1));
+              onPageChange(Math.max(1, safePage - 1));
             }}
           />
         </PaginationItem>
 
-        {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+        {pageNumbers.map((pageNumber) => (
           <PaginationItem key={pageNumber}>
             <PaginationLink
               href="#"
-              isActive={pageNumber === currentPage}
+              isActive={pageNumber === safePage}
               onClick={(event) => {
                 event.preventDefault();
                 onPageChange(pageNumber);
@@ -48,7 +65,7 @@ const Paginator: React.FC<PaginatorProps> = ({ currentPage, totalPages, onPageCh
             href="#"
             onClick={(event) => {
               event.preventDefault();
-              onPageChange(Math.min(totalPages, currentPage + 1));
+              onPageChange(Math.min(totalPages, safePage + 1));
             }}
           />
         </PaginationItem>

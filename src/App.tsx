@@ -29,7 +29,6 @@ import LeaveReportPage from './pages/admin/reports/requests/pages/LeaveReportPag
 import GenericRequestReportPage from './pages/admin/reports/requests/pages/GenericRequestReportPage';
 import OvertimeReportPage from './pages/admin/reports/requests/pages/OvertimeReportPage';
 import UndertimeReportPage from './pages/admin/reports/requests/pages/UndertimeReportPage';
-import WorkFromHomeReportPage from './pages/admin/reports/requests/pages/WorkFromHomeReportPage';
 import TimeAdjustmentReportPage from './pages/admin/reports/requests/pages/TimeAdjustmentReportPage';
 import ShiftAssignmentReportPage from './pages/admin/reports/requests/pages/ShiftAssignmentReportPage';
 import { swapRequestRecords } from './pages/admin/reports/requests/mockData';
@@ -131,7 +130,6 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin/reports/requests/leave" element={<LeaveReportPage />} />
         <Route path="/admin/reports/requests/overtime" element={<OvertimeReportPage />} />
         <Route path="/admin/reports/requests/undertime" element={<UndertimeReportPage />} />
-        <Route path="/admin/reports/requests/wfh" element={<WorkFromHomeReportPage />} />
         <Route path="/admin/reports/requests/time-adjustment" element={<TimeAdjustmentReportPage />} />
         <Route path="/admin/reports/requests/shift-assignment" element={<ShiftAssignmentReportPage />} />
         <Route

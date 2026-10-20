@@ -10,7 +10,6 @@ import type {
   ShiftAssignmentRecord,
   TimeAdjustmentRecord,
   UndertimeRecord,
-  WorkFromHomeRecord,
 } from './types';
 
 const employees = Array.from(
@@ -198,38 +197,6 @@ export const undertimeRecords: UndertimeRecord[] = employeeIds.flatMap((employee
       notes: 'Family emergency attendance.',
       status: index % 7 === 0 ? 'Declined' : 'Approved',
       processedBy: pickProcessor(index + 2),
-    },
-  ];
-});
-
-export const wfhRecords: WorkFromHomeRecord[] = employeeIds.flatMap((employeeId, index) => {
-  const dayA = String((index % 22) + 1).padStart(2, '0');
-  const dayB = String(((index + 10) % 22) + 1).padStart(2, '0');
-
-  return [
-    {
-      id: `WFH-${employeeId}-1`,
-      employeeId,
-      requestedAt: `2026-03-${dayA}T08:00:00`,
-      startAt: `2026-03-${dayA}T08:30:00`,
-      endAt: `2026-03-${dayA}T17:30:00`,
-      project: 'Curriculum portal enhancement',
-      location: 'Home Office - Quezon City',
-      notes: 'Stable connectivity and approved remote setup.',
-      status: index % 5 === 0 ? 'Unprocessed' : 'Approved',
-      processedBy: pickProcessor(index),
-    },
-    {
-      id: `WFH-${employeeId}-2`,
-      employeeId,
-      requestedAt: `2026-02-${dayB}T07:45:00`,
-      startAt: `2026-02-${dayB}T09:00:00`,
-      endAt: `2026-02-${dayB}T18:00:00`,
-      project: 'Budget consolidation support',
-      location: 'Remote - Laguna',
-      notes: 'Submitted progress updates by end of shift.',
-      status: index % 6 === 0 ? 'Declined' : 'Approved',
-      processedBy: pickProcessor(index + 1),
     },
   ];
 });

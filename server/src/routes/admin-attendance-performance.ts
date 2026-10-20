@@ -31,6 +31,10 @@ const teachingAttendanceQuerySchema = baseListQuerySchema.extend({
   status: z.nativeEnum(TeachingAttendanceStatus).optional(),
 });
 
+const teachingSessionQuerySchema = baseListQuerySchema.extend({
+  employeeId: z.string().trim().min(1),
+});
+
 const nonTeachingAttendanceQuerySchema = baseListQuerySchema.extend({
   status: z.nativeEnum(NonTeachingAttendanceStatus).optional(),
 });
@@ -123,7 +127,7 @@ const idParamSchema = z.object({
 });
 
 const teachingAttendanceSelect = {
-  id: true,
+  attendanceId: true,
   employeeId: true,
   status: true,
   remarks: true,
@@ -132,7 +136,7 @@ const teachingAttendanceSelect = {
   updatedAt: true,
   employee: {
     select: {
-      id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       email: true,
@@ -141,14 +145,14 @@ const teachingAttendanceSelect = {
   },
   classSession: {
     select: {
-      id: true,
+      classSessionId: true,
       sessionDate: true,
       startsAt: true,
       endsAt: true,
       room: true,
       subject: {
         select: {
-          id: true,
+          subjectId: true,
           code: true,
           name: true,
         },
@@ -156,6 +160,7 @@ const teachingAttendanceSelect = {
       school: {
         select: {
           schoolId: true,
+          campusId: true,
           name: true,
         },
       },
@@ -170,7 +175,7 @@ const teachingAttendanceSelect = {
 } as const;
 
 const nonTeachingAttendanceSelect = {
-  id: true,
+  attendanceId: true,
   employeeId: true,
   schoolId: true,
   departmentId: true,
@@ -184,7 +189,7 @@ const nonTeachingAttendanceSelect = {
   updatedAt: true,
   employee: {
     select: {
-      id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       email: true,
@@ -205,8 +210,36 @@ const nonTeachingAttendanceSelect = {
   },
 } as const;
 
+const teachingSessionSelect = {
+  classSessionId: true,
+  sessionDate: true,
+  startsAt: true,
+  endsAt: true,
+  room: true,
+  subject: {
+    select: {
+      subjectId: true,
+      code: true,
+      name: true,
+    },
+  },
+  school: {
+    select: {
+      schoolId: true,
+      campusId: true,
+      name: true,
+    },
+  },
+  department: {
+    select: {
+      departmentId: true,
+      name: true,
+    },
+  },
+} as const;
+
 const performanceEvaluationSelect = {
-  id: true,
+  evaluationId: true,
   employeeId: true,
   schoolId: true,
   departmentId: true,
@@ -221,7 +254,7 @@ const performanceEvaluationSelect = {
   updatedAt: true,
   employee: {
     select: {
-      id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       email: true,
@@ -231,7 +264,7 @@ const performanceEvaluationSelect = {
   },
   evaluator: {
     select: {
-      id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       email: true,
@@ -247,12 +280,18 @@ const performanceEvaluationSelect = {
     select: {
       departmentId: true,
       name: true,
+      school: {
+        select: {
+          name: true,
+        },
+      },
     },
   },
 } as const;
 
 type TeachingAttendanceRow = Prisma.TeachingAttendanceGetPayload<{ select: typeof teachingAttendanceSelect }>;
 type NonTeachingAttendanceRow = Prisma.NonTeachingAttendanceGetPayload<{ select: typeof nonTeachingAttendanceSelect }>;
+type TeachingSessionRow = Prisma.ClassSessionGetPayload<{ select: typeof teachingSessionSelect }>;
 type PerformanceEvaluationRow = Prisma.PerformanceEvaluationGetPayload<{ select: typeof performanceEvaluationSelect }>;
 
 const parseDateOrThrow = (value: string | undefined, field: string): Date | undefined => {
@@ -283,36 +322,149 @@ const resolveScopedSchoolId = (
 
 const normalizeTeachingAttendanceRow = (row: TeachingAttendanceRow) => {
   return {
-    ...row,
+    id: row.attendanceId,
+    employeeId: row.employeeId,
+    status: row.status,
+    remarks: row.remarks,
+    minutesLate: row.minutesLate,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    employee: {
+      id: row.employee.userId,
+      firstName: row.employee.firstName,
+      lastName: row.employee.lastName,
+      email: row.employee.email,
+      position: row.employee.position,
+    },
     classSession: {
-      ...row.classSession,
+      id: row.classSession.classSessionId,
       sessionDate: row.classSession.sessionDate.toISOString(),
       startsAt: row.classSession.startsAt.toISOString(),
       endsAt: row.classSession.endsAt.toISOString(),
+      room: row.classSession.room,
+      subject: {
+        id: row.classSession.subject.subjectId,
+        code: row.classSession.subject.code,
+        name: row.classSession.subject.name,
+      },
+      school: {
+        id: row.classSession.school.schoolId,
+        name: row.classSession.school.name,
+      },
+      department: row.classSession.department
+        ? {
+            id: row.classSession.department.departmentId,
+            name: row.classSession.department.name,
+          }
+        : null,
     },
   };
 };
 
 const normalizeNonTeachingAttendanceRow = (row: NonTeachingAttendanceRow) => {
   return {
-    ...row,
+    id: row.attendanceId,
+    employeeId: row.employeeId,
+    schoolId: row.schoolId,
+    departmentId: row.departmentId,
     attendanceDate: row.attendanceDate.toISOString(),
+    status: row.status,
     checkInTime: row.checkInTime?.toISOString() ?? null,
     checkOutTime: row.checkOutTime?.toISOString() ?? null,
+    remarks: row.remarks,
+    minutesLate: row.minutesLate,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    employee: {
+      id: row.employee.userId,
+      firstName: row.employee.firstName,
+      lastName: row.employee.lastName,
+      email: row.employee.email,
+      position: row.employee.position,
+    },
+    school: {
+      id: row.school.campusId,
+      name: row.school.name,
+    },
+    department: row.department
+      ? {
+          id: row.department.departmentId,
+          name: row.department.name,
+        }
+      : null,
+  };
+};
+
+const normalizeTeachingSessionRow = (row: TeachingSessionRow) => {
+  return {
+    id: row.classSessionId,
+    sessionDate: row.sessionDate.toISOString(),
+    startsAt: row.startsAt.toISOString(),
+    endsAt: row.endsAt.toISOString(),
+    room: row.room,
+    subject: {
+      id: row.subject.subjectId,
+      code: row.subject.code,
+      name: row.subject.name,
+    },
+    school: {
+      id: row.school.schoolId,
+      campusId: row.school.campusId,
+      name: row.school.name,
+    },
+    department: row.department
+      ? {
+          id: row.department.departmentId,
+          name: row.department.name,
+        }
+      : null,
   };
 };
 
 const normalizePerformanceEvaluationRow = (row: PerformanceEvaluationRow) => {
   return {
-    ...row,
+    id: row.evaluationId,
+    employeeId: row.employeeId,
+    schoolId: row.schoolId,
+    departmentId: row.departmentId,
+    evaluatorId: row.evaluatorId,
+    rubricType: row.rubricType,
     periodStart: row.periodStart.toISOString(),
     periodEnd: row.periodEnd.toISOString(),
+    criteria: row.criteria,
+    overallScore: row.overallScore,
+    notes: row.notes,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    employee: {
+      id: row.employee.userId,
+      firstName: row.employee.firstName,
+      lastName: row.employee.lastName,
+      email: row.employee.email,
+      position: row.employee.position,
+      employeeType: row.employee.employeeType,
+    },
+    evaluator: row.evaluator
+      ? {
+          id: row.evaluator.userId,
+          firstName: row.evaluator.firstName,
+          lastName: row.evaluator.lastName,
+          email: row.evaluator.email,
+        }
+      : null,
+    school: {
+      id: row.school.campusId,
+      name: row.school.name,
+    },
+    department: row.department
+      ? {
+          id: row.department.departmentId,
+          name: row.department.name,
+          school: {
+            name: row.department.school.name,
+          },
+        }
+      : null,
   };
 };
 
@@ -371,9 +523,9 @@ const resolveEmployeeForType = async (
   expectedEmployeeType: EmployeeType,
 ) => {
   const employee = await prisma.user.findUnique({
-    where: { id: employeeId },
+    where: { userId: employeeId },
     select: {
-      id: true,
+      userId: true,
       employeeType: true,
       schoolId: true,
       departmentId: true,
@@ -399,9 +551,9 @@ const resolveTeachingAttendanceTargets = async (
   const [employee, classSession] = await Promise.all([
     resolveEmployeeForType(employeeId, EmployeeType.TEACHING),
     prisma.classSession.findUnique({
-      where: { id: classSessionId },
+      where: { classSessionId },
       select: {
-        id: true,
+        classSessionId: true,
         school: {
           select: {
             campusId: true,
@@ -519,8 +671,8 @@ const resolvePerformanceTargets = async (
 
   const resolvedEvaluatorId = payload.evaluatorId ?? auth.sub;
   const evaluator = await prisma.user.findUnique({
-    where: { id: resolvedEvaluatorId },
-    select: { id: true },
+    where: { userId: resolvedEvaluatorId },
+    select: { userId: true },
   });
 
   if (!evaluator) {
@@ -545,6 +697,107 @@ const toWriteApiError = (error: unknown): unknown => {
 
   return error;
 };
+
+adminAttendancePerformanceRouter.get(
+  '/attendance/teaching/sessions/list',
+  requireAuth,
+  requireRoles(...ADMIN_ROLES),
+  async (req, res, next) => {
+    try {
+      const auth = req.auth;
+      if (!auth) {
+        throw new ApiError(401, 'Authentication is required');
+      }
+
+      const query = teachingSessionQuerySchema.parse(req.query);
+      const fromDate = parseDateOrThrow(query.from, 'from');
+      const toDate = parseDateOrThrow(query.to, 'to');
+
+      const employee = await resolveEmployeeForType(query.employeeId, EmployeeType.TEACHING);
+      const scopedSchoolId = resolveScopedSchoolId(
+        auth,
+        query.schoolId ?? employee.schoolId ?? undefined,
+      );
+
+      if (employee.schoolId && scopedSchoolId && employee.schoolId !== scopedSchoolId) {
+        throw new ApiError(400, 'Employee school does not match the selected school');
+      }
+
+      const assignmentWhere: Prisma.TeachingAssignmentWhereInput = {
+        employeeId: query.employeeId,
+        ...(scopedSchoolId ? { school: { campusId: scopedSchoolId } } : {}),
+      };
+
+      if (fromDate || toDate) {
+        if (toDate) {
+          assignmentWhere.startsOn = { lte: toDate };
+        }
+        const rangeStart = fromDate ?? new Date(0);
+        assignmentWhere.OR = [
+          { endsOn: null },
+          { endsOn: { gte: rangeStart } },
+        ];
+      }
+
+      const assignments = await prisma.teachingAssignment.findMany({
+        where: assignmentWhere,
+        select: {
+          subjectId: true,
+        },
+      });
+
+      const subjectIds = Array.from(new Set(assignments.map((item) => item.subjectId)));
+      if (subjectIds.length === 0) {
+        res.json({
+          rows: [],
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total: 0,
+            totalPages: 1,
+          },
+        });
+        return;
+      }
+
+      const where: Prisma.ClassSessionWhereInput = {
+        subjectId: { in: subjectIds },
+        ...(scopedSchoolId ? { school: { campusId: scopedSchoolId } } : {}),
+        ...((fromDate || toDate)
+          ? {
+              sessionDate: {
+                ...(fromDate ? { gte: fromDate } : {}),
+                ...(toDate ? { lte: toDate } : {}),
+              },
+            }
+          : {}),
+      };
+
+      const [total, rows] = await Promise.all([
+        prisma.classSession.count({ where }),
+        prisma.classSession.findMany({
+          where,
+          orderBy: [{ sessionDate: 'desc' }, { startsAt: 'desc' }],
+          skip: (query.page - 1) * query.limit,
+          take: query.limit,
+          select: teachingSessionSelect,
+        }),
+      ]);
+
+      res.json({
+        rows: rows.map(normalizeTeachingSessionRow),
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / query.limit)),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 adminAttendancePerformanceRouter.get(
   '/attendance/teaching/list',
@@ -789,9 +1042,9 @@ adminAttendancePerformanceRouter.patch(
       const payload = teachingAttendancePatchBodySchema.parse(req.body);
 
       const existing = await prisma.teachingAttendance.findUnique({
-        where: { id },
+        where: { attendanceId: id },
         select: {
-          id: true,
+          attendanceId: true,
           employeeId: true,
           classSessionId: true,
           status: true,
@@ -823,7 +1076,7 @@ adminAttendancePerformanceRouter.patch(
       await resolveTeachingAttendanceTargets(auth, targetEmployeeId, targetClassSessionId);
 
       const row = await prisma.teachingAttendance.update({
-        where: { id },
+        where: { attendanceId: id },
         data: {
           employeeId: targetEmployeeId,
           classSessionId: targetClassSessionId,
@@ -897,9 +1150,9 @@ adminAttendancePerformanceRouter.patch(
       const payload = nonTeachingAttendancePatchBodySchema.parse(req.body);
 
       const existing = await prisma.nonTeachingAttendance.findUnique({
-        where: { id },
+        where: { attendanceId: id },
         select: {
-          id: true,
+          attendanceId: true,
           employeeId: true,
           schoolId: true,
           departmentId: true,
@@ -938,7 +1191,7 @@ adminAttendancePerformanceRouter.patch(
       });
 
       const row = await prisma.nonTeachingAttendance.update({
-        where: { id },
+        where: { attendanceId: id },
         data: {
           employeeId: targetEmployeeId,
           schoolId: resolved.schoolId,
@@ -1017,9 +1270,9 @@ adminAttendancePerformanceRouter.patch(
       const payload = performanceEvaluationPatchBodySchema.parse(req.body);
 
       const existing = await prisma.performanceEvaluation.findUnique({
-        where: { id },
+        where: { evaluationId: id },
         select: {
-          id: true,
+          evaluationId: true,
           employeeId: true,
           schoolId: true,
           departmentId: true,
@@ -1052,7 +1305,7 @@ adminAttendancePerformanceRouter.patch(
         : (payload.criteria as Prisma.InputJsonValue);
 
       const row = await prisma.performanceEvaluation.update({
-        where: { id },
+        where: { evaluationId: id },
         data: {
           employeeId: targetPayload.employeeId,
           schoolId: resolved.schoolId,

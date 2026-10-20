@@ -23,6 +23,7 @@ const swaggerSpec = swaggerJSDoc({
       { name: 'Auth', description: 'Authentication and session endpoints' },
       { name: 'Admin Dashboard', description: 'Administrative metrics endpoints' },
       { name: 'Admin Employees', description: 'Administrative employee management endpoints' },
+      { name: 'Admin Organization', description: 'Administrative campus and organization metadata endpoints' },
       { name: 'Admin Requests', description: 'Administrative request review endpoints' },
       {
         name: 'Admin Attendance & Performance',
@@ -135,6 +136,62 @@ const swaggerSpec = swaggerJSDoc({
           },
           required: ['id', 'email', 'firstName', 'lastName', 'role', 'employeeType', 'isActive', 'joinDate'],
         },
+        AdminOrganizationDepartment: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            schoolId: { type: 'string' },
+            location: { type: 'string', nullable: true },
+            contact: { type: 'string', nullable: true },
+            email: { type: 'string', nullable: true },
+            status: { type: 'string', enum: ['Active', 'Inactive'] },
+            picture: { type: 'string', nullable: true },
+          },
+          required: ['id', 'name', 'schoolId', 'status'],
+        },
+        AdminOrganizationSchool: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            campusId: { type: 'string' },
+            type: { type: 'string', enum: ['TEACHING', 'NON_TEACHING'] },
+            location: { type: 'string', nullable: true },
+            contact: { type: 'string', nullable: true },
+            email: { type: 'string', nullable: true },
+            status: { type: 'string', enum: ['Active', 'Inactive'] },
+            picture: { type: 'string', nullable: true },
+            departments: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/AdminOrganizationDepartment' },
+              nullable: true,
+            },
+          },
+          required: ['id', 'name', 'campusId', 'type', 'status'],
+        },
+        AdminOrganizationCampus: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            code: { type: 'string', nullable: true },
+            address: { type: 'string', nullable: true },
+            contact: { type: 'string', nullable: true },
+            email: { type: 'string', nullable: true },
+            status: { type: 'string', enum: ['Active', 'Inactive'] },
+            picture: { type: 'string', nullable: true },
+            teachingSchools: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/AdminOrganizationSchool' },
+            },
+            nonTeachingDepartments: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/AdminOrganizationDepartment' },
+            },
+          },
+          required: ['id', 'name', 'status', 'teachingSchools', 'nonTeachingDepartments'],
+        },
         RequestRecord: {
           type: 'object',
           properties: {
@@ -147,7 +204,6 @@ const swaggerSpec = swaggerJSDoc({
                 'FUND',
                 'OVERTIME',
                 'UNDERTIME',
-                'WFH',
                 'TIME_ADJUSTMENT',
                 'SHIFT_ASSIGNMENT',
                 'SWAP_REQUEST',
@@ -584,7 +640,7 @@ const swaggerSpec = swaggerJSDoc({
                 properties: {
                   name: {
                     type: 'string',
-                    enum: ['Leave', 'Undertime', 'Overtime', 'Work from Home', 'Time Adjustment'],
+                    enum: ['Leave', 'Undertime', 'Overtime', 'Time Adjustment'],
                   },
                   value: { type: 'integer' },
                 },
@@ -601,7 +657,7 @@ const swaggerSpec = swaggerJSDoc({
                   name: { type: 'string' },
                   requestType: {
                     type: 'string',
-                    enum: ['Leave', 'Undertime', 'Overtime', 'Work from Home', 'Time Adjustment'],
+                    enum: ['Leave', 'Undertime', 'Overtime', 'Time Adjustment'],
                   },
                   dateSubmitted: { type: 'string', format: 'date-time' },
                 },
@@ -862,6 +918,7 @@ const swaggerSpec = swaggerJSDoc({
             { name: 'search', in: 'query', schema: { type: 'string' } },
             { name: 'schoolId', in: 'query', schema: { type: 'string' } },
             { name: 'departmentId', in: 'query', schema: { type: 'string' } },
+            { name: 'teachingSchoolId', in: 'query', schema: { type: 'string' } },
             { name: 'isActive', in: 'query', schema: { type: 'string', enum: ['true', 'false'] } },
             { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 } },
             { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 200 } },
@@ -1031,6 +1088,310 @@ const swaggerSpec = swaggerJSDoc({
           },
         },
       },
+      '/api/admin/organization/campuses': {
+        get: {
+          tags: ['Admin Organization'],
+          summary: 'List campuses with teaching schools and non-teaching departments',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: {
+              description: 'Organization campuses with schools and departments',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      campuses: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/AdminOrganizationCampus' },
+                      },
+                    },
+                    required: ['campuses'],
+                  },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          tags: ['Admin Organization'],
+          summary: 'Create campus (head HR only)',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    campusId: { type: 'string' },
+                    code: { type: 'string' },
+                    name: { type: 'string' },
+                    address: { type: 'string', nullable: true },
+                    contact: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
+                    status: { type: 'string', enum: ['Active', 'Inactive'] },
+                    picture: { type: 'string', nullable: true },
+                  },
+                  required: ['name'],
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: 'Campus created',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      campus: { $ref: '#/components/schemas/AdminOrganizationCampus' },
+                    },
+                    required: ['campus'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/organization/campuses/{campusId}': {
+        patch: {
+          tags: ['Admin Organization'],
+          summary: 'Update campus (head HR only)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'campusId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    code: { type: 'string' },
+                    name: { type: 'string' },
+                    address: { type: 'string', nullable: true },
+                    contact: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
+                    status: { type: 'string', enum: ['Active', 'Inactive'] },
+                    picture: { type: 'string', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Campus updated',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      campus: { $ref: '#/components/schemas/AdminOrganizationCampus' },
+                    },
+                    required: ['campus'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/organization/schools': {
+        post: {
+          tags: ['Admin Organization'],
+          summary: 'Create teaching school',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    schoolId: { type: 'string' },
+                    campusId: { type: 'string' },
+                    name: { type: 'string' },
+                    location: { type: 'string', nullable: true },
+                    contact: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
+                    status: { type: 'string', enum: ['Active', 'Inactive'] },
+                    picture: { type: 'string', nullable: true },
+                  },
+                  required: ['campusId', 'name'],
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: 'Teaching school created',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      school: { $ref: '#/components/schemas/AdminOrganizationSchool' },
+                    },
+                    required: ['school'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/organization/schools/{schoolId}': {
+        patch: {
+          tags: ['Admin Organization'],
+          summary: 'Update teaching school',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'schoolId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    location: { type: 'string', nullable: true },
+                    contact: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
+                    status: { type: 'string', enum: ['Active', 'Inactive'] },
+                    picture: { type: 'string', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Teaching school updated',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      school: { $ref: '#/components/schemas/AdminOrganizationSchool' },
+                    },
+                    required: ['school'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/organization/departments': {
+        post: {
+          tags: ['Admin Organization'],
+          summary: 'Create non-teaching department',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    departmentId: { type: 'string' },
+                    campusId: { type: 'string' },
+                    name: { type: 'string' },
+                    location: { type: 'string', nullable: true },
+                    contact: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
+                    status: { type: 'string', enum: ['Active', 'Inactive'] },
+                    picture: { type: 'string', nullable: true },
+                  },
+                  required: ['campusId', 'name'],
+                },
+              },
+            },
+          },
+          responses: {
+            201: {
+              description: 'Non-teaching department created',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      department: { $ref: '#/components/schemas/AdminOrganizationDepartment' },
+                    },
+                    required: ['department'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/admin/organization/departments/{departmentId}': {
+        patch: {
+          tags: ['Admin Organization'],
+          summary: 'Update non-teaching department',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'departmentId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    location: { type: 'string', nullable: true },
+                    contact: { type: 'string', nullable: true },
+                    email: { type: 'string', nullable: true },
+                    status: { type: 'string', enum: ['Active', 'Inactive'] },
+                    picture: { type: 'string', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Non-teaching department updated',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      department: { $ref: '#/components/schemas/AdminOrganizationDepartment' },
+                    },
+                    required: ['department'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       '/api/admin/requests/list': {
         get: {
           tags: ['Admin Requests'],
@@ -1049,7 +1410,6 @@ const swaggerSpec = swaggerJSDoc({
                   'FUND',
                   'OVERTIME',
                   'UNDERTIME',
-                  'WFH',
                   'TIME_ADJUSTMENT',
                   'SHIFT_ASSIGNMENT',
                   'SWAP_REQUEST',

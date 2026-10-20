@@ -86,6 +86,76 @@ const renderPieLabel = (props: PieLabelRenderProps): string => {
   return `${name} (${value})`;
 };
 
+const toDateKey = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateKey = (value: string): string | null => {
+  const datePart = value.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return datePart;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return toDateKey(parsed);
+};
+
+const parseLocalDate = (value: string): Date | null => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+};
+
+const getWeekStart = (value: Date): Date => {
+  const start = new Date(value);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+  return start;
+};
+
+const buildWeekTrend = (raw: AttendanceTrendPoint[]): AttendanceTrendPoint[] => {
+  const weekStart = getWeekStart(new Date());
+  const weekDates = Array.from({ length: 7 }, (_, index) => {
+    const next = new Date(weekStart);
+    next.setDate(weekStart.getDate() + index);
+    return next;
+  });
+
+  const lookup = new Map<string, AttendanceTrendPoint>();
+  raw.forEach((entry) => {
+    const key = parseDateKey(entry.date);
+    if (key) {
+      lookup.set(key, entry);
+    }
+  });
+
+  return weekDates.map((date) => {
+    const key = toDateKey(date);
+    const match = lookup.get(key);
+    return {
+      day: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date),
+      date: key,
+      present: match?.present ?? 0,
+      absent: match?.absent ?? 0,
+    };
+  });
+};
+
 const AdminDashboard: React.FC = () => {
   const [dashboardSummary, setDashboardSummary] = useState<AdminDashboardSummary | null>(null);
   const [attendanceMode, setAttendanceMode] = useState<'non-teaching' | 'teaching'>('non-teaching');
@@ -122,10 +192,37 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const summary = dashboardSummary?.summary ?? emptySummary;
-  const attendanceTrendData: AttendanceTrendPoint[] =
-    attendanceMode === 'teaching'
-      ? dashboardSummary?.attendanceTrendTeaching ?? []
-      : dashboardSummary?.attendanceTrendNonTeaching ?? [];
+  const rawAttendanceTrendData = useMemo(
+    () =>
+      attendanceMode === 'teaching'
+        ? dashboardSummary?.attendanceTrendTeaching ?? []
+        : dashboardSummary?.attendanceTrendNonTeaching ?? [],
+    [attendanceMode, dashboardSummary?.attendanceTrendTeaching, dashboardSummary?.attendanceTrendNonTeaching],
+  );
+  const attendanceTrendData = useMemo(
+    () => buildWeekTrend(rawAttendanceTrendData),
+    [rawAttendanceTrendData],
+  );
+  const latestTrendDateLabel = useMemo(() => {
+    const latest = rawAttendanceTrendData.reduce<Date | null>((currentLatest, entry) => {
+      const parsed = parseLocalDate(entry.date);
+      if (!parsed) {
+        return currentLatest;
+      }
+      if (!currentLatest || parsed > currentLatest) {
+        return parsed;
+      }
+      return currentLatest;
+    }, null);
+
+    return latest
+      ? new Intl.DateTimeFormat('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        }).format(latest)
+      : null;
+  }, [rawAttendanceTrendData]);
   const requestBreakdownData: RequestBreakdownPoint[] = dashboardSummary?.requestBreakdown ?? [];
   const priorityRequests: PriorityRequestItem[] = dashboardSummary?.priorityRequests ?? [];
   const tardinessWatchlist: TardinessWatchItem[] = dashboardSummary?.tardinessWatchlist ?? [];
@@ -186,13 +283,13 @@ const AdminDashboard: React.FC = () => {
 
   const attendanceDescription =
     attendanceMode === 'teaching'
-      ? 'Present vs absent teaching sessions for the last seven days.'
-      : 'Present vs absent non-teaching staff for the last seven days.';
+      ? 'Present vs absent teaching sessions (Sunday to Saturday).'
+      : 'Present vs absent non-teaching staff (Sunday to Saturday).';
   const presentLegendLabel = attendanceMode === 'teaching' ? 'Present' : 'Present Staff';
   const absentLegendLabel = attendanceMode === 'teaching' ? 'Absent' : 'Absent Staff';
   const formatTrendTick = (value: string): string => {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
+    const parsed = parseLocalDate(value);
+    if (!parsed) {
       return value;
     }
 
@@ -203,8 +300,8 @@ const AdminDashboard: React.FC = () => {
     }).format(parsed);
   };
   const formatTrendTooltip = (value: string): string => {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
+    const parsed = parseLocalDate(value);
+    if (!parsed) {
       return value;
     }
 
@@ -220,7 +317,6 @@ const AdminDashboard: React.FC = () => {
     Leave: '/admin/reports/requests/leave',
     Undertime: '/admin/reports/requests/undertime',
     Overtime: '/admin/reports/requests/overtime',
-    'Work from Home': '/admin/reports/requests/wfh',
     'Time Adjustment': '/admin/reports/requests/time-adjustment',
   };
 
@@ -320,6 +416,9 @@ const AdminDashboard: React.FC = () => {
               <div>
                 <CardTitle>7-Day Attendance Trend</CardTitle>
                 <CardDescription>{attendanceDescription}</CardDescription>
+                {latestTrendDateLabel ? (
+                  <p className="text-xs text-muted-foreground">Data as of {latestTrendDateLabel}.</p>
+                ) : null}
               </div>
               <ToggleGroup
                 type="single"

@@ -19,8 +19,7 @@ interface EmployeeGridProps {
 
 const statusClassMap: Record<EmployeeNode['status'], string> = {
   Active: 'bg-primary/10 text-primary border-primary/20',
-  'On Leave': 'bg-secondary/20 text-secondary-foreground border-secondary/40',
-  Retired: 'bg-muted text-muted-foreground border-border',
+  Inactive: 'bg-muted text-muted-foreground border-border',
 };
 
 const getInitials = (name: string): string => {
@@ -41,10 +40,13 @@ const EmployeeGrid: React.FC<EmployeeGridProps> = ({
     const query = search.trim().toLowerCase();
 
     return employees.filter((employee) => {
+      const fullName = `${employee.firstName} ${employee.lastName}`.trim();
+      const jobTitle = employee.position ?? 'Employee';
+
       const matchesSearch =
         !query ||
-        employee.fullName.toLowerCase().includes(query) ||
-        employee.jobTitle.toLowerCase().includes(query) ||
+        fullName.toLowerCase().includes(query) ||
+        jobTitle.toLowerCase().includes(query) ||
         employee.email.toLowerCase().includes(query);
 
       const matchesStatus =
@@ -72,12 +74,19 @@ const EmployeeGrid: React.FC<EmployeeGridProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <Avatar className="size-11">
-                      {employee.avatarUrl ? <AvatarImage src={employee.avatarUrl} alt={employee.fullName} /> : null}
-                      <AvatarFallback>{getInitials(employee.fullName)}</AvatarFallback>
+                      {employee.profileImage ? (
+                        <AvatarImage
+                          src={employee.profileImage}
+                          alt={`${employee.firstName} ${employee.lastName}`}
+                        />
+                      ) : null}
+                      <AvatarFallback>{getInitials(`${employee.firstName} ${employee.lastName}`)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="text-base leading-tight">{employee.fullName}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{employee.jobTitle}</p>
+                      <CardTitle className="text-base leading-tight">
+                        {employee.firstName} {employee.lastName}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">{employee.position ?? 'Employee'}</p>
                     </div>
                   </div>
                   <Badge className={statusClassMap[employee.status]}>{employee.status}</Badge>
@@ -85,7 +94,7 @@ const EmployeeGrid: React.FC<EmployeeGridProps> = ({
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{employee.email}</p>
-                <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{employee.phone}</p>
+                <p className="flex items-center gap-2"><Phone className="h-4 w-4" />N/A</p>
               </CardContent>
             </Card>
           </button>

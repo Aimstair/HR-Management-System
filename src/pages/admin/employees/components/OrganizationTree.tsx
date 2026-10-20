@@ -46,9 +46,12 @@ const getAvatarFallback = (fullName: string): string => {
 };
 
 const buildEmployeeCard = (employee: EmployeeNode, colorFill: string, colorStroke: string): string => {
-  const name = escapeHtml(employee.fullName);
-  const position = escapeHtml(employee.jobTitle || employee.role);
-  const avatar = escapeHtml(employee.avatarUrl || getAvatarFallback(employee.fullName));
+  const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || 'Unknown';
+  const name = escapeHtml(fullName);
+  const typeLabel = employee.employeeType === 'TEACHING' ? 'Teaching Faculty' : 'Non-Teaching Staff';
+  const positionLabel = employee.position ?? employee.department ?? typeLabel;
+  const position = escapeHtml(positionLabel || 'Employee');
+  const avatar = escapeHtml(employee.profileImage || getAvatarFallback(fullName));
 
   return `<div style="display:flex;align-items:center;gap:10px;width:100%;height:100%;padding:8px 10px;border:1px solid ${colorStroke};border-radius:12px;background:${colorFill};box-sizing:border-box;font-family:Arial,sans-serif;"><img src="${avatar}" alt="${name}" style="width:42px;height:42px;border-radius:9999px;object-fit:cover;flex-shrink:0;border:1px solid #cbd5e1;"/><div style="min-width:0;"><div style="font-size:13px;font-weight:600;line-height:1.2;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div><div style="font-size:12px;line-height:1.25;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${position}</div></div></div>`;
 };
@@ -117,17 +120,12 @@ const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   }
 
   const hierarchy = useMemo(() => {
-    const deans = employees.filter((employee) => employee.role === 'Dean');
-    const chairmen = employees.filter((employee) => employee.role === 'Chairman');
-    const hrAdmins = employees.filter((employee) => employee.role === 'HR Admin');
-    const faculty = employees.filter((employee) => employee.role === 'Faculty');
-    const staff = employees.filter((employee) => employee.role === 'Staff');
-
-    const heads = [...deans, ...chairmen, ...hrAdmins];
+    const activeEmployees = employees.filter((employee) => employee.isActive);
+    const inactiveEmployees = employees.filter((employee) => !employee.isActive);
 
     return {
-      heads,
-      members: [...faculty, ...staff],
+      activeEmployees,
+      inactiveEmployees,
     };
   }, [employees]);
 
@@ -236,11 +234,11 @@ const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       });
     };
 
-    buildRow(hierarchy.heads, headsY, 'head', '#dbeafe', '#3b82f6');
-    buildRow(hierarchy.members, membersY, 'member', '#dcfce7', '#16a34a');
+    buildRow(hierarchy.activeEmployees, headsY, 'active', '#dcfce7', '#16a34a');
+    buildRow(hierarchy.inactiveEmployees, membersY, 'inactive', '#fee2e2', '#ef4444');
 
     return { nodes, connectors };
-  }, [campus.name, departmentName, hierarchy.heads, hierarchy.members, schoolName]);
+  }, [campus.name, departmentName, hierarchy.activeEmployees, hierarchy.inactiveEmployees, schoolName]);
 
   const onDiagramClick = (args: { element?: { id?: string } }): void => {
     const elementId = args?.element?.id;
@@ -249,13 +247,13 @@ const OrganizationTree: React.FC<OrganizationTreeProps> = ({
       return;
     }
 
-    if (elementId.startsWith('head-')) {
-      onSelectEmployee?.(elementId.replace('head-', ''));
+    if (elementId.startsWith('active-')) {
+      onSelectEmployee?.(elementId.replace('active-', ''));
       return;
     }
 
-    if (elementId.startsWith('member-')) {
-      onSelectEmployee?.(elementId.replace('member-', ''));
+    if (elementId.startsWith('inactive-')) {
+      onSelectEmployee?.(elementId.replace('inactive-', ''));
     }
   };
 

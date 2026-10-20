@@ -3,3 +3,6 @@ dist/
 .env
 .env.local
 .env.*.local
+
+# Uploaded memo attachments (user content, never commit)
+uploads/

@@ -57,6 +57,11 @@ export interface User {
   profileImage?: string;
   joinDate: Date;
   position: string;
+  idNumber?: string | null;
+  sssId?: string | null;
+  pagIbigId?: string | null;
+  tinNo?: string | null;
+  philhealthNo?: string | null;
   scope?: AdminScope | null;
 }
 
@@ -75,7 +80,6 @@ export interface AuthContextType {
 export enum RequestType {
   LEAVE = 'leave',
   EXPENSE = 'expense',
-  WFH = 'wfh',
   FUNDS = 'funds',
   UNDERTIME = 'undertime',
   OVERTIME = 'overtime',
@@ -116,12 +120,6 @@ export interface ExpenseRequest extends BaseRequest {
   category: string;
   description: string;
   receiptUrl?: string;
-}
-
-export interface WFHRequest extends BaseRequest {
-  type: RequestType.WFH;
-  date: Date;
-  reason: string;
 }
 
 export interface FundsRequest extends BaseRequest {

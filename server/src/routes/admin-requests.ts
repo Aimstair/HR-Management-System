@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRoles } from '../middleware/auth.js';
 import { ApiError } from '../middleware/error.js';
-import { getScopedRequestWhere } from '../lib/scope-filters.js';
+import { getScopedRequestWhere, getScopedUserWhere } from '../lib/scope-filters.js';
 import type { AppRole } from '../types/auth.js';
+import { applyApprovedAttendanceAppeals } from '../lib/attendance-appeals.js';
 
 export const adminRequestsRouter = Router();
 
@@ -19,7 +20,6 @@ const requestTypeSchema = z.enum([
   'FUND',
   'OVERTIME',
   'UNDERTIME',
-  'WFH',
   'TIME_ADJUSTMENT',
   'SHIFT_ASSIGNMENT',
   'SWAP_REQUEST',
@@ -33,6 +33,10 @@ const listRequestsQuerySchema = z.object({
   status: requestStatusSchema.optional(),
   schoolId: z.string().trim().optional(),
   departmentId: z.string().trim().optional(),
+  requestDateFrom: z.string().trim().optional(),
+  requestDateTo: z.string().trim().optional(),
+  scheduleFrom: z.string().trim().optional(),
+  scheduleTo: z.string().trim().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(25),
 });
@@ -43,11 +47,24 @@ const requestIdParamsSchema = z.object({
 
 const updateRequestStatusBodySchema = z.object({
   status: requestStatusSchema,
+  remarks: z.string().trim().max(2000).optional().nullable(),
+});
+
+const createRequestBodySchema = z.object({
+  type: requestTypeSchema,
+  employeeId: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).optional().nullable(),
+  remarks: z.string().trim().max(2000).optional().nullable(),
+  leaveStartDate: z.string().trim().optional().nullable(),
+  leaveEndDate: z.string().trim().optional().nullable(),
+  status: requestStatusSchema.optional(),
 });
 
 const bulkUpdateRequestStatusBodySchema = z.object({
   ids: z.array(z.string().trim().min(1)).min(1).max(200),
   status: requestStatusSchema,
+  remarks: z.string().trim().max(2000).optional().nullable(),
 });
 
 type AdminAuth = {
@@ -69,69 +86,95 @@ const assertScopeFilters = (
   void departmentId;
 };
 
-const normalizeRequestRow = (row: {
-  id: string;
-  type: string;
-  status: string;
-  title: string;
-  description: string | null;
-  leaveStartDate: Date | null;
-  leaveEndDate: Date | null;
-  employeeId: string;
-  reviewedById: string | null;
-  schoolId: string;
-  departmentId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  employee: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    position: string | null;
-    profileImage: string | null;
-  };
-  reviewedBy: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  } | null;
-  school: {
-    id: string;
-    name: string;
-  };
-  department: {
-    id: string;
-    name: string;
-  } | null;
-}) => {
+const normalizeOptionalText = (value: string | null | undefined): string | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+const parseOptionalDate = (value: string | null | undefined, field: string): Date | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new ApiError(400, `Invalid ${field} date format`);
+  }
+
+  return parsed;
+};
+
+const normalizeRequestRow = (row: any) => {
   return {
-    ...row,
+    id: row.requestId,
+    type: row.type,
+    status: row.status,
+    title: row.title,
+    description: row.description,
+    remarks: row.remarks,
     leaveStartDate: row.leaveStartDate ? row.leaveStartDate.toISOString() : null,
     leaveEndDate: row.leaveEndDate ? row.leaveEndDate.toISOString() : null,
+    employeeId: row.employeeId,
+    reviewedById: row.reviewedById,
+    schoolId: row.campusId,
+    departmentId: row.departmentId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    employee: {
+      id: row.employee.userId,
+      firstName: row.employee.firstName,
+      lastName: row.employee.lastName,
+      email: row.employee.email,
+      position: row.employee.position,
+      profileImage: row.employee.profileImage,
+    },
+    reviewedBy: row.reviewedBy
+      ? {
+          id: row.reviewedBy.userId,
+          firstName: row.reviewedBy.firstName,
+          lastName: row.reviewedBy.lastName,
+          email: row.reviewedBy.email,
+        }
+      : null,
+    school: {
+      id: row.campus.campusId,
+      name: row.campus.name,
+    },
+    department: row.department
+      ? {
+          id: row.department.departmentId,
+          name: row.department.name,
+        }
+      : null,
   };
 };
 
 const requestSelect = {
-  id: true,
+  requestId: true,
   type: true,
   status: true,
   title: true,
   description: true,
+  remarks: true,
   leaveStartDate: true,
   leaveEndDate: true,
   employeeId: true,
   reviewedById: true,
-  schoolId: true,
+  campusId: true,
   departmentId: true,
   createdAt: true,
   updatedAt: true,
   employee: {
     select: {
-      id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       email: true,
@@ -141,21 +184,21 @@ const requestSelect = {
   },
   reviewedBy: {
     select: {
-      id: true,
+      userId: true,
       firstName: true,
       lastName: true,
       email: true,
     },
   },
-  school: {
+  campus: {
     select: {
-      id: true,
+      campusId: true,
       name: true,
     },
   },
   department: {
     select: {
-      id: true,
+      departmentId: true,
       name: true,
     },
   },
@@ -175,13 +218,42 @@ adminRequestsRouter.get(
       const query = listRequestsQuerySchema.parse(req.query);
       assertScopeFilters(auth, query.schoolId, query.departmentId);
 
+      const requestDateFrom = parseOptionalDate(query.requestDateFrom, 'requestDateFrom');
+      const requestDateTo = parseOptionalDate(query.requestDateTo, 'requestDateTo');
+      const scheduleFrom = parseOptionalDate(query.scheduleFrom, 'scheduleFrom');
+      const scheduleTo = parseOptionalDate(query.scheduleTo, 'scheduleTo');
+
+      const requestDateFilter = requestDateFrom || requestDateTo
+        ? {
+            createdAt: {
+              ...(requestDateFrom ? { gte: requestDateFrom } : {}),
+              ...(requestDateTo ? { lte: requestDateTo } : {}),
+            },
+          }
+        : {};
+
+      const scheduleFilter = scheduleFrom || scheduleTo
+        ? scheduleFrom && scheduleTo
+          ? {
+              AND: [
+                { leaveStartDate: { lte: scheduleTo } },
+                { leaveEndDate: { gte: scheduleFrom } },
+              ],
+            }
+          : scheduleFrom
+            ? { leaveStartDate: { gte: scheduleFrom } }
+            : { leaveEndDate: { lte: scheduleTo } }
+        : {};
+
       const scopedWhere = getScopedRequestWhere(auth);
       const where = {
         ...scopedWhere,
         ...(query.type ? { type: query.type } : {}),
         ...(query.status ? { status: query.status } : {}),
-        ...(query.schoolId ? { schoolId: query.schoolId } : {}),
+        ...(query.schoolId ? { campusId: query.schoolId } : {}),
         ...(query.departmentId ? { departmentId: query.departmentId } : {}),
+        ...requestDateFilter,
+        ...scheduleFilter,
         ...(query.search
           ? {
               OR: [
@@ -237,7 +309,7 @@ adminRequestsRouter.get(
       const row = await prisma.requestRecord.findFirst({
         where: {
           ...scopedWhere,
-          id: requestId,
+          requestId,
         },
         select: requestSelect,
       });
@@ -247,6 +319,70 @@ adminRequestsRouter.get(
       }
 
       res.json({
+        request: normalizeRequestRow(row),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+adminRequestsRouter.post(
+  '/requests/create',
+  requireAuth,
+  requireRoles(...ADMIN_ROLES),
+  async (req, res, next) => {
+    try {
+      const auth = req.auth;
+      if (!auth) {
+        throw new ApiError(401, 'Authentication is required');
+      }
+
+      const payload = createRequestBodySchema.parse(req.body);
+      const scopedEmployeeWhere = getScopedUserWhere(auth, 'ROLE_EMPLOYEE');
+      const employee = await prisma.user.findFirst({
+        where: {
+          ...scopedEmployeeWhere,
+          userId: payload.employeeId,
+        },
+        select: {
+          userId: true,
+          schoolId: true,
+          departmentId: true,
+        },
+      });
+
+      if (!employee || !employee.schoolId) {
+        throw new ApiError(404, 'Employee not found in your scope');
+      }
+
+      const leaveStartDate = parseOptionalDate(payload.leaveStartDate, 'leaveStartDate');
+      const leaveEndDate = parseOptionalDate(payload.leaveEndDate, 'leaveEndDate');
+
+      if (leaveStartDate && leaveEndDate && leaveEndDate < leaveStartDate) {
+        throw new ApiError(400, 'Leave end date must be after start date');
+      }
+
+      const status = payload.status ?? 'PENDING';
+
+      const row = await prisma.requestRecord.create({
+        data: {
+          type: payload.type,
+          status,
+          title: payload.title.trim(),
+          description: normalizeOptionalText(payload.description) ?? null,
+          remarks: normalizeOptionalText(payload.remarks) ?? null,
+          leaveStartDate,
+          leaveEndDate,
+          employeeId: employee.userId,
+          reviewedById: status === 'PENDING' ? null : auth.sub,
+          campusId: employee.schoolId,
+          departmentId: employee.departmentId ?? null,
+        },
+        select: requestSelect,
+      });
+
+      res.status(201).json({
         request: normalizeRequestRow(row),
       });
     } catch (error) {
@@ -273,10 +409,14 @@ adminRequestsRouter.patch(
       const existing = await prisma.requestRecord.findFirst({
         where: {
           ...scopedWhere,
-          id: requestId,
+          requestId,
         },
         select: {
-          id: true,
+          requestId: true,
+          type: true,
+          status: true,
+          employeeId: true,
+          description: true,
         },
       });
 
@@ -284,13 +424,26 @@ adminRequestsRouter.patch(
         throw new ApiError(404, 'Request not found in your scope');
       }
 
-      const row = await prisma.requestRecord.update({
-        where: { id: requestId },
-        data: {
-          status: payload.status,
-          reviewedById: payload.status === 'PENDING' ? null : auth.sub,
-        },
-        select: requestSelect,
+      const remarks = payload.remarks === undefined
+        ? undefined
+        : payload.remarks?.trim() || null;
+
+      const row = await prisma.$transaction(async (tx) => {
+        const updated = await tx.requestRecord.update({
+          where: { requestId },
+          data: {
+            status: payload.status,
+            reviewedById: payload.status === 'PENDING' ? null : auth.sub,
+            ...(remarks !== undefined ? { remarks } : {}),
+          },
+          select: requestSelect,
+        });
+
+        if (payload.status === 'APPROVED' && existing.status !== 'APPROVED') {
+          await applyApprovedAttendanceAppeals(tx, [existing]);
+        }
+
+        return updated;
       });
 
       res.json({
@@ -316,38 +469,56 @@ adminRequestsRouter.patch(
       const payload = bulkUpdateRequestStatusBodySchema.parse(req.body);
       const scopedWhere = getScopedRequestWhere(auth);
 
+      const remarks = payload.remarks === undefined
+        ? undefined
+        : payload.remarks?.trim() || null;
+
       const visibleRows = await prisma.requestRecord.findMany({
         where: {
           ...scopedWhere,
-          id: {
+          requestId: {
             in: payload.ids,
           },
         },
         select: {
-          id: true,
+          requestId: true,
+          type: true,
+          status: true,
+          employeeId: true,
+          description: true,
         },
       });
 
-      const visibleIds = visibleRows.map((row: { id: string }) => row.id);
+      const visibleIds = visibleRows.map((row: { requestId: string }) => row.requestId);
       if (visibleIds.length === 0) {
         throw new ApiError(404, 'No matching requests were found in your scope');
       }
 
-      await prisma.requestRecord.updateMany({
-        where: {
-          id: {
-            in: visibleIds,
+      await prisma.$transaction(async (tx) => {
+        await tx.requestRecord.updateMany({
+          where: {
+            requestId: {
+              in: visibleIds,
+            },
           },
-        },
-        data: {
-          status: payload.status,
-          reviewedById: payload.status === 'PENDING' ? null : auth.sub,
-        },
+          data: {
+            status: payload.status,
+            reviewedById: payload.status === 'PENDING' ? null : auth.sub,
+            ...(remarks !== undefined ? { remarks } : {}),
+          },
+        });
+
+        if (payload.status === 'APPROVED') {
+          await applyApprovedAttendanceAppeals(
+            tx,
+            visibleRows.filter((row) => row.status !== 'APPROVED'),
+          );
+        }
       });
 
       const rows = await prisma.requestRecord.findMany({
         where: {
-          id: {
+          requestId: {
             in: visibleIds,
           },
         },

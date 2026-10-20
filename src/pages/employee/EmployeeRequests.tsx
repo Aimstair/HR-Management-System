@@ -1,17 +1,13 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '../../../components/ui/card';
 import RequestFiltersBar from './requests/components/RequestFiltersBar';
 import RequestFilingDialog from './requests/components/RequestFilingDialog';
 import RequestListPanel from './requests/components/RequestListPanel';
 import RequestStatsCards from './requests/components/RequestStatsCards';
-import RequestTypeMenu from './requests/components/RequestTypeMenu';
 import { getAvailableRequestTypeOptions, getRequestTypeLabel } from './requests/requestConfig';
 import { useEmployeePortal } from './shared/EmployeePortalProvider';
 import { useAuth } from '../../context/AuthContext';
@@ -27,7 +23,8 @@ import {
 const EmployeeRequests: React.FC = () => {
   const { user } = useAuth();
   const { requests, submitRequest } = useEmployeePortal();
-  const [activeType, setActiveType] = React.useState<EmployeeRequestType>('attendance');
+  const [searchParams] = useSearchParams();
+  const [activeType, setActiveType] = React.useState<EmployeeRequestType>('leave');
   const [selectedMonth, setSelectedMonth] = React.useState<string>(getCurrentMonthKey());
   const [search, setSearch] = React.useState<string>('');
   const [isFilingOpen, setIsFilingOpen] = React.useState<boolean>(false);
@@ -37,6 +34,18 @@ const EmployeeRequests: React.FC = () => {
     () => getAvailableRequestTypeOptions(employeeType),
     [employeeType],
   );
+
+  // Links (e.g. from the dashboard) can preselect the request type and month.
+  const linkedType = searchParams.get('type');
+  const linkedMonth = searchParams.get('month');
+  React.useEffect(() => {
+    if (linkedType && requestTypeOptions.some((option) => option.value === linkedType)) {
+      setActiveType(linkedType as EmployeeRequestType);
+    }
+    if (linkedMonth && /^\d{4}-\d{2}$/.test(linkedMonth)) {
+      setSelectedMonth(linkedMonth);
+    }
+  }, [linkedMonth, linkedType, requestTypeOptions]);
 
   React.useEffect(() => {
     const allowedTypes = new Set(requestTypeOptions.map((option) => option.value));
@@ -60,14 +69,19 @@ const EmployeeRequests: React.FC = () => {
   }, [scopedRequests]);
 
   const handleSubmitRequest = React.useCallback(
-    (fields: Record<string, string | number | string[] | null>) => {
-      submitRequest({
-        type: activeType,
-        fields,
-      });
+    async (fields: Record<string, string | number | string[] | null>) => {
+      try {
+        await submitRequest({
+          type: activeType,
+          fields,
+        });
 
-      setIsFilingOpen(false);
-      toast.success(`${getRequestTypeLabel(activeType)} request filed successfully.`);
+        setIsFilingOpen(false);
+        toast.success(`${getRequestTypeLabel(activeType)} request filed successfully.`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Please try again.';
+        toast.error(`Unable to file request: ${message}`);
+      }
     },
     [activeType, submitRequest],
   );
