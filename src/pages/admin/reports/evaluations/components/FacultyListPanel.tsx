@@ -80,8 +80,8 @@ const FacultyListPanel: React.FC<FacultyListPanelProps> = ({
   return (
     <Card className="h-[calc(100vh-120px)] min-h-160 gap-3">
       <CardHeader className="pb-0">
-        <CardTitle>Teaching Faculty</CardTitle>
-        <CardDescription>Search and select a professor.</CardDescription>
+        <CardTitle>Employee Directory</CardTitle>
+        <CardDescription>Search and select an employee.</CardDescription>
       </CardHeader>
 
       <CardContent className="h-full pt-0">
@@ -90,7 +90,7 @@ const FacultyListPanel: React.FC<FacultyListPanelProps> = ({
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                 className="pl-9 w-full"
-                placeholder="Search faculty"
+                placeholder="Search employee"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 />
@@ -116,7 +116,7 @@ const FacultyListPanel: React.FC<FacultyListPanelProps> = ({
             size="icon"
             onClick={() => selected && onExportSelected(selected.id)}
             disabled={!selected}
-            aria-label="Export selected faculty records"
+            aria-label="Export selected employee records"
             >
                 <Download className="h-4 w-4" />
             </Button>

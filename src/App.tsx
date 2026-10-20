@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
-import { UserRole } from './types';
+import { ADMIN_ROLES, EmployeeType, getDefaultRouteForRole, UserRole } from './types';
 
 // Page imports - Auth
 import LoginPage from './pages/auth/LoginPage';
@@ -26,12 +26,9 @@ import AdminReports from './pages/admin/AdminAttendanceReport';
 import AdminTardinessReport from './pages/admin/AdminTardinessReport';
 import AdminMemo from './pages/admin/AdminMemo';
 import LeaveReportPage from './pages/admin/reports/requests/pages/LeaveReportPage';
-import ExpenseReportPage from './pages/admin/reports/requests/pages/ExpenseReportPage';
-import FundRequestReportPage from './pages/admin/reports/requests/pages/FundRequestReportPage';
 import GenericRequestReportPage from './pages/admin/reports/requests/pages/GenericRequestReportPage';
 import OvertimeReportPage from './pages/admin/reports/requests/pages/OvertimeReportPage';
 import UndertimeReportPage from './pages/admin/reports/requests/pages/UndertimeReportPage';
-import WorkFromHomeReportPage from './pages/admin/reports/requests/pages/WorkFromHomeReportPage';
 import TimeAdjustmentReportPage from './pages/admin/reports/requests/pages/TimeAdjustmentReportPage';
 import ShiftAssignmentReportPage from './pages/admin/reports/requests/pages/ShiftAssignmentReportPage';
 import { swapRequestRecords } from './pages/admin/reports/requests/mockData';
@@ -68,6 +65,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children 
   return <>{children}</>;
 };
 
+const EmployeeEvaluationsRoute: React.FC = () => {
+  const { user } = useAuth();
+
+  if (!user || user.role !== UserRole.EMPLOYEE) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.employeeType !== EmployeeType.TEACHING) {
+    return <Navigate to="/portal/dashboard" replace />;
+  }
+
+  return <EmployeeEvaluations />;
+};
+
 /**
  * Main App Component
  * Defines routing structure for entire application
@@ -95,13 +106,13 @@ const AppRoutes: React.FC = () => {
         <Route path="/portal/attendance" element={<EmployeeAttendance />} />
         <Route path="/portal/requests" element={<EmployeeRequests />} />
         <Route path="/portal/memos" element={<EmployeeMemos />} />
-        <Route path="/portal/evaluations" element={<EmployeeEvaluations />} />
+        <Route path="/portal/evaluations" element={<EmployeeEvaluationsRoute />} />
       </Route>
 
       {/* ===== HR ADMIN ROUTES ===== */}
       <Route
         element={
-          <ProtectedRoute allowedRoles={[UserRole.HR]}>
+          <ProtectedRoute allowedRoles={ADMIN_ROLES}>
             <Layout />
           </ProtectedRoute>
         }
@@ -117,11 +128,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin/reports/evaluations" element={<FacultyEvaluationReportPage />} />
         <Route path="/admin/reports/requests" element={<Navigate to="/admin/reports/requests/leave" replace />} />
         <Route path="/admin/reports/requests/leave" element={<LeaveReportPage />} />
-        <Route path="/admin/reports/requests/expense" element={<ExpenseReportPage />} />
-        <Route path="/admin/reports/requests/fund" element={<FundRequestReportPage />} />
         <Route path="/admin/reports/requests/overtime" element={<OvertimeReportPage />} />
         <Route path="/admin/reports/requests/undertime" element={<UndertimeReportPage />} />
-        <Route path="/admin/reports/requests/wfh" element={<WorkFromHomeReportPage />} />
         <Route path="/admin/reports/requests/time-adjustment" element={<TimeAdjustmentReportPage />} />
         <Route path="/admin/reports/requests/shift-assignment" element={<ShiftAssignmentReportPage />} />
         <Route
@@ -136,10 +144,7 @@ const AppRoutes: React.FC = () => {
         path="/"
         element={
           user ? (
-            <Navigate
-              to={user.role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard'}
-              replace
-            />
+            <Navigate to={getDefaultRouteForRole(user.role)} replace />
           ) : (
             <Navigate to="/login" replace />
           )

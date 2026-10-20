@@ -38,7 +38,7 @@ import {
 } from '../../../components/ui/select';
 import { RadioGroup, RadioGroupItem } from '../../../components/ui/radio-group';
 
-type EmployeeType = 'Academic' | 'Non-Academic';
+type EmployeeType = 'TEACHING' | 'NON_TEACHING';
 type EmployeeTitle = 'Staff' | 'Faculty' | 'Chairman' | 'Dean' | 'HR Admin';
 type EmployeeStatus = 'Active' | 'On Leave' | 'Inactive';
 
@@ -74,6 +74,10 @@ interface EmployeeFormValues {
   status: EmployeeStatus;
 }
 
+const employeeTypeLabel = (type: EmployeeType): string => {
+  return type === 'TEACHING' ? 'Teaching' : 'Non-Teaching';
+};
+
 const TITLE_OPTIONS: EmployeeTitle[] = ['Staff', 'Faculty', 'Chairman', 'Dean', 'HR Admin'];
 const STATUS_OPTIONS: EmployeeStatus[] = ['Active', 'On Leave', 'Inactive'];
 const PAGE_SIZE = 5;
@@ -82,73 +86,73 @@ const DIVISIONS: DivisionConfig[] = [
   {
     id: 'DIV-NA-HR',
     name: 'HR',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Human Resources', 'Employee Relations'],
   },
   {
     id: 'DIV-NA-ACC',
     name: 'Accounting',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Payroll', 'Accounts Payable'],
   },
   {
     id: 'DIV-NA-REG',
     name: 'Registrar',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Records Processing', 'Enrollment Services'],
   },
   {
     id: 'DIV-NA-SAO',
     name: 'Student Affairs Office',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Counseling Services', 'Student Programs'],
   },
   {
     id: 'DIV-NA-SEC',
     name: 'Security',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Campus Patrol', 'Gate Operations'],
   },
   {
     id: 'DIV-NA-MTN',
     name: 'Maintenance',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Janitorial', 'Repair Staff'],
   },
   {
     id: 'DIV-AC-ENG',
     name: 'School of Engineering',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Computer Engineering', 'Civil Engineering'],
   },
   {
     id: 'DIV-AC-AS',
     name: 'School of Arts & Sciences',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Biology', 'Chemistry'],
   },
   {
     id: 'DIV-AC-BM',
     name: 'School of Business & Management',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Business Administration', 'Accountancy'],
   },
   {
     id: 'DIV-AC-EDU',
     name: 'School of Education',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Elementary Education', 'Secondary Education'],
   },
   {
     id: 'DIV-AC-LAW',
     name: 'School of Law',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Juris Doctor Program'],
   },
   {
     id: 'DIV-AC-CS',
     name: 'School of Computer Studies',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Information Technology', 'Computer Science'],
   },
 ];
@@ -158,7 +162,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-001',
     name: 'Dr. Amelia Smith',
     email: 'amelia.smith@school.edu',
-    employeeType: 'Academic',
+    employeeType: 'TEACHING',
     division: 'School of Engineering',
     department: 'Computer Engineering',
     title: 'Dean',
@@ -168,7 +172,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-002',
     name: 'Engr. Marco Doe',
     email: 'marco.doe@school.edu',
-    employeeType: 'Academic',
+    employeeType: 'TEACHING',
     division: 'School of Engineering',
     department: 'Computer Engineering',
     title: 'Chairman',
@@ -178,7 +182,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-003',
     name: 'Prof. Liza Ramos',
     email: 'liza.ramos@school.edu',
-    employeeType: 'Academic',
+    employeeType: 'TEACHING',
     division: 'School of Arts & Sciences',
     department: 'Biology',
     title: 'Faculty',
@@ -188,7 +192,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-004',
     name: 'Atty. Noel Fernandez',
     email: 'noel.fernandez@school.edu',
-    employeeType: 'Academic',
+    employeeType: 'TEACHING',
     division: 'School of Law',
     department: 'Juris Doctor Program',
     title: 'Dean',
@@ -198,7 +202,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-005',
     name: 'Irene Velasco',
     email: 'irene.velasco@school.edu',
-    employeeType: 'Non-Academic',
+    employeeType: 'NON_TEACHING',
     division: 'HR',
     department: 'Human Resources',
     title: 'HR Admin',
@@ -208,7 +212,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-006',
     name: 'Joel Santos',
     email: 'joel.santos@school.edu',
-    employeeType: 'Non-Academic',
+    employeeType: 'NON_TEACHING',
     division: 'Accounting',
     department: 'Payroll',
     title: 'Staff',
@@ -218,7 +222,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-007',
     name: 'Maria Cruz',
     email: 'maria.cruz@school.edu',
-    employeeType: 'Non-Academic',
+    employeeType: 'NON_TEACHING',
     division: 'Maintenance',
     department: 'Janitorial',
     title: 'Staff',
@@ -228,7 +232,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-008',
     name: 'Rico Navarro',
     email: 'rico.navarro@school.edu',
-    employeeType: 'Non-Academic',
+    employeeType: 'NON_TEACHING',
     division: 'Security',
     department: 'Campus Patrol',
     title: 'Staff',
@@ -238,7 +242,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-009',
     name: 'Prof. Elena Torres',
     email: 'elena.torres@school.edu',
-    employeeType: 'Academic',
+    employeeType: 'TEACHING',
     division: 'School of Computer Studies',
     department: 'Computer Science',
     title: 'Faculty',
@@ -248,7 +252,7 @@ const initialEmployees: EmployeeRecord[] = [
     id: 'EMP-010',
     name: 'Mark Reyes',
     email: 'mark.reyes@school.edu',
-    employeeType: 'Non-Academic',
+    employeeType: 'NON_TEACHING',
     division: 'Student Affairs Office',
     department: 'Counseling Services',
     title: 'Staff',
@@ -265,7 +269,7 @@ const statusBadgeClass: Record<EmployeeStatus, string> = {
 const getDefaultValues = (): EmployeeFormValues => ({
   name: '',
   email: '',
-  employeeType: 'Academic',
+  employeeType: 'TEACHING',
   division: 'School of Engineering',
   department: 'Computer Engineering',
   title: 'Faculty',
@@ -402,6 +406,10 @@ const AdminEmployees: React.FC = () => {
     setIsDialogOpen(true);
   };
 
+  const onInvalid = (): void => {
+    toast.error('Please complete all required fields.');
+  };
+
   const onSubmit = (values: EmployeeFormValues): void => {
     const payload: Omit<EmployeeRecord, 'id'> = {
       name: values.name.trim(),
@@ -477,8 +485,8 @@ const AdminEmployees: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Types</SelectItem>
-                <SelectItem value="Academic">Academic</SelectItem>
-                <SelectItem value="Non-Academic">Non-Academic</SelectItem>
+                <SelectItem value="TEACHING">Teaching</SelectItem>
+                <SelectItem value="NON_TEACHING">Non-Teaching</SelectItem>
               </SelectContent>
             </Select>
 
@@ -547,7 +555,7 @@ const AdminEmployees: React.FC = () => {
                   <TableHead>Department</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-[110px]">Actions</TableHead>
+                  <TableHead className="w-28">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -563,7 +571,7 @@ const AdminEmployees: React.FC = () => {
                       <TableCell className="font-medium">{employee.id}</TableCell>
                       <TableCell>{employee.name}</TableCell>
                       <TableCell>{employee.email}</TableCell>
-                      <TableCell>{employee.employeeType}</TableCell>
+                      <TableCell>{employeeTypeLabel(employee.employeeType)}</TableCell>
                       <TableCell>{employee.division}</TableCell>
                       <TableCell>{employee.department}</TableCell>
                       <TableCell>{employee.title}</TableCell>
@@ -618,7 +626,7 @@ const AdminEmployees: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          <form id="employee-form" className="space-y-4" onSubmit={handleSubmit(onSubmit, onInvalid)}>
             <div className="space-y-2">
               <Label htmlFor="employee-name">Name</Label>
               <Input
@@ -658,15 +666,16 @@ const AdminEmployees: React.FC = () => {
                     onValueChange={(value) => field.onChange(value as EmployeeType)}
                     className="grid grid-cols-2 gap-3"
                   >
-                    {(['Academic', 'Non-Academic'] as EmployeeType[]).map((type) => (
+                    {(['TEACHING', 'NON_TEACHING'] as EmployeeType[]).map((type) => (
                       <label key={type} className="flex items-center gap-2 rounded-md border p-3 text-sm">
                         <RadioGroupItem value={type} id={`employee-type-${type}`} />
-                        <span>{type}</span>
+                        <span>{employeeTypeLabel(type)}</span>
                       </label>
                     ))}
                   </RadioGroup>
                 )}
               />
+              {errors.employeeType && <p className="text-xs text-destructive">Select an employee type.</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -691,6 +700,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.division && <p className="text-xs text-destructive">Select a division.</p>}
               </div>
 
               <div className="space-y-2">
@@ -714,6 +724,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.department && <p className="text-xs text-destructive">Select a department.</p>}
               </div>
             </div>
 
@@ -739,6 +750,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.title && <p className="text-xs text-destructive">Select a title.</p>}
               </div>
 
               <div className="space-y-2">
@@ -762,6 +774,7 @@ const AdminEmployees: React.FC = () => {
                     </Select>
                   )}
                 />
+                {errors.status && <p className="text-xs text-destructive">Select a status.</p>}
               </div>
             </div>
 
@@ -769,7 +782,7 @@ const AdminEmployees: React.FC = () => {
               <Button type="button" variant="outline" onClick={closeModal}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" form="employee-form" disabled={isSubmitting}>
                 {editingEmployeeId ? 'Save Changes' : 'Add Employee'}
               </Button>
             </DialogFooter>

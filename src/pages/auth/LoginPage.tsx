@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types';
+import { getDefaultRouteForRole } from '../../types';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 
 /**
  * Login Page
- * Allows users to login with role selection for testing purposes
+ * Allows users to login with email and password only.
  */
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.EMPLOYEE);
   const [error, setError] = useState<string>('');
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,25 +21,25 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password, selectedRole);
-      navigate(selectedRole === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard');
+      const authenticatedUser = await login(email, password);
+      navigate(getDefaultRouteForRole(authenticatedUser.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
   // Quick login helpers
-  const quickLogin = async (testEmail: string, role: UserRole) => {
+  const quickLogin = async (testEmail: string) => {
     try {
-      await login(testEmail, 'password', role);
-      navigate(role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard');
+      const authenticatedUser = await login(testEmail, 'Password123!');
+      navigate(getDefaultRouteForRole(authenticatedUser.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-primary to-primary/80 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-card rounded-lg shadow-lg p-8">
@@ -76,33 +75,6 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Role</label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent">
-                  <input
-                    type="radio"
-                    name="role"
-                    value={UserRole.EMPLOYEE}
-                    checked={selectedRole === UserRole.EMPLOYEE}
-                    onChange={() => setSelectedRole(UserRole.EMPLOYEE)}
-                  />
-                  <span className="text-sm font-medium">Employee / Professor</span>
-                </label>
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent">
-                  <input
-                    type="radio"
-                    name="role"
-                    value={UserRole.HR}
-                    checked={selectedRole === UserRole.HR}
-                    onChange={() => setSelectedRole(UserRole.HR)}
-                  />
-                  <span className="text-sm font-medium">HR / Admin</span>
-                </label>
-              </div>
-            </div>
-
             {/* Error Message */}
             {error && <div className="p-3 bg-destructive/10 border border-destructive text-destructive rounded-lg text-sm">{error}</div>}
 
@@ -113,29 +85,47 @@ const LoginPage: React.FC = () => {
           </form>
 
           {/* Quick Login Demo */}
-          <div className="mt-8 pt-8 border-t border-border">
-            <p className="text-sm text-muted-foreground mb-4 text-center">Demo Credentials</p>
+          {/* <div className="mt-8 pt-8 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-4 text-center">Demo Credentials (Password: Password123!)</p>
             <div className="space-y-2">
               <Button
                 type="button"
                 variant="outline"
                 className="w-full text-sm"
-                onClick={() => quickLogin('employee@school.com', UserRole.EMPLOYEE)}
+                onClick={() => quickLogin('employee.teaching@school.com')}
                 disabled={loading}
               >
-                Login as Employee
+                Login as Teaching Employee
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="w-full text-sm"
-                onClick={() => quickLogin('hr@school.com', UserRole.HR)}
+                onClick={() => quickLogin('head.hr@school.com')}
                 disabled={loading}
               >
-                Login as HR Admin
+                Login as Head HR
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-sm"
+                onClick={() => quickLogin('campus.hr.main@school.com')}
+                disabled={loading}
+              >
+                Login as Main Campus HR
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-sm"
+                onClick={() => quickLogin('employee.staff@school.com')}
+                disabled={loading}
+              >
+                Login as Non-Teaching Employee
               </Button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

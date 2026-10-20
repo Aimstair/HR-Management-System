@@ -1,77 +1,118 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, AuthContextType } from '../types';
+import { AuthContextType, User } from '../types';
+import { ApiUser, loginRequest, logoutRequest, meRequest, refreshRequest } from '../lib/auth-api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demonstration purposes
-const mockUsers = {
-  'employee@school.com': {
-    id: 'emp-001',
-    email: 'employee@school.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    role: UserRole.EMPLOYEE,
-    department: 'Engineering',
-    schoolBranch: 'Main Campus',
-    joinDate: new Date('2022-01-15'),
-    position: 'Professor',
-  },
-  'hr@school.com': {
-    id: 'hr-001',
-    email: 'hr@school.com',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    role: UserRole.HR,
-    department: 'Human Resources',
-    schoolBranch: 'Main Campus',
-    joinDate: new Date('2020-06-01'),
-    position: 'HR Manager',
-  },
+const SESSION_KEY = 'auth.session';
+
+interface StoredSession {
+  accessToken: string;
+  user: ApiUser;
+}
+
+const parseApiUser = (user: ApiUser): User => {
+  return {
+    ...user,
+    department: user.department ?? '',
+    schoolBranch: user.schoolBranch ?? '',
+    position: user.position ?? '',
+    joinDate: new Date(user.joinDate),
+  };
+};
+
+const loadStoredSession = (): StoredSession | null => {
+  const rawSession = localStorage.getItem(SESSION_KEY);
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawSession) as StoredSession;
+  } catch {
+    localStorage.removeItem(SESSION_KEY);
+    return null;
+  }
+};
+
+const saveStoredSession = (session: StoredSession): void => {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+};
+
+const clearStoredSession = (): void => {
+  localStorage.removeItem(SESSION_KEY);
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Initialize from localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const hydrateSession = async (): Promise<void> => {
+      setLoading(true);
+
       try {
-        const parsedUser = JSON.parse(storedUser);
-        // Convert date strings back to Date objects
-        parsedUser.joinDate = new Date(parsedUser.joinDate);
+        const stored = loadStoredSession();
+
+        if (stored?.accessToken) {
+          try {
+            const meResponse = await meRequest(stored.accessToken);
+            const parsedUser = parseApiUser(meResponse.user);
+            setUser(parsedUser);
+            saveStoredSession({
+              accessToken: stored.accessToken,
+              user: meResponse.user,
+            });
+            return;
+          } catch {
+            clearStoredSession();
+          }
+        }
+
+        const refreshed = await refreshRequest();
+        const parsedUser = parseApiUser(refreshed.user);
         setUser(parsedUser);
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('user');
+        saveStoredSession({
+          accessToken: refreshed.accessToken,
+          user: refreshed.user,
+        });
+      } catch {
+        setUser(null);
+        clearStoredSession();
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    void hydrateSession();
   }, []);
 
-  const login = async (email: string, password: string, role: UserRole): Promise<void> => {
+  const login = async (email: string, password: string): Promise<User> => {
     setLoading(true);
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Mock authentication - check if user exists and role matches
-      const mockUser = mockUsers[email as keyof typeof mockUsers];
-      if (mockUser && mockUser.role === role) {
-        setUser(mockUser as User);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-      } else {
-        throw new Error('Invalid credentials or role mismatch');
-      }
+    try {
+      const authPayload = await loginRequest(email, password);
+      const parsedUser = parseApiUser(authPayload.user);
+      setUser(parsedUser);
+      saveStoredSession({
+        accessToken: authPayload.accessToken,
+        user: authPayload.user,
+      });
+      return parsedUser;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = (): void => {
+  const logout = async (): Promise<void> => {
+    try {
+      await logoutRequest();
+    } catch {
+      // Always clear local state even if backend logout fails.
+    }
+
     setUser(null);
-    localStorage.removeItem('user');
+    clearStoredSession();
   };
 
   const value: AuthContextType = {

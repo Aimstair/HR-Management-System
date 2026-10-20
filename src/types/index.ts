@@ -9,8 +9,41 @@
 
 export enum UserRole {
   EMPLOYEE = 'ROLE_EMPLOYEE',
-  HR = 'ROLE_HR',
+  HEAD_HR = 'ROLE_HEAD_HR',
+  CAMPUS_HR = 'ROLE_CAMPUS_HR',
 }
+
+export enum EmployeeType {
+  TEACHING = 'TEACHING',
+  NON_TEACHING = 'NON_TEACHING',
+}
+
+export enum AdminScopeType {
+  GLOBAL = 'GLOBAL',
+  SCHOOL = 'SCHOOL',
+  DEPARTMENT = 'DEPARTMENT',
+}
+
+export interface AdminScope {
+  scopeType: AdminScopeType;
+  schoolId?: string | null;
+  schoolName?: string | null;
+  departmentId?: string | null;
+  departmentName?: string | null;
+}
+
+export const ADMIN_ROLES: UserRole[] = [
+  UserRole.HEAD_HR,
+  UserRole.CAMPUS_HR,
+];
+
+export const isAdminRole = (role: UserRole): boolean => {
+  return ADMIN_ROLES.includes(role);
+};
+
+export const getDefaultRouteForRole = (role: UserRole): string => {
+  return role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard';
+};
 
 export interface User {
   id: string;
@@ -18,18 +51,25 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
+  employeeType: EmployeeType;
   department: string;
   schoolBranch: string;
   profileImage?: string;
   joinDate: Date;
   position: string;
+  idNumber?: string | null;
+  sssId?: string | null;
+  pagIbigId?: string | null;
+  tinNo?: string | null;
+  philhealthNo?: string | null;
+  scope?: AdminScope | null;
 }
 
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -40,7 +80,6 @@ export interface AuthContextType {
 export enum RequestType {
   LEAVE = 'leave',
   EXPENSE = 'expense',
-  WFH = 'wfh',
   FUNDS = 'funds',
   UNDERTIME = 'undertime',
   OVERTIME = 'overtime',
@@ -81,12 +120,6 @@ export interface ExpenseRequest extends BaseRequest {
   category: string;
   description: string;
   receiptUrl?: string;
-}
-
-export interface WFHRequest extends BaseRequest {
-  type: RequestType.WFH;
-  date: Date;
-  reason: string;
 }
 
 export interface FundsRequest extends BaseRequest {

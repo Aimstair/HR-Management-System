@@ -15,7 +15,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types';
+import { ADMIN_ROLES, EmployeeType, isAdminRole, UserRole } from '../../types';
 import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { cn } from '../../lib/utils';
@@ -26,6 +26,12 @@ interface NavItem {
   icon: React.ReactNode;
   requiredRole: UserRole[];
 }
+
+const roleLabels: Record<UserRole, string> = {
+  [UserRole.EMPLOYEE]: 'Employee',
+  [UserRole.HEAD_HR]: 'Head HR',
+  [UserRole.CAMPUS_HR]: 'Campus HR',
+};
 
 /**
  * Sidebar Navigation Component
@@ -47,7 +53,7 @@ const Sidebar: React.FC = () => {
       label: 'Dashboard',
       href: user.role === UserRole.EMPLOYEE ? '/portal/dashboard' : '/admin/dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />,
-      requiredRole: [UserRole.EMPLOYEE, UserRole.HR],
+      requiredRole: [UserRole.EMPLOYEE, ...ADMIN_ROLES],
     },
     ...(user.role === UserRole.EMPLOYEE
       ? [
@@ -75,45 +81,49 @@ const Sidebar: React.FC = () => {
             icon: <ScrollText className="w-5 h-5" />,
             requiredRole: [UserRole.EMPLOYEE],
           },
-          {
-            label: 'Evaluations',
-            href: '/portal/evaluations',
-            icon: <BookOpen className="w-5 h-5" />,
-            requiredRole: [UserRole.EMPLOYEE],
-          },
+          ...(user.employeeType === EmployeeType.TEACHING
+            ? [
+                {
+                  label: 'Evaluations',
+                  href: '/portal/evaluations',
+                  icon: <BookOpen className="w-5 h-5" />,
+                  requiredRole: [UserRole.EMPLOYEE],
+                },
+              ]
+            : []),
         ]
       : []),
-    ...(user.role === UserRole.HR
+    ...(isAdminRole(user.role)
       ? [
           {
             label: 'Employees',
             href: '/admin/employees',
             icon: <Users className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
-          {
-            label: 'Organization',
-            href: '/admin/organization',
-            icon: <Building2 className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
-          },
+          // {
+          //   label: 'Organization',
+          //   href: '/admin/organization',
+          //   icon: <Building2 className="w-5 h-5" />,
+          //   requiredRole: ADMIN_ROLES,
+          // },
           {
             label: 'Requests',
             href: '/admin/requests',
             icon: <FileText className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
-          {
-            label: 'Shifts',
-            href: '/admin/shifts',
-            icon: <Calendar className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
-          },
+          // {
+          //   label: 'Shifts',
+          //   href: '/admin/shifts',
+          //   icon: <Calendar className="w-5 h-5" />,
+          //   requiredRole: ADMIN_ROLES,
+          // },
           {
             label: 'Memo',
             href: '/admin/memo',
             icon: <ScrollText className="w-5 h-5" />,
-            requiredRole: [UserRole.HR],
+            requiredRole: ADMIN_ROLES,
           },
         ]
       : []),
@@ -127,7 +137,7 @@ const Sidebar: React.FC = () => {
       {/* Logo/Branding */}
       <div className="p-6 border-b border-primary/50">
         <h1 className="text-2xl font-bold text-primary-foreground">HR System</h1>
-        <p className="text-sm text-primary-foreground/80 mt-1">{user.role.replace('ROLE_', '')}</p>
+        <p className="text-sm text-primary-foreground/80 mt-1">{roleLabels[user.role]}</p>
       </div>
 
       {/* Navigation Items */}
@@ -149,7 +159,7 @@ const Sidebar: React.FC = () => {
           </Link>
         ))}
 
-        {user.role === UserRole.HR ? (
+        {isAdminRole(user.role) ? (
           <div className="space-y-2">
             <button
               type="button"
@@ -179,7 +189,7 @@ const Sidebar: React.FC = () => {
                 >
                   Attendance Report
                 </Link>
-                <Link
+                {/* <Link
                   to="/admin/reports/tardiness"
                   className={cn(
                     'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -189,7 +199,7 @@ const Sidebar: React.FC = () => {
                   )}
                 >
                   Tardiness Report
-                </Link>
+                </Link> */}
                 <Link
                   to="/admin/reports/evaluations"
                   className={cn(
@@ -230,28 +240,6 @@ const Sidebar: React.FC = () => {
                       Leave Report
                     </Link>
                     <Link
-                      to="/admin/reports/requests/expense"
-                      className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive('/admin/reports/requests/expense')
-                          ? 'bg-secondary/25 text-secondary-foreground'
-                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                      )}
-                    >
-                      Expense Report
-                    </Link>
-                    <Link
-                      to="/admin/reports/requests/fund"
-                      className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive('/admin/reports/requests/fund')
-                          ? 'bg-secondary/25 text-secondary-foreground'
-                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                      )}
-                    >
-                      Fund Request Report
-                    </Link>
-                    <Link
                       to="/admin/reports/requests/overtime"
                       className={cn(
                         'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -274,17 +262,6 @@ const Sidebar: React.FC = () => {
                       Undertime Report
                     </Link>
                     <Link
-                      to="/admin/reports/requests/wfh"
-                      className={cn(
-                        'block rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive('/admin/reports/requests/wfh')
-                          ? 'bg-secondary/25 text-secondary-foreground'
-                          : 'text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground',
-                      )}
-                    >
-                      Work from Home Report
-                    </Link>
-                    <Link
                       to="/admin/reports/requests/time-adjustment"
                       className={cn(
                         'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -295,7 +272,7 @@ const Sidebar: React.FC = () => {
                     >
                       Time Adjustment Report
                     </Link>
-                    <Link
+                    {/* <Link
                       to="/admin/reports/requests/shift-assignment"
                       className={cn(
                         'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -305,8 +282,8 @@ const Sidebar: React.FC = () => {
                       )}
                     >
                       Shift Assignment Report
-                    </Link>
-                    <Link
+                    </Link> */}
+                    {/* <Link
                       to="/admin/reports/requests/swap-request"
                       className={cn(
                         'block rounded-md px-3 py-2 text-sm transition-colors',
@@ -316,7 +293,7 @@ const Sidebar: React.FC = () => {
                       )}
                     >
                       Swap Request Report
-                    </Link>
+                    </Link> */}
                   </div>
                 ) : null}
               </div>

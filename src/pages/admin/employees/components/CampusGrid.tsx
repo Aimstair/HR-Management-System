@@ -24,6 +24,7 @@ interface CampusGridProps {
   onSelectCampus: (campus: CampusNode) => void;
   onToggleStatus: (campusId: string) => void;
   onEditCampus: (campusId: string) => void;
+  canManage?: boolean;
 }
 
 const CampusGrid: React.FC<CampusGridProps> = ({
@@ -33,6 +34,7 @@ const CampusGrid: React.FC<CampusGridProps> = ({
   onSelectCampus,
   onToggleStatus,
   onEditCampus,
+  canManage = true,
 }) => {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -41,8 +43,8 @@ const CampusGrid: React.FC<CampusGridProps> = ({
       const matchesSearch =
         !query ||
         campus.name.toLowerCase().includes(query) ||
-        campus.address.toLowerCase().includes(query) ||
-        campus.email.toLowerCase().includes(query);
+        (campus.address ?? '').toLowerCase().includes(query) ||
+        (campus.email ?? '').toLowerCase().includes(query);
 
       const matchesStatus =
         statusFilter === 'all' ||
@@ -68,30 +70,32 @@ const CampusGrid: React.FC<CampusGridProps> = ({
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{campus.address}</p>
-                <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{campus.contact}</p>
-                <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{campus.email}</p>
+                <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{campus.address ?? 'N/A'}</p>
+                <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{campus.contact ?? 'N/A'}</p>
+                <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{campus.email ?? 'N/A'}</p>
               </CardContent>
             </button>
-            <CardFooter className="pt-0">
-              <div className="ml-auto">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm">
-                      <EllipsisVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onToggleStatus(campus.id)}>
-                      Toggle Status
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEditCampus(campus.id)}>
-                      Edit
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardFooter>
+            {canManage ? (
+              <CardFooter className="pt-0">
+                <div className="ml-auto">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon-sm">
+                        <EllipsisVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onToggleStatus(campus.id)}>
+                        Toggle Status
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEditCampus(campus.id)}>
+                        Edit
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardFooter>
+            ) : null}
           </Card>
         ))}
       </div>

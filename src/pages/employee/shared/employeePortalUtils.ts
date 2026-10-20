@@ -4,6 +4,7 @@ import type {
   EmployeeAttendanceEntry,
   EmployeeRequestRecord,
   RequestStatTotals,
+  TeachingAttendanceSessionTotals,
 } from './employeePortalTypes';
 
 const SHIFT_START_MINUTES: Record<string, number> = {
@@ -70,6 +71,10 @@ export const minutesBetween = (startIso: string, endIso: string): number => {
 };
 
 export const computeWorkMinutes = (entry: EmployeeAttendanceEntry): number => {
+  if (entry.mode !== 'DAILY') {
+    return 0;
+  }
+
   if (!entry.timeIn || !entry.timeOut) {
     return 0;
   }
@@ -78,11 +83,15 @@ export const computeWorkMinutes = (entry: EmployeeAttendanceEntry): number => {
 };
 
 export const computeLateMinutes = (entry: EmployeeAttendanceEntry): number => {
+  if (entry.mode !== 'DAILY') {
+    return 0;
+  }
+
   if (!entry.timeIn) {
     return 0;
   }
 
-  const expected = SHIFT_START_MINUTES[entry.shift] ?? SHIFT_START_MINUTES.Morning;
+  const expected = SHIFT_START_MINUTES[entry.shift ?? 'Morning'] ?? SHIFT_START_MINUTES.Morning;
   return Math.max(0, toMinutes(toDate(entry.timeIn)) - expected);
 };
 
@@ -121,6 +130,48 @@ export const filterAttendanceByMonth = (
   return entries
     .filter((entry) => toMonthKey(entry.date) === monthKey)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+export const getTeachingAttendanceSessionStats = (
+  entries: EmployeeAttendanceEntry[],
+): TeachingAttendanceSessionTotals => {
+  return entries.reduce<TeachingAttendanceSessionTotals>(
+    (acc, entry) => {
+      if (entry.mode !== 'TEACHING_SESSION') {
+        return acc;
+      }
+
+      acc.totalSessions += 1;
+
+      if (entry.status === 'PRESENT') {
+        acc.present += 1;
+      }
+
+      if (entry.status === 'LATE') {
+        acc.late += 1;
+        acc.appealable += 1;
+      }
+
+      if (entry.status === 'ABSENT') {
+        acc.absent += 1;
+        acc.appealable += 1;
+      }
+
+      if (entry.status === 'EXCUSED') {
+        acc.excused += 1;
+      }
+
+      return acc;
+    },
+    {
+      totalSessions: 0,
+      present: 0,
+      late: 0,
+      absent: 0,
+      excused: 0,
+      appealable: 0,
+    },
+  );
 };
 
 export const filterRequestsByMonthAndType = (

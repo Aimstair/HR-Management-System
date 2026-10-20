@@ -1,11 +1,15 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import MemoCard from '../admin/memo/components/MemoCard';
 import MemoDetailDialog from '../admin/memo/components/MemoDetailDialog';
-import type { MemoFilterState, MemoItem } from '../admin/memo/types';
+import type { MemoFilterState } from '../admin/memo/types';
 import { filterMemos } from '../admin/memo/utils';
 import EmployeeMemoFilters from './memos/components/EmployeeMemoFilters';
 import { useEmployeePortal } from './shared/EmployeePortalProvider';
 import { getCurrentMonthKey } from './shared/employeePortalUtils';
+import { useAuth } from '../../context/AuthContext';
+
+const MEMO_QUERY_PARAM = 'memo';
 
 const monthValueToFilterParts = (monthValue: string): { monthIndex: string; year: string } => {
   const [year = '', month = '01'] = monthValue.split('-');
@@ -15,11 +19,61 @@ const monthValueToFilterParts = (monthValue: string): { monthIndex: string; year
   };
 };
 
+const toMonthKey = (isoDate: string): string | null => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const EmployeeMemos: React.FC = () => {
-  const { memos } = useEmployeePortal();
+  const { user } = useAuth();
+  const { memos, acknowledgeMemo } = useEmployeePortal();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = React.useState('');
   const [selectedMonth, setSelectedMonth] = React.useState(getCurrentMonthKey());
-  const [selectedMemo, setSelectedMemo] = React.useState<MemoItem | null>(null);
+
+  // The open memo lives in the URL (?memo=<id>) so dashboard links can deep-link to it,
+  // and it is read from the live list so acknowledging updates the open dialog.
+  const selectedMemoId = searchParams.get(MEMO_QUERY_PARAM);
+  const selectedMemo = React.useMemo(
+    () => (selectedMemoId ? memos.find((memo) => memo.id === selectedMemoId) ?? null : null),
+    [memos, selectedMemoId],
+  );
+
+  const openMemo = React.useCallback(
+    (memoId: string | null) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (memoId) {
+            next.set(MEMO_QUERY_PARAM, memoId);
+          } else {
+            next.delete(MEMO_QUERY_PARAM);
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  // Show the deep-linked memo's month so it is also visible in the grid behind the dialog.
+  const syncedMemoIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!selectedMemo || syncedMemoIdRef.current === selectedMemo.id) {
+      return;
+    }
+
+    syncedMemoIdRef.current = selectedMemo.id;
+    const monthKey = toMonthKey(selectedMemo.effectiveDate);
+    if (monthKey) {
+      setSelectedMonth(monthKey);
+    }
+  }, [selectedMemo]);
 
   const filters = React.useMemo<MemoFilterState>(() => {
     const { monthIndex, year } = monthValueToFilterParts(selectedMonth);
@@ -58,7 +112,7 @@ const EmployeeMemos: React.FC = () => {
         ) : (
           filteredMemos.map((memo) => (
             <div key={memo.id} className="h-65 [&>div]:h-full">
-              <MemoCard memo={memo} onClick={() => setSelectedMemo(memo)} />
+              <MemoCard memo={memo} onClick={() => openMemo(memo.id)} />
             </div>
           ))
         )}
@@ -67,7 +121,9 @@ const EmployeeMemos: React.FC = () => {
       <MemoDetailDialog
         open={Boolean(selectedMemo)}
         memo={selectedMemo}
-        onClose={() => setSelectedMemo(null)}
+        onClose={() => openMemo(null)}
+        currentUserId={user?.id}
+        onAcknowledge={acknowledgeMemo}
       />
     </div>
   );

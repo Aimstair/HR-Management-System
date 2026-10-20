@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -18,24 +19,35 @@ import {
   SelectValue,
 } from '../../../../../components/ui/select';
 import { Textarea } from '../../../../../components/ui/textarea';
-import { recipientPool, recipientTypeOptions } from '../mockData';
 import type { MemoItem, MemoRecipient, MemoType, RecipientType } from '../types';
-import { inferMemoStatus } from '../utils';
+import { ACKNOWLEDGEMENT_REQUIRED_MEMO_TYPES, inferMemoStatus } from '../utils';
 import RecipientPicker from './RecipientPicker';
 import { ScrollArea } from '../../../../../components/ui/scroll-area';
+import { uploadAdminMemoAttachments } from '../../../../lib/admin-api';
 
 interface MemoCreateDialogProps {
   open: boolean;
+  recipientPool: {
+    Campus: Array<{ id: string; name: string; position?: string; avatarUrl?: string; meta?: string }>;
+    School: Array<{ id: string; name: string; position?: string; avatarUrl?: string; meta?: string }>;
+    Department: Array<{ id: string; name: string; position?: string; avatarUrl?: string; meta?: string }>;
+    Employees: Array<{ id: string; name: string; position?: string; avatarUrl?: string; meta?: string }>;
+  };
+  recipientTypeOptions: readonly RecipientType[];
   memoTypeOptions: readonly MemoType[];
   onClose: () => void;
-  onCreate: (memo: MemoItem) => void;
+  onCreate: (memo: MemoItem) => Promise<boolean>;
+  isSubmitting?: boolean;
 }
 
 const MemoCreateDialog: React.FC<MemoCreateDialogProps> = ({
   open,
+  recipientPool,
+  recipientTypeOptions,
   memoTypeOptions,
   onClose,
   onCreate,
+  isSubmitting = false,
 }) => {
   const [recipientType, setRecipientType] = useState<RecipientType>('All');
   const [selectedRecipients, setSelectedRecipients] = useState<MemoRecipient[]>([{ id: 'ALL', name: 'All Employees', type: 'All' }]);
@@ -44,9 +56,18 @@ const MemoCreateDialog: React.FC<MemoCreateDialogProps> = ({
   const [effectiveDate, setEffectiveDate] = useState<string>('');
   const [agenda, setAgenda] = useState<string>('');
   const [content, setContent] = useState<string>('');
-  const [attachmentsRaw, setAttachmentsRaw] = useState<string>('');
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  const maxAttachments = 5;
+  const maxAttachmentSize = 10 * 1024 * 1024;
 
   const available = useMemo(() => {
+    if (recipientType === 'Campus') {
+      return recipientPool.Campus;
+    }
     if (recipientType === 'School') {
       return recipientPool.School;
     }
@@ -57,7 +78,7 @@ const MemoCreateDialog: React.FC<MemoCreateDialogProps> = ({
       return recipientPool.Employees;
     }
     return [];
-  }, [recipientType]);
+  }, [recipientPool, recipientType]);
 
   React.useEffect(() => {
     if (recipientType === 'All') {
@@ -76,37 +97,93 @@ const MemoCreateDialog: React.FC<MemoCreateDialogProps> = ({
       setEffectiveDate('');
       setAgenda('');
       setContent('');
-      setAttachmentsRaw('');
+      setAttachmentFiles([]);
+      setAttachmentError(null);
+      setIsUploading(false);
+      setIsSaving(false);
     }
   }, [open]);
 
   const canSubmit = agenda.trim() && content.trim() && effectiveDate && selectedRecipients.length > 0;
 
-  const create = (): void => {
-    if (!canSubmit) {
+  const create = async (): Promise<void> => {
+    if (!canSubmit || isSaving || isSubmitting) {
       return;
     }
 
-    const attachments = attachmentsRaw
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
+    if (attachmentError) {
+      toast.error(attachmentError);
+      return;
+    }
 
-    const memo: MemoItem = {
-      id: `MEMO-${Date.now()}`,
-      memoType,
-      to: selectedRecipients,
-      agenda,
-      content,
-      attachments,
-      dateCreated,
-      effectiveDate,
-      status: inferMemoStatus(effectiveDate),
-      acknowledgements: [],
-    };
+    setIsSaving(true);
 
-    onCreate(memo);
-    onClose();
+    try {
+      let attachments: string[] = [];
+
+      if (attachmentFiles.length > 0) {
+        setIsUploading(true);
+        try {
+          const response = await uploadAdminMemoAttachments(attachmentFiles);
+          attachments = response.attachments;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unable to upload attachments.';
+          toast.error(message);
+          return;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      const memo: MemoItem = {
+        id: `MEMO-${Date.now()}`,
+        memoType,
+        to: selectedRecipients,
+        agenda,
+        content,
+        attachments,
+        dateCreated,
+        effectiveDate,
+        status: inferMemoStatus(effectiveDate),
+        acknowledgements: [],
+      };
+
+      const created = await onCreate(memo);
+      if (created) {
+        onClose();
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
+      setAttachmentFiles([]);
+      setAttachmentError(null);
+      return;
+    }
+
+    const tooLarge = files.find((file) => file.size > maxAttachmentSize);
+    if (tooLarge) {
+      setAttachmentFiles([]);
+      setAttachmentError('Each attachment must be 10MB or less.');
+      return;
+    }
+
+    if (files.length > maxAttachments) {
+      setAttachmentFiles(files.slice(0, maxAttachments));
+      setAttachmentError(`Only ${maxAttachments} attachments are allowed.`);
+      return;
+    }
+
+    setAttachmentFiles(files);
+    setAttachmentError(null);
+  };
+
+  const removeAttachment = (index: number): void => {
+    setAttachmentFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
   };
 
   return (
@@ -146,15 +223,20 @@ const MemoCreateDialog: React.FC<MemoCreateDialogProps> = ({
                             ))}
                             </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground">
+                            {ACKNOWLEDGEMENT_REQUIRED_MEMO_TYPES.has(memoType)
+                                ? 'Recipients must acknowledge this memo.'
+                                : 'Informational memo; recipients do not need to acknowledge it.'}
+                        </p>
                     </div>
 
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                         <Label>Date Created</Label>
                         <Input type="datetime-local" value={dateCreated} onChange={(event) => setDateCreated(event.target.value)} />
-                    </div>
+                    </div> */}
 
-                    <div className="space-y-2">
-                        <Label>Effectivity Date</Label>
+                    <div className="space-y-2 col-span-2">
+                        <Label>Date Active</Label>
                         <Input type="datetime-local" value={effectiveDate} onChange={(event) => setEffectiveDate(event.target.value)} />
                     </div>
                 </div>
@@ -179,19 +261,44 @@ const MemoCreateDialog: React.FC<MemoCreateDialogProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Image Attachment (Optional)</Label>
-                    <Textarea
-                    value={attachmentsRaw}
-                    onChange={(event) => setAttachmentsRaw(event.target.value)}
-                    placeholder="Paste image URLs, one per line"
+                    <Label>File Attachments (Optional)</Label>
+                    <Input
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      onChange={handleFileChange}
+                      disabled={isSaving || isSubmitting || isUploading}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Up to {maxAttachments} files, 10MB each. Images, PDFs, and office docs are supported.
+                    </p>
+                    {attachmentError ? (
+                      <p className="text-xs text-destructive">{attachmentError}</p>
+                    ) : null}
+                    {attachmentFiles.length > 0 ? (
+                      <div className="space-y-2">
+                        {attachmentFiles.map((file, index) => (
+                          <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-md border p-2 text-xs">
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{file.name}</p>
+                              <p className="text-muted-foreground">
+                                {(file.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                            <Button type="button" size="sm" variant="outline" onClick={() => removeAttachment(index)}>
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                 </div>
             </div>
         </ScrollArea>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={create} disabled={!canSubmit}>Create Memo</Button>
+          <Button variant="outline" onClick={onClose} disabled={isSaving || isSubmitting || isUploading}>Cancel</Button>
+          <Button onClick={create} disabled={!canSubmit || isSaving || isSubmitting || isUploading}>Create Memo</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

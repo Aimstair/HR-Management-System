@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "Memo_title_campusId_schoolId_departmentId_recipientEmployeeId_k" RENAME TO "Memo_title_campusId_schoolId_departmentId_recipientEmployee_key";

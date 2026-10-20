@@ -8,6 +8,7 @@ interface RequestMassActionsProps {
   onApprove: () => void;
   onDecline: () => void;
   onCancel: () => void;
+  isProcessing?: boolean;
 }
 
 const RequestMassActions: React.FC<RequestMassActionsProps> = ({
@@ -15,6 +16,7 @@ const RequestMassActions: React.FC<RequestMassActionsProps> = ({
   onApprove,
   onDecline,
   onCancel,
+  isProcessing = false,
 }) => {
   if (selectedCount === 0) {
     return null;
@@ -27,20 +29,31 @@ const RequestMassActions: React.FC<RequestMassActionsProps> = ({
         side="top"
         align="center"
         sideOffset={10}
-        className="z-[70] w-[min(94vw,760px)] rounded-xl border border-primary/20 bg-primary/60 p-3 shadow-lg"
+        className="z-[70] w-[min(94vw,760px)] rounded-xl border border-border bg-background p-3 shadow-lg"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-medium text-foreground">{selectedCount} request(s) selected</p>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" className="border-destructive/30" onClick={onDecline}>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={onDecline}
+              disabled={isProcessing}
+            >
               <X className="h-4 w-4" />
               Decline
             </Button>
-            <Button size="sm" variant="outline" className="border-muted-foreground/30" onClick={onCancel}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-muted-foreground/30"
+              onClick={onCancel}
+              disabled={isProcessing}
+            >
               <Ban className="h-4 w-4" />
               Cancel
             </Button>
-            <Button size="sm" onClick={onApprove}>
+            <Button size="sm" onClick={onApprove} disabled={isProcessing}>
               <Check className="h-4 w-4" />
               Approve
             </Button>

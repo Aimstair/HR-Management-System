@@ -43,7 +43,7 @@ const FacultyEvaluationDetailPanel: React.FC<FacultyEvaluationDetailPanelProps> 
       <CardContent className="space-y-4">
         <div className="rounded-md border p-3">
           <p className="text-xs text-muted-foreground">Overall Average</p>
-          <p className="text-xl font-semibold">{overallAverage(record).toFixed(2)} / 4.00</p>
+          <p className="text-xl font-semibold">{overallAverage(record).toFixed(2)} / 5.00</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -68,7 +68,7 @@ const FacultyEvaluationDetailPanel: React.FC<FacultyEvaluationDetailPanelProps> 
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div className="rounded-md border p-3">
-            <p className="mb-2 text-sm font-medium">Teacher's Strong Points</p>
+            <p className="mb-2 text-sm font-medium">Strong Points</p>
             <ul className="list-disc space-y-1 pl-5 text-sm">
               {record.strongPoints.length === 0 ? <li>No responses available.</li> : null}
               {record.strongPoints.map((point) => (
@@ -78,7 +78,7 @@ const FacultyEvaluationDetailPanel: React.FC<FacultyEvaluationDetailPanelProps> 
           </div>
 
           <div className="rounded-md border p-3">
-            <p className="mb-2 text-sm font-medium">Teacher's Areas Needing Improvement</p>
+            <p className="mb-2 text-sm font-medium">Areas Needing Improvement</p>
             <ul className="list-disc space-y-1 pl-5 text-sm">
               {record.improvements.length === 0 ? <li>No responses available.</li> : null}
               {record.improvements.map((point) => (

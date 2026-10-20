@@ -10,27 +10,41 @@ import {
 import { Button } from '../../../../../../components/ui/button';
 import { Input } from '../../../../../../components/ui/input';
 import { Label } from '../../../../../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../components/ui/select';
 import { Textarea } from '../../../../../../components/ui/textarea';
-import type { AddTimeFormValues, ReportEmployee } from '../types';
+import type { AddTimeFormValues, ReportEmployee, TeachingClassSessionOption } from '../types';
+import { EmployeeType } from '../../../../../types';
 
 interface AddTimeDialogProps {
   open: boolean;
   employee: ReportEmployee | null;
+  employeeType: EmployeeType;
+  classSessions: TeachingClassSessionOption[];
   onClose: () => void;
   onAddTime: (values: AddTimeFormValues) => void;
 }
 
-const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, onAddTime }) => {
+const AddTimeDialog: React.FC<AddTimeDialogProps> = ({
+  open,
+  employee,
+  employeeType,
+  classSessions,
+  onClose,
+  onAddTime,
+}) => {
   const [start, setStart] = useState<string>('');
   const [end, setEnd] = useState<string>('');
-  const [agenda, setAgenda] = useState<string>('');
+  const [classSessionId, setClassSessionId] = useState<string>('');
+  const [status, setStatus] = useState<'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED'>('PRESENT');
   const [notes, setNotes] = useState<string>('');
+  const isTeaching = employeeType === EmployeeType.TEACHING;
 
   React.useEffect(() => {
     if (!open) {
       setStart('');
       setEnd('');
-      setAgenda('');
+      setClassSessionId('');
+      setStatus('PRESENT');
       setNotes('');
     }
   }, [open]);
@@ -42,13 +56,18 @@ const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, 
 
     onAddTime({
       employeeId: employee.id,
-      start,
-      end,
-      agenda,
+      start: isTeaching ? undefined : start,
+      end: isTeaching ? undefined : end,
+      classSessionId: isTeaching ? classSessionId : undefined,
+      status: isTeaching ? status : undefined,
       notes,
     });
     onClose();
   };
+
+  const canSubmit = isTeaching
+    ? Boolean(classSessionId)
+    : Boolean(start && end);
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
@@ -64,21 +83,54 @@ const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, 
             <Input value={employee ? employee.fullName : ''} disabled />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Start</Label>
-              <Input type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>End</Label>
-              <Input type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} />
-            </div>
-          </div>
+          {isTeaching ? (
+            <>
+              <div className="space-y-2">
+                <Label>Class Session</Label>
+                <Select value={classSessionId} onValueChange={setClassSessionId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classSessions.map((session) => (
+                      <SelectItem key={session.id} value={session.id}>
+                        {session.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {classSessions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No class sessions found for this range.</p>
+                ) : null}
+              </div>
 
-          <div className="space-y-2">
-            <Label>Agenda</Label>
-            <Input value={agenda} onChange={(event) => setAgenda(event.target.value)} placeholder="e.g. Overtime Completion" />
-          </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PRESENT">Present</SelectItem>
+                    <SelectItem value="LATE">Late</SelectItem>
+                    <SelectItem value="ABSENT">Absent</SelectItem>
+                    <SelectItem value="EXCUSED">Excused</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Start</Label>
+                <Input type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>End</Label>
+                <Input type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Notes</Label>
@@ -88,7 +140,7 @@ const AddTimeDialog: React.FC<AddTimeDialogProps> = ({ open, employee, onClose, 
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>Add Time</Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit}>Add Time</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

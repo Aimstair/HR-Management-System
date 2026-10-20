@@ -1,9 +1,7 @@
 import type {
-  DayMetric,
   DepartmentMetric,
   DtrEntry,
   DtrFilterState,
-  EmployeeMetric,
   GraphFilterState,
   ReportEmployee,
 } from './types';
@@ -67,9 +65,28 @@ export const computeWorkMinutes = (entry: DtrEntry): number => {
   return durationMinutes(entry.timeIn, entry.timeOut);
 };
 
+const toDateValue = (value: string): Date => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1);
+  }
+
+  return new Date(value);
+};
+
 const inDateRange = (dateIso: string, start: Date, end: Date): boolean => {
-  const value = new Date(dateIso);
+  const value = toDateValue(dateIso);
+  if (Number.isNaN(value.getTime())) {
+    return false;
+  }
   return value >= start && value <= end;
+};
+
+const toDateKey = (value: Date): string => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export const filterDtrByRange = (entries: DtrEntry[], filter: DtrFilterState): DtrEntry[] => {
@@ -103,7 +120,7 @@ const filterEntriesByGraphRange = (entries: DtrEntry[], filter: GraphFilterState
   if (filter.mode === 'last30') {
     const start = new Date(now);
     start.setDate(start.getDate() - 30);
-    return entries.filter((entry) => inDateRange(entry.timeIn, start, now));
+    return entries.filter((entry) => inDateRange(entry.date, start, now));
   }
 
   if (filter.mode === 'thisWeek') {
@@ -112,26 +129,60 @@ const filterEntriesByGraphRange = (entries: DtrEntry[], filter: GraphFilterState
     const start = new Date(now);
     start.setDate(now.getDate() + diff);
     start.setHours(0, 0, 0, 0);
-    return entries.filter((entry) => inDateRange(entry.timeIn, start, now));
+    return entries.filter((entry) => inDateRange(entry.date, start, now));
   }
 
   if (filter.mode === 'month' && filter.month) {
     const [year, month] = filter.month.split('-').map(Number);
     const start = new Date(year, (month || 1) - 1, 1, 0, 0, 0);
     const end = new Date(year, month || 1, 0, 23, 59, 59);
-    return entries.filter((entry) => inDateRange(entry.timeIn, start, end));
+    return entries.filter((entry) => inDateRange(entry.date, start, end));
   }
 
   const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
-  return entries.filter((entry) => inDateRange(entry.timeIn, start, now));
+  return entries.filter((entry) => inDateRange(entry.date, start, now));
+};
+
+const resolveGraphRange = (filter: GraphFilterState): { start: Date; end: Date } => {
+  const now = new Date();
+
+  if (filter.mode === 'last30') {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 30);
+    return { start, end: now };
+  }
+
+  if (filter.mode === 'thisWeek') {
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const start = new Date(now);
+    start.setDate(now.getDate() + diff);
+    start.setHours(0, 0, 0, 0);
+    return { start, end: now };
+  }
+
+  if (filter.mode === 'month' && filter.month) {
+    const [year, month] = filter.month.split('-').map(Number);
+    const start = new Date(year, (month || 1) - 1, 1, 0, 0, 0);
+    const end = new Date(year, month || 1, 0, 23, 59, 59);
+    return { start, end };
+  }
+
+  const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+  return { start, end: now };
 };
 
 const makeDepartmentAggregate = (
   entries: DtrEntry[],
   employeesById: Record<string, ReportEmployee>,
+  departments: string[],
   calc: (entry: DtrEntry) => number,
 ): DepartmentMetric[] => {
   const totals: Record<string, number> = {};
+
+  departments.forEach((department) => {
+    totals[department] = 0;
+  });
 
   entries.forEach((entry) => {
     const employee = employeesById[entry.employeeId];
@@ -144,13 +195,23 @@ const makeDepartmentAggregate = (
   return Object.entries(totals).map(([department, value]) => ({ department, value }));
 };
 
+const isLateEntry = (entry: DtrEntry): boolean => {
+  if (entry.attendanceStatus) {
+    return entry.attendanceStatus === 'LATE';
+  }
+
+  return computeLateMinutes(entry) > 0;
+};
+
+const isAbsentEntry = (entry: DtrEntry): boolean => {
+  return entry.attendanceStatus === 'ABSENT' || entry.attendanceStatus === 'EXCUSED';
+};
+
 export interface GraphDataSet {
   manpowerByDepartment: DepartmentMetric[];
   lateByDepartment: DepartmentMetric[];
   absentByDepartment: DepartmentMetric[];
-  totalLateHoursByEmployee: EmployeeMetric[];
-  lateCountByDepartmentByDay: DayMetric[];
-  lateCountOfTeamByDay: DayMetric[];
+  attendanceTrend: Array<{ date: string; present: number; absent: number }>;
 }
 
 export const buildGraphData = (
@@ -166,7 +227,7 @@ export const buildGraphData = (
   const campusFilteredEmployees =
     graphFilter.campus === 'all'
       ? employees
-      : employees.filter((employee) => employee.campus === graphFilter.campus);
+      : employees.filter((employee) => (employee.campusId ?? employee.campus) === graphFilter.campus);
 
   const allowedIds = new Set(campusFilteredEmployees.map((employee) => employee.id));
   const filteredEntries = filterEntriesByGraphRange(
@@ -183,51 +244,52 @@ export const buildGraphData = (
     }, {}),
   );
 
-  const lateByDepartment = makeDepartmentAggregate(filteredEntries, employeesById, (entry) =>
-    computeLateMinutes(entry) > 0 ? 1 : 0,
+  const departmentNames = manpowerByDepartment.map((item) => item.department);
+
+  const lateByDepartment = makeDepartmentAggregate(
+    filteredEntries,
+    employeesById,
+    departmentNames,
+    (entry) => (isLateEntry(entry) ? 1 : 0),
   );
 
-  const absentByDepartment = manpowerByDepartment.map((item) => ({
-    department: item.department,
-    value: Math.max(0, item.value - (lateByDepartment.find((x) => x.department === item.department)?.value || 0)),
-  }));
-
-  const totalLateHoursByEmployee = Object.values(
-    filteredEntries.reduce<Record<string, EmployeeMetric>>((acc, entry) => {
-      const employee = employeesById[entry.employeeId];
-      if (!employee) {
-        return acc;
-      }
-      const key = employee.fullName;
-      acc[key] = acc[key] || { employeeName: key, value: 0 };
-      acc[key].value += Math.round((computeLateMinutes(entry) / 60) * 100) / 100;
-      return acc;
-    }, {}),
+  const absentByDepartment = makeDepartmentAggregate(
+    filteredEntries,
+    employeesById,
+    departmentNames,
+    (entry) => (isAbsentEntry(entry) ? 1 : 0),
   );
 
-  const lateCountByDepartmentByDay = Object.values(
-    filteredEntries.reduce<Record<string, DayMetric>>((acc, entry) => {
-      const day = entry.date;
-      acc[day] = acc[day] || { day, value: 0 };
-      if (computeLateMinutes(entry) > 0) {
-        acc[day].value += 1;
+  const { start: trendStart, end: trendEnd } = resolveGraphRange(graphFilter);
+  const trendMap = filteredEntries.reduce<Record<string, { date: string; present: number; absent: number }>>(
+    (acc, entry) => {
+      const key = entry.date;
+      acc[key] = acc[key] || { date: key, present: 0, absent: 0 };
+      if (isAbsentEntry(entry)) {
+        acc[key].absent += 1;
+      } else {
+        acc[key].present += 1;
       }
       return acc;
-    }, {}),
+    },
+    {},
   );
 
-  const lateCountOfTeamByDay = lateCountByDepartmentByDay.map((dayItem) => ({
-    day: dayItem.day,
-    value: dayItem.value,
-  }));
+  const attendanceTrend: Array<{ date: string; present: number; absent: number }> = [];
+  const cursor = new Date(trendStart.getFullYear(), trendStart.getMonth(), trendStart.getDate());
+  const endDate = new Date(trendEnd.getFullYear(), trendEnd.getMonth(), trendEnd.getDate());
+
+  while (cursor <= endDate) {
+    const key = toDateKey(cursor);
+    attendanceTrend.push(trendMap[key] ?? { date: key, present: 0, absent: 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
 
   return {
     manpowerByDepartment,
     lateByDepartment,
     absentByDepartment,
-    totalLateHoursByEmployee,
-    lateCountByDepartmentByDay,
-    lateCountOfTeamByDay,
+    attendanceTrend,
   };
 };
 

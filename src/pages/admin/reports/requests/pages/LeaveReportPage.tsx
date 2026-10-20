@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MoreHorizontal, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '../../../../../../components/ui/badge';
@@ -10,15 +10,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../../../../components/ui/dropdown-menu';
-import { leaveRecords as initialLeaveRecords, reportEmployees } from '../mockData';
-import type { LeaveRecord, ScopeFilterState } from '../types';
-import { formatDate, formatDateTime, formatReportRangeTitle, isInScope } from '../utils';
+import { updateAdminRequestStatus, type AdminRequestRecord } from '../../../../../lib/admin-api';
+import type { LeaveRecord, ReportEmployeeSummary, ScopeFilterState } from '../types';
+import type { GraphFilterState, GraphFilterMode } from '../attendance/types';
+import { formatDate, formatDateTime, formatReportRangeTitle, isInScope, isGraphInScope } from '../utils';
+import { fetchReportEmployees, fetchReportRequests, mapRequestStatusToReportStatus, toProcessorInfo } from '../report-api';
 import EmployeeListPanel from '../components/EmployeeListPanel';
 import GenericReportTable from '../components/GenericReportTable';
 import ProcessorAvatar from '../components/ProcessorAvatar';
 import ScopeFilterDialog from '../components/ScopeFilterDialog';
 import AddLeaveDialog from '../components/leave/AddLeaveDialog';
 import LeaveGraphsPanel from '../components/leave/LeaveGraphsPanel';
+import { useAuth } from '../../../../../context/AuthContext';
 import ViewModeHeaderToggle from '../components/common/ViewModeHeaderToggle';
 
 const defaultScope: ScopeFilterState = {
@@ -29,19 +32,99 @@ const defaultScope: ScopeFilterState = {
   rangeEnd: '',
 };
 
+const defaultGraphFilter: GraphFilterState = {
+  mode: 'last30',
+  month: '',
+  campus: 'all',
+};
+
 const LeaveReportPage: React.FC = () => {
+  const { user } = useAuth();
+  const isHeadHr = user?.role === 'ROLE_HEAD_HR';
+
   const [scope, setScope] = useState<ScopeFilterState>(defaultScope);
   const [isScopeOpen, setIsScopeOpen] = useState<boolean>(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(reportEmployees[0]?.id || null);
-  const [leave, setLeave] = useState<LeaveRecord[]>(initialLeaveRecords);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<ReportEmployeeSummary[]>([]);
+  const [requests, setRequests] = useState<AdminRequestRecord[]>([]);
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
-  const [graphYear, setGraphYear] = useState<string>(String(new Date().getFullYear()));
+  const [graphFilter, setGraphFilter] = useState<GraphFilterState>(defaultGraphFilter);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const load = async (): Promise<void> => {
+      try {
+        const [employeeRows, requestRows] = await Promise.all([
+          fetchReportEmployees(),
+          fetchReportRequests('LEAVE'),
+        ]);
+        if (!isActive) {
+          return;
+        }
+        setEmployees(employeeRows);
+        setRequests(requestRows);
+      } catch (error) {
+        if (isActive) {
+          const message = error instanceof Error ? error.message : 'Unable to load leave reports.';
+          toast.error(message);
+          setEmployees([]);
+          setRequests([]);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!employees.length) {
+      setSelectedEmployeeId(null);
+      return;
+    }
+
+    const stillVisible = employees.some((employee) => employee.id === selectedEmployeeId);
+    if (!stillVisible) {
+      setSelectedEmployeeId(employees[0].id);
+    }
+  }, [employees, selectedEmployeeId]);
 
   const selectedEmployee = useMemo(
-    () => reportEmployees.find((employee) => employee.id === selectedEmployeeId) || null,
-    [selectedEmployeeId],
+    () => employees.find((employee) => employee.id === selectedEmployeeId) || null,
+    [employees, selectedEmployeeId],
   );
+
+  const leave = useMemo<LeaveRecord[]>(() => {
+    return requests.map((request) => {
+      const startDate = request.leaveStartDate?.slice(0, 10) ?? request.createdAt.slice(0, 10);
+      const endDate = request.leaveEndDate?.slice(0, 10) ?? startDate;
+      const duration = request.leaveStartDate && request.leaveEndDate
+        ? `${Math.max(1, Math.ceil((
+            new Date(request.leaveEndDate).getTime() - new Date(request.leaveStartDate).getTime()
+          ) / (1000 * 60 * 60 * 24)))} day(s)`
+        : 'N/A';
+
+      return {
+        id: request.id,
+        employeeId: request.employeeId,
+        filedAt: request.createdAt,
+        leaveType: 'Others',
+        startDate,
+        endDate,
+        duration,
+        notes: request.description ?? request.title,
+        paid: false,
+        status: mapRequestStatusToReportStatus(request.status),
+        reliever: 'N/A',
+        remarks: request.remarks ?? '—',
+        processedBy: toProcessorInfo(request.reviewedBy),
+      };
+    });
+  }, [requests]);
 
   const currentRows = useMemo(() => {
     return leave.filter((item) => item.employeeId === selectedEmployeeId && isInScope(item.filedAt, scope));
@@ -49,18 +132,43 @@ const LeaveReportPage: React.FC = () => {
 
   const reportLabel = useMemo(() => formatReportRangeTitle(scope, 'Leave Report'), [scope]);
 
-  const years = useMemo(() => {
-    const unique = new Set(leave.map((item) => String(new Date(item.filedAt).getFullYear())));
-    return Array.from(unique).sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10));
-  }, [leave]);
+  const campusOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    employees.forEach((employee) => {
+      if (employee.campusId) {
+        map.set(employee.campusId, employee.campus);
+      }
+    });
+
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [employees]);
+
+  useEffect(() => {
+    if (graphFilter.campus === 'all') {
+      return;
+    }
+
+    const exists = campusOptions.some((campus) => campus.id === graphFilter.campus);
+    if (!exists) {
+      setGraphFilter((current) => ({ ...current, campus: 'all' }));
+    }
+  }, [campusOptions, graphFilter.campus]);
 
   const leaveRowsByYear = useMemo(() => {
-    return leave.filter((item) => new Date(item.filedAt).getFullYear() === Number.parseInt(graphYear, 10));
-  }, [leave, graphYear]);
+    const campusFilteredEmployees =
+      graphFilter.campus === 'all'
+        ? employees
+        : employees.filter((employee) => (employee.campusId ?? employee.campus) === graphFilter.campus);
+
+    const allowedIds = new Set(campusFilteredEmployees.map((employee) => employee.id));
+    return leave.filter((item) => allowedIds.has(item.employeeId) && isGraphInScope(item.filedAt, graphFilter));
+  }, [leave, graphFilter, employees]);
 
   const employeeMap = useMemo(() => {
-    return new Map(reportEmployees.map((employee) => [employee.id, employee]));
-  }, []);
+    return new Map(employees.map((employee) => [employee.id, employee]));
+  }, [employees]);
 
   const monthlyCountData = useMemo(() => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -120,46 +228,45 @@ const LeaveReportPage: React.FC = () => {
       aggregate.set(item.employeeId, current);
     });
 
-    return Array.from(aggregate.values()).slice(0, 12);
-  }, [leaveRowsByYear, employeeMap]);
-
-  const leaveDateSummary = useMemo(() => {
-    const grouped = new Map<string, LeaveRecord[]>();
-
-    leaveRowsByYear.forEach((item) => {
-      const current = grouped.get(item.startDate) || [];
-      current.push(item);
-      grouped.set(item.startDate, current);
-    });
-
-    return Array.from(grouped.entries())
-      .map(([date, rows]) => ({
-        date: formatDate(date),
-        count: rows.length,
-        employees: rows.map((row) => {
-          const employee = employeeMap.get(row.employeeId);
-          return {
-            id: row.id,
-            name: employee?.fullName || 'Unknown',
-            avatarUrl: employee?.avatarUrl || 'https://picsum.photos/seed/default-employee/80/80',
-            leaveType: row.leaveType,
-            dateRange: `${formatDate(row.startDate)} - ${formatDate(row.endDate)}`,
-            notes: row.notes,
-          };
-        }),
-      }))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return Array.from(aggregate.values())
+      .sort((a, b) => {
+        const totalA = a.Vacation + a.Sick + a.Emergency + a.Others;
+        const totalB = b.Vacation + b.Sick + b.Emergency + b.Others;
+        return totalB - totalA;
+      })
       .slice(0, 10);
   }, [leaveRowsByYear, employeeMap]);
 
-  const addLeave = (row: LeaveRecord): void => {
-    setLeave((current) => [row, ...current]);
-    toast.success('Leave filing added.');
-  };
+  const leaveList = useMemo(() => {
+    return leaveRowsByYear
+      .filter((row) => row.status === 'Approved')
+      .map((row) => {
+      const employee = employeeMap.get(row.employeeId);
+      return {
+        id: row.id,
+        name: employee?.fullName || 'Unknown',
+        avatarUrl: employee?.avatarUrl || 'https://picsum.photos/seed/default-employee/80/80',
+        leaveType: row.leaveType,
+        startDate: row.startDate,
+        endDate: row.endDate,
+        dateRange: `${formatDate(row.startDate)} - ${formatDate(row.endDate)}`,
+        notes: row.notes,
+      };
+    }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  }, [leaveRowsByYear, employeeMap]);
 
-  const updateLeave = (rowId: string, next: Partial<LeaveRecord>): void => {
-    setLeave((current) => current.map((item) => (item.id === rowId ? { ...item, ...next } : item)));
-  };
+  const updateLeave = useCallback(
+    async (rowId: string, status: AdminRequestRecord['status'], remarks?: string) => {
+      try {
+        const response = await updateAdminRequestStatus(rowId, status, remarks ?? null);
+        setRequests((current) => current.map((item) => (item.id === rowId ? response.request : item)));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to update leave request.';
+        toast.error(message);
+      }
+    },
+    [],
+  );
 
   return (
     <div className="space-y-4">
@@ -170,13 +277,15 @@ const LeaveReportPage: React.FC = () => {
           <EmployeeListPanel
             title="Leave Report Employees"
             metricLabel="Leave Filed"
-            employees={reportEmployees}
+            employees={employees}
             selectedEmployeeId={selectedEmployeeId}
             scope={scope}
             onSelectEmployee={setSelectedEmployeeId}
             onScopeChange={setScope}
             onOpenScopeModal={() => setIsScopeOpen(true)}
-            metricBuilder={(employee) => String(employee.leaveFiledCount)}
+            metricBuilder={(employee) =>
+              String(leave.filter((item) => item.employeeId === employee.id && isInScope(item.filedAt, scope)).length)
+            }
             exportRowsBuilder={(employeeId) => {
               const rows = leave.filter((item) => item.employeeId === employeeId);
               return rows.map((item) => [
@@ -200,10 +309,10 @@ const LeaveReportPage: React.FC = () => {
                       {selectedEmployee ? `${selectedEmployee.fullName} (${selectedEmployee.position})` : 'Select employee'}
                     </CardDescription>
                   </div>
-                  <Button onClick={() => setIsAddOpen(true)} disabled={!selectedEmployee}>
+                  {/* <Button onClick={() => setIsAddOpen(true)} disabled={!selectedEmployee}>
                     <Plus className="h-4 w-4" />
                     Add Leave
-                  </Button>
+                  </Button> */}
                 </div>
               </CardHeader>
             </Card>
@@ -276,7 +385,7 @@ const LeaveReportPage: React.FC = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => {
-                              updateLeave(row.id, { status: 'Cancelled', remarks: 'Cancelled by HR.' });
+                              updateLeave(row.id, 'CANCELLED', 'Cancelled by HR.');
                               toast.success('Leave cancelled.');
                             }}
                           >
@@ -284,7 +393,12 @@ const LeaveReportPage: React.FC = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              updateLeave(row.id, { remarks: 'Flagged as uncredited.' });
+                              const existing = requests.find((item) => item.id === row.id);
+                              if (existing) {
+                                updateLeave(row.id, existing.status, 'Flagged as uncredited.');
+                                toast.success('Leave flagged as uncredited.');
+                                return;
+                              }
                               toast.success('Leave flagged as uncredited.');
                             }}
                           >
@@ -301,14 +415,19 @@ const LeaveReportPage: React.FC = () => {
         </div>
       ) : (
         <LeaveGraphsPanel
-          year={graphYear}
-          years={years}
-          onChangeYear={setGraphYear}
+          isHeadHr={isHeadHr}
+          campuses={campusOptions}
+          graphMode={graphFilter.mode}
+          graphMonth={graphFilter.month}
+          graphCampus={graphFilter.campus}
+          onChangeMode={(mode) => setGraphFilter((current) => ({ ...current, mode }))}
+          onChangeMonth={(month) => setGraphFilter((current) => ({ ...current, month }))}
+          onChangeCampus={(campus) => setGraphFilter((current) => ({ ...current, campus }))}
           monthlyCountData={monthlyCountData}
           leaveByTypeData={leaveByTypeData}
           leaveByDepartmentData={leaveByDepartmentData}
           leaveByEmployeeData={leaveByEmployeeData}
-          leaveDateSummary={leaveDateSummary}
+          leaveList={leaveList}
         />
       )}
 
@@ -323,9 +442,9 @@ const LeaveReportPage: React.FC = () => {
       <AddLeaveDialog
         open={isAddOpen}
         employee={selectedEmployee}
-        relieverOptions={reportEmployees}
+        relieverOptions={employees}
         onClose={() => setIsAddOpen(false)}
-        onSubmit={addLeave}
+        onSubmit={() => toast.info('Create leave requests from the employee portal.')}
       />
     </div>
   );

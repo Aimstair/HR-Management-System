@@ -7,20 +7,22 @@ export type MemoType =
   | 'Memorandum Circular'
   | 'Meeting Memo';
 
-export type RecipientType = 'All' | 'School' | 'Department' | 'Employees';
+export type RecipientType = 'All' | 'Campus' | 'School' | 'Department' | 'Employees';
 
 export type TimeFilter = 'day' | 'week' | 'month' | 'year' | 'range';
 
 export interface MemoRecipient {
   id: string;
   name: string;
-  type: RecipientType | 'Employee';
+  type: RecipientType;
   position?: string;
   avatarUrl?: string;
+  meta?: string;
 }
 
 export interface MemoAcknowledge {
   id: string;
+  employeeId?: string;
   name: string;
   position: string;
   avatarUrl?: string;
@@ -38,6 +40,8 @@ export interface MemoItem {
   effectiveDate: string;
   status: MemoStatus;
   acknowledgements: MemoAcknowledge[];
+  /** Set by the API from the memo type; see ACKNOWLEDGEMENT_REQUIRED_MEMO_TYPES. */
+  requiresAcknowledgement?: boolean;
 }
 
 export interface MemoFilterState {

@@ -10,109 +10,57 @@ export interface NavState {
 
 export type ActiveState = 'Active' | 'Inactive';
 
-export interface BankAccount {
-  id: string;
-  bankName: string;
-  accountNo: string;
-}
-
-export interface EmployeePrivileges {
-  noLate: boolean;
-  noOvertime: boolean;
-  noNightDifferentialPay: boolean;
-  noMinimumHours: boolean;
-  noHolidayPay: boolean;
-  noPremiumOnOvertime: boolean;
-}
-
 export interface EmployeeNode {
   id: string;
-  fullName: string;
   firstName: string;
-  middleName: string;
   lastName: string;
-  jobTitle: string;
-  role: 'Faculty' | 'Staff' | 'Chairman' | 'Dean' | 'HR Admin';
-
-  profilePicture?: string;
-  birthDate: string;
-  phoneNumber: string;
-  presentAddress: string;
-  presentAddressZipCode: string;
-  permanentAddress: string;
-  permanentAddressZipCode: string;
-
-  username: string;
-  temporaryPassword: string;
-
-  idNumber: string;
-  position: string;
-  dateHired: string;
-  sssId: string;
-  pagIbigId: string;
-  tinNo: string;
-  philhealthNo: string;
-
-  schoolName: string;
-  departmentName: string;
-  privileges: EmployeePrivileges;
-  bankAccounts: BankAccount[];
-  fundRequestLimit: number;
-  allowManyPendingFundRequests: boolean;
-
   email: string;
-  phone: string;
-  status: 'Active' | 'On Leave' | 'Retired';
-  avatarUrl?: string;
-  dateOfBirth: string;
-  address: string;
-  bankName: string;
-  accountName: string;
-  accountNumber: string;
-  leaveCredits: Array<{
-    id: string;
-    type: string;
-    date: string;
-    status: 'Pending' | 'Approved' | 'Rejected';
-  }>;
-  studyLoads: Array<{
-    id: string;
-    subject: string;
-    units: number;
-    schedule: string;
-  }>;
+  employeeType: 'TEACHING' | 'NON_TEACHING';
+  isActive: boolean;
+  status: ActiveState;
+  position: string | null;
+  profileImage: string | null;
+  schoolId: string | null;
+  schoolBranch: string | null;
+  departmentId: string | null;
+  department: string | null;
+  joinDate: string;
+  idNumber?: string | null;
+  sssId?: string | null;
+  pagIbigId?: string | null;
+  tinNo?: string | null;
+  philhealthNo?: string | null;
 }
 
 export interface SchoolNode {
   id: string;
-  picture: string;
+  picture: string | null;
   name: string;
-  location: string;
-  contact: string;
-  email: string;
+  location: string | null;
+  contact: string | null;
+  email: string | null;
   status: ActiveState;
-  employees: EmployeeNode[];
+  departments?: DepartmentNode[];
 }
 
 export interface DepartmentNode {
   id: string;
-  picture: string;
+  picture: string | null;
   name: string;
-  location: string;
-  contact: string;
-  email: string;
+  location: string | null;
+  contact: string | null;
+  email: string | null;
   status: ActiveState;
   schools?: SchoolNode[];
-  employees?: EmployeeNode[];
 }
 
 export interface CampusNode {
   id: string;
-  picture: string;
+  picture: string | null;
   name: string;
-  address: string;
-  contact: string;
-  email: string;
+  address: string | null;
+  contact: string | null;
+  email: string | null;
   status: ActiveState;
   departments: DepartmentNode[];
 }

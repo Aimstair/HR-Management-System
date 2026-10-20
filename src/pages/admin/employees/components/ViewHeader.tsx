@@ -16,6 +16,7 @@ interface ViewHeaderProps {
   statusFilter: 'all' | 'active' | 'inactive';
   viewMode: 'grid' | 'tree';
   showViewToggle?: boolean;
+  canAdd?: boolean;
   onSearch: (value: string) => void;
   onFilterStatus: (value: 'all' | 'active' | 'inactive') => void;
   onToggleView: (value: 'grid' | 'tree') => void;
@@ -28,6 +29,7 @@ const ViewHeader: React.FC<ViewHeaderProps> = ({
   statusFilter,
   viewMode,
   showViewToggle = false,
+  canAdd = true,
   onSearch,
   onFilterStatus,
   onToggleView,
@@ -62,7 +64,7 @@ const ViewHeader: React.FC<ViewHeaderProps> = ({
           </SelectContent>
         </Select>
 
-        {showViewToggle ? (
+        {/* {showViewToggle ? (
           <Button
             variant="outline"
             onClick={() => onToggleView(viewMode === 'grid' ? 'tree' : 'grid')}
@@ -70,12 +72,14 @@ const ViewHeader: React.FC<ViewHeaderProps> = ({
             {viewMode === 'grid' ? <TreePine className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
             {viewMode === 'grid' ? 'Tree View' : 'Grid View'}
           </Button>
-        ) : null}
+        ) : null} */}
 
-        <Button onClick={onAddNew}>
-          <Plus className="h-4 w-4" />
-          Add New
-        </Button>
+        {canAdd ? (
+          <Button onClick={onAddNew}>
+            <Plus className="h-4 w-4" />
+            Add New
+          </Button>
+        ) : null}
       </div>
     </div>
   );

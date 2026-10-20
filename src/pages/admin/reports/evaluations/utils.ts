@@ -67,6 +67,10 @@ export const aggregateByDepartment = (records: FacultyEvaluationRecord[]): Aggre
   return aggregateAverage(records, (record) => record.department);
 };
 
+export const aggregateByCampus = (records: FacultyEvaluationRecord[]): AggregatedScore[] => {
+  return aggregateAverage(records, (record) => record.campus);
+};
+
 export const aggregateBySchool = (records: FacultyEvaluationRecord[]): AggregatedScore[] => {
   return aggregateAverage(records, (record) => record.school);
 };

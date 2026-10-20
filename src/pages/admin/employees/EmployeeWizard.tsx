@@ -21,7 +21,11 @@ import {
 } from '../../../../components/ui/select';
 
 type EmployeeRole = 'Faculty' | 'Staff' | 'Chairman' | 'Dean' | 'HR Admin';
-type EmployeeType = 'Academic' | 'Non-Academic';
+type EmployeeType = 'TEACHING' | 'NON_TEACHING';
+
+const employeeTypeLabel = (type: EmployeeType): string => {
+  return type === 'TEACHING' ? 'Teaching' : 'Non-Teaching';
+};
 
 interface EmployeeProfile {
   id: string;
@@ -85,37 +89,37 @@ const divisions: DivisionOption[] = [
   {
     id: 'DIV-AC-ENG',
     name: 'School of Engineering',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Computer Engineering', 'Civil Engineering'],
   },
   {
     id: 'DIV-AC-CS',
     name: 'School of Computer Studies',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Computer Science', 'Information Technology'],
   },
   {
     id: 'DIV-AC-LAW',
     name: 'School of Law',
-    type: 'Academic',
+    type: 'TEACHING',
     departments: ['Juris Doctor Program'],
   },
   {
     id: 'DIV-NA-HR',
     name: 'HR',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Human Resources', 'Employee Relations'],
   },
   {
     id: 'DIV-NA-ACC',
     name: 'Accounting',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Payroll', 'Accounts Payable'],
   },
   {
     id: 'DIV-NA-MTN',
     name: 'Maintenance',
-    type: 'Non-Academic',
+    type: 'NON_TEACHING',
     departments: ['Janitorial', 'Repair Staff'],
   },
 ];
@@ -132,7 +136,7 @@ const EmployeeWizard: React.FC<EmployeeWizardProps> = ({ onCancel, onCreated }) 
       lastName: '',
       dateOfBirth: '',
       role: 'Staff',
-      employeeType: 'Academic',
+      employeeType: 'TEACHING',
       division: 'School of Engineering',
       department: 'Computer Engineering',
       email: '',
@@ -331,8 +335,8 @@ const EmployeeWizard: React.FC<EmployeeWizardProps> = ({ onCancel, onCreated }) 
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Academic">Academic</SelectItem>
-                            <SelectItem value="Non-Academic">Non-Academic</SelectItem>
+                            <SelectItem value="TEACHING">Teaching</SelectItem>
+                            <SelectItem value="NON_TEACHING">Non-Teaching</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -425,7 +429,7 @@ const EmployeeWizard: React.FC<EmployeeWizardProps> = ({ onCancel, onCreated }) 
                 </div>
                 <div className="rounded-md border p-4">
                   <p className="font-semibold">Job Details</p>
-                  <p className="text-sm text-muted-foreground">{values.role} ({values.employeeType})</p>
+                  <p className="text-sm text-muted-foreground">{values.role} ({employeeTypeLabel(values.employeeType)})</p>
                   <p className="text-sm text-muted-foreground">{values.division} / {values.department}</p>
                 </div>
                 <div className="rounded-md border p-4">

@@ -1,4 +1,3 @@
-import { campuses } from '../employees/mockData';
 import type { MemoItem, MemoRecipient } from './types';
 
 export const memoTypeOptions = [
@@ -9,40 +8,7 @@ export const memoTypeOptions = [
   'Meeting Memo',
 ] as const;
 
-export const recipientTypeOptions = ['All', 'School', 'Department', 'Employees'] as const;
-
-const employees = campuses.flatMap((campus) =>
-  campus.departments.flatMap((department) => [
-    ...(department.employees ?? []),
-    ...(department.schools?.flatMap((school) => school.employees) ?? []),
-  ]),
-);
-
-const uniqueEmployees = Array.from(new Map(employees.map((employee) => [employee.id, employee])).values());
-
-const uniqueSchools = Array.from(
-  new Set(
-    campuses.flatMap((campus) =>
-      campus.departments.flatMap((department) => department.schools?.map((school) => school.name) ?? []),
-    ),
-  ),
-).map((name, index) => ({ id: `SCH-${index + 1}`, name, type: 'School' as const }));
-
-const uniqueDepartments = Array.from(
-  new Set(campuses.flatMap((campus) => campus.departments.map((department) => department.name))),
-).map((name, index) => ({ id: `DEP-${index + 1}`, name, type: 'Department' as const }));
-
-export const recipientPool = {
-  School: uniqueSchools,
-  Department: uniqueDepartments,
-  Employees: uniqueEmployees.map((employee) => ({
-    id: employee.id,
-    name: employee.fullName,
-    type: 'Employees' as const,
-    position: employee.position,
-    avatarUrl: employee.profilePicture || employee.avatarUrl,
-  })),
-};
+export const recipientTypeOptions = ['All', 'Campus', 'School', 'Department', 'Employees'] as const;
 
 const sampleTo = (items: MemoRecipient[]): MemoRecipient[] => items;
 
@@ -76,7 +42,7 @@ export const initialMemos: MemoItem[] = [
     to: sampleTo([{ id: 'ALL', name: 'All Employees', type: 'All' }]),
     agenda: 'Updated Biometrics Policy',
     content: 'Biometric grace period will be reduced to 5 minutes effective immediately. Please review full policy attachment.',
-    attachments: ['https://picsum.photos/seed/memo-1002/400/240', 'https://picsum.photos/seed/memo-1002b/400/240'],
+    attachments: ['https://picsum.photos/seed/memo-1002/400/240'],
     dateCreated: '2026-03-10T14:20:00',
     effectiveDate: '2026-03-12T08:00:00',
     status: 'Sent',
@@ -87,13 +53,6 @@ export const initialMemos: MemoItem[] = [
         position: 'HR Administrator',
         avatarUrl: 'https://picsum.photos/seed/emp-2001/80/80',
         acknowledgedAt: '2026-03-10T15:00:00',
-      },
-      {
-        id: 'EMP-2003',
-        name: 'Joel Santos',
-        position: 'Payroll Specialist',
-        avatarUrl: 'https://picsum.photos/seed/emp-2003/80/80',
-        acknowledgedAt: '2026-03-10T15:22:00',
       },
     ],
   },

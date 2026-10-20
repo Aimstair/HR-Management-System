@@ -17,6 +17,7 @@ export interface FacultyEvaluationRecord {
   facultyId: string;
   facultyName: string;
   position: string;
+  campus: string;
   school: string;
   department: string;
   subjectCode: string;
@@ -28,6 +29,7 @@ export interface FacultyEvaluationRecord {
   sections: EvaluationSectionScore[];
   strongPoints: string[];
   improvements: string[];
+  employeeType: 'TEACHING' | 'NON_TEACHING';
 }
 
 export interface FacultyProfile {
@@ -37,6 +39,7 @@ export interface FacultyProfile {
   school: string;
   department: string;
   avatarUrl: string;
+  employeeType: 'TEACHING' | 'NON_TEACHING';
 }
 
 export interface AggregatedScore {

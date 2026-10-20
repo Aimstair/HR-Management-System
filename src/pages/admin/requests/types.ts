@@ -2,9 +2,6 @@ import { RequestStatus } from '../../../types';
 
 export type RequestCategory =
   | 'leave'
-  | 'expense'
-  | 'wfh'
-  | 'funds'
   | 'undertime'
   | 'overtime'
   | 'adjustments'
@@ -24,14 +21,12 @@ export interface RequestRecord {
   employee: EmployeeSummary;
   requestDate: string;
   notes: string;
+  remarks?: string;
 
   duration?: string;
   scheduleFrom?: string;
   scheduleTo?: string;
   reliever?: string;
-
-  amount?: number;
-  expenseDate?: string;
 
   startDate?: string;
 

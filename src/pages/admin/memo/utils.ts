@@ -105,3 +105,13 @@ export const makeRecipient = (
   position: item.position,
   avatarUrl: item.avatarUrl,
 });
+
+/**
+ * Memo types employees must acknowledge (mirrors server/src/lib/memo-rules.ts, which
+ * enforces it). Disciplinary memos need proof of receipt; policy memos need
+ * confirmation the employee read the rule. Other types are informational.
+ */
+export const ACKNOWLEDGEMENT_REQUIRED_MEMO_TYPES: ReadonlySet<string> = new Set(['Disciplinary Memo', 'Policy Memo']);
+
+export const memoRequiresAcknowledgement = (memo: Pick<MemoItem, 'memoType' | 'requiresAcknowledgement'>): boolean =>
+  memo.requiresAcknowledgement ?? ACKNOWLEDGEMENT_REQUIRED_MEMO_TYPES.has(memo.memoType);

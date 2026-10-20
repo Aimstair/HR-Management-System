@@ -24,20 +24,31 @@ import type {
   EmployeeRequestType,
 } from '../../shared/employeePortalTypes';
 import {
-  REQUEST_FORM_SCHEMAS,
+  allowsWeekendDates,
+  applyRequestFieldRules,
+  describeFixedLeave,
+  getMinimumDate,
+  getRequestFormSchema,
+  isDerivedField,
   type RequestFieldDefinition,
   getRequestTypeLabel,
 } from '../requestConfig';
+import RequestDatePicker from './RequestDatePicker';
+import { EmployeeType } from '../../../../types';
 
 interface RequestFilingDialogProps {
   open: boolean;
   requestType: EmployeeRequestType;
+  employeeType: EmployeeType;
   onClose: () => void;
   onSubmit: (fields: EmployeeRequestFields) => void;
 }
 
-const createInitialValues = (requestType: EmployeeRequestType): EmployeeRequestFields => {
-  const schema = REQUEST_FORM_SCHEMAS[requestType];
+const createInitialValues = (
+  requestType: EmployeeRequestType,
+  employeeType: EmployeeType,
+): EmployeeRequestFields => {
+  const schema = getRequestFormSchema(requestType, employeeType);
   return schema.reduce<EmployeeRequestFields>((acc, field) => {
     acc[field.key] = field.type === 'file' ? [] : '';
     return acc;
@@ -59,11 +70,15 @@ const isValueEmpty = (value: unknown): boolean => {
 const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
   open,
   requestType,
+  employeeType,
   onClose,
   onSubmit,
 }) => {
-  const schema = REQUEST_FORM_SCHEMAS[requestType];
-  const [values, setValues] = React.useState<EmployeeRequestFields>(() => createInitialValues(requestType));
+  const schema = React.useMemo(
+    () => getRequestFormSchema(requestType, employeeType),
+    [requestType, employeeType],
+  );
+  const [values, setValues] = React.useState<EmployeeRequestFields>(() => createInitialValues(requestType, employeeType));
   const [validationError, setValidationError] = React.useState<string>('');
 
   React.useEffect(() => {
@@ -71,26 +86,35 @@ const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
       return;
     }
 
-    setValues(createInitialValues(requestType));
+    setValues(createInitialValues(requestType, employeeType));
     setValidationError('');
-  }, [open, requestType]);
+  }, [open, requestType, employeeType]);
 
   const updateValue = (key: string, value: EmployeeRequestFields[string]): void => {
-    setValues((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    setValues((current) => applyRequestFieldRules(requestType, { ...current, [key]: value }));
   };
 
   const validate = (): boolean => {
     const missing = schema.find((field) => field.required && isValueEmpty(values[field.key]));
-    if (!missing) {
-      setValidationError('');
-      return true;
+    if (missing) {
+      setValidationError(`${missing.label} is required.`);
+      return false;
     }
 
-    setValidationError(`${missing.label} is required.`);
-    return false;
+    const weekendField = schema.find((field) => {
+      if (field.type !== 'date' || isValueEmpty(values[field.key])) {
+        return false;
+      }
+      const day = new Date(`${String(values[field.key])}T00:00:00`).getDay();
+      return (day === 0 || day === 6) && !allowsWeekendDates(requestType, field.key, values);
+    });
+    if (weekendField) {
+      setValidationError(`${weekendField.label} cannot be a Saturday or Sunday.`);
+      return false;
+    }
+
+    setValidationError('');
+    return true;
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
@@ -105,6 +129,21 @@ const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
   const renderField = (field: RequestFieldDefinition): React.ReactNode => {
     const rawValue = values[field.key];
     const value = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+    const isDerived = isDerivedField(requestType, field.key, values);
+
+    if (field.type === 'date') {
+      return (
+        <RequestDatePicker
+          id={field.key}
+          value={value}
+          onChange={(next) => updateValue(field.key, next)}
+          allowWeekends={allowsWeekendDates(requestType, field.key, values)}
+          minDate={getMinimumDate(field.key, values)}
+          disabled={isDerived}
+          placeholder={isDerived ? 'Set automatically' : undefined}
+        />
+      );
+    }
 
     if (field.type === 'textarea') {
       return (
@@ -119,7 +158,7 @@ const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
 
     if (field.type === 'select') {
       return (
-        <Select value={value} onValueChange={(next) => updateValue(field.key, next)}>
+        <Select value={value} onValueChange={(next) => updateValue(field.key, next)} disabled={isDerived}>
           <SelectTrigger id={field.key}>
             <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
           </SelectTrigger>
@@ -187,6 +226,12 @@ const RequestFilingDialog: React.FC<RequestFilingDialogProps> = ({
                 </div>
               ))}
             </div>
+
+            {describeFixedLeave(values) ? (
+              <p className="rounded-sm border border-sky-200 bg-sky-50 p-2 text-xs text-sky-900">
+                {describeFixedLeave(values)}
+              </p>
+            ) : null}
 
             {validationError ? (
               <p className="text-sm text-destructive">{validationError}</p>

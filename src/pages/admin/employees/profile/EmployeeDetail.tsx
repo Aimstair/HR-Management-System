@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Eye, EyeOff, Pencil, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Pencil, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Card,
@@ -11,7 +11,6 @@ import {
 import { Button } from '../../../../../components/ui/button';
 import { Input } from '../../../../../components/ui/input';
 import { Label } from '../../../../../components/ui/label';
-import { Checkbox } from '../../../../../components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -20,104 +19,144 @@ import {
   SelectValue,
 } from '../../../../../components/ui/select';
 import { Badge } from '../../../../../components/ui/badge';
-import type { BankAccount, EmployeeNode } from '../types';
+import { updateAdminEmployee, type AdminEmployeeRecord } from '../../../../lib/admin-api';
+import type { CampusNode, EmployeeNode } from '../types';
 
 interface EmployeeDetailProps {
   employee: EmployeeNode;
-  inSchoolContext: boolean;
+  campuses: CampusNode[];
   onBack: () => void;
   onSaveEmployee: (employee: EmployeeNode) => void;
 }
 
-const DEFAULT_TEMP_PASSWORD = 'Welcome123!';
-
-const schoolOptions = ['School of Engineering', 'School of Law', 'School of Computer Studies', 'N/A'];
-const departmentOptions = ['Teaching Faculties', 'HR', 'Accounting', 'Maintenance', 'Operations'];
-
 const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
   employee,
-  inSchoolContext,
+  campuses,
   onBack,
   onSaveEmployee,
 }) => {
   const [draft, setDraft] = useState<EmployeeNode>(employee);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [teachingSchoolId, setTeachingSchoolId] = useState<string>('');
+  const [teachingDepartmentId, setTeachingDepartmentId] = useState<string>('');
 
   useEffect(() => {
     setDraft(employee);
     setIsEditing(false);
-    setShowPassword(false);
   }, [employee]);
 
-  const fullName = useMemo(() => {
-    return [draft.firstName, draft.middleName, draft.lastName].filter(Boolean).join(' ').trim() || draft.fullName;
-  }, [draft.firstName, draft.lastName, draft.middleName, draft.fullName]);
+  const selectedCampus = useMemo(
+    () => campuses.find((campus) => campus.id === draft.schoolId) ?? null,
+    [campuses, draft.schoolId],
+  );
+
+  const campusDepartments = selectedCampus?.departments ?? [];
+  const teachingDepartment = campusDepartments.find((department) => department.name === 'Teaching Faculties') ?? null;
+  const teachingSchools = teachingDepartment?.schools ?? [];
+
+  const nonTeachingDepartments = campusDepartments.filter(
+    (department) => department.name !== 'Teaching Faculties',
+  );
+
+  useEffect(() => {
+    if (!draft.employeeType || draft.employeeType === 'NON_TEACHING') {
+      setTeachingSchoolId('');
+      setTeachingDepartmentId('');
+      return;
+    }
+
+    const fallbackSchool = teachingSchools[0]?.id ?? '';
+    if (!teachingSchoolId) {
+      setTeachingSchoolId(fallbackSchool);
+    }
+
+    const schoolMatch = teachingSchools.find((school) => school.departments?.some((department) => department.id === draft.departmentId));
+    if (schoolMatch && schoolMatch.id !== teachingSchoolId) {
+      setTeachingSchoolId(schoolMatch.id);
+    }
+
+    if (!teachingDepartmentId && schoolMatch?.departments?.[0]?.id) {
+      setTeachingDepartmentId(schoolMatch.departments[0].id);
+    }
+  }, [draft.departmentId, draft.employeeType, teachingDepartmentId, teachingSchoolId, teachingSchools]);
+
+  const selectedTeachingSchool = teachingSchools.find((school) => school.id === teachingSchoolId) ?? null;
+  const teachingDepartments = selectedTeachingSchool?.departments ?? [];
+
+  useEffect(() => {
+    if (draft.employeeType === 'TEACHING' && teachingDepartments.length > 0) {
+      if (!teachingDepartments.some((department) => department.id === teachingDepartmentId)) {
+        setTeachingDepartmentId(teachingDepartments[0]?.id ?? '');
+      }
+    }
+  }, [draft.employeeType, teachingDepartments, teachingDepartmentId]);
 
   const updateDraft = <K extends keyof EmployeeNode>(key: K, value: EmployeeNode[K]): void => {
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const updateBankAccount = (index: number, patch: Partial<BankAccount>): void => {
-    setDraft((current) => ({
-      ...current,
-      bankAccounts: current.bankAccounts.map((account, accountIndex) =>
-        accountIndex === index ? { ...account, ...patch } : account,
-      ),
-    }));
-  };
-
-  const addBankAccount = (): void => {
-    setDraft((current) => ({
-      ...current,
-      bankAccounts: [
-        ...current.bankAccounts,
-        {
-          id: `BA-${Date.now()}`,
-          bankName: '',
-          accountNo: '',
-        },
-      ],
-    }));
-  };
-
-  const removeBankAccount = (index: number): void => {
-    setDraft((current) => {
-      if (current.bankAccounts.length === 1) {
-        return current;
-      }
-      return {
-        ...current,
-        bankAccounts: current.bankAccounts.filter((_, accountIndex) => accountIndex !== index),
-      };
-    });
-  };
-
-  const save = (): void => {
-    const normalized: EmployeeNode = {
-      ...draft,
-      fullName,
-      jobTitle: draft.position,
-      dateOfBirth: draft.birthDate,
-      phone: draft.phoneNumber,
-      address: draft.presentAddress,
-      avatarUrl: draft.profilePicture || draft.avatarUrl,
-      email: draft.email,
-      bankName: draft.bankAccounts[0]?.bankName || draft.bankName,
-      accountName: fullName,
-      accountNumber: draft.bankAccounts[0]?.accountNo || draft.accountNumber,
+  const toEmployeeNode = (employeeRecord: AdminEmployeeRecord): EmployeeNode => {
+    return {
+      id: employeeRecord.id,
+      firstName: employeeRecord.firstName,
+      lastName: employeeRecord.lastName,
+      email: employeeRecord.email,
+      employeeType: employeeRecord.employeeType,
+      isActive: employeeRecord.isActive,
+      status: employeeRecord.isActive ? 'Active' : 'Inactive',
+      position: employeeRecord.position,
+      profileImage: employeeRecord.profileImage,
+      schoolId: employeeRecord.schoolId,
+      schoolBranch: employeeRecord.schoolBranch,
+      departmentId: employeeRecord.departmentId,
+      department: employeeRecord.department,
+      joinDate: employeeRecord.joinDate,
+      idNumber: employeeRecord.idNumber,
+      sssId: employeeRecord.sssId,
+      pagIbigId: employeeRecord.pagIbigId,
+      tinNo: employeeRecord.tinNo,
+      philhealthNo: employeeRecord.philhealthNo,
     };
+  };
 
-    setDraft(normalized);
-    onSaveEmployee(normalized);
-    setIsEditing(false);
-    toast.success('Employee profile updated.');
+  const save = async (): Promise<void> => {
+    const departmentId = draft.employeeType === 'TEACHING' ? teachingDepartmentId : draft.departmentId;
+
+    if (!draft.schoolId || !departmentId) {
+      toast.error('Please select a valid campus and department.');
+      return;
+    }
+
+    try {
+      const response = await updateAdminEmployee(draft.id, {
+        firstName: draft.firstName.trim(),
+        lastName: draft.lastName.trim(),
+        email: draft.email.trim().toLowerCase(),
+        employeeType: draft.employeeType,
+        position: draft.position?.trim() || null,
+        isActive: draft.isActive,
+        schoolId: draft.schoolId,
+        departmentId,
+        idNumber: draft.idNumber?.trim() || null,
+        sssId: draft.sssId?.trim() || null,
+        pagIbigId: draft.pagIbigId?.trim() || null,
+        tinNo: draft.tinNo?.trim() || null,
+        philhealthNo: draft.philhealthNo?.trim() || null,
+      });
+
+      const updated = toEmployeeNode(response.employee);
+      onSaveEmployee(updated);
+      setDraft(updated);
+      setIsEditing(false);
+      toast.success('Employee profile updated.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update employee.');
+    }
   };
 
   const cancel = (): void => {
     setDraft(employee);
     setIsEditing(false);
-    setShowPassword(false);
   };
 
   return (
@@ -151,228 +190,183 @@ const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
 
       <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
         <img
-          src={draft.profilePicture || draft.avatarUrl || `https://picsum.photos/seed/${draft.id}/120/120`}
-          alt={fullName}
+          src={draft.profileImage || `https://picsum.photos/seed/${draft.id}/120/120`}
+          alt={`${draft.firstName} ${draft.lastName}`}
           className="h-16 w-16 rounded-full border object-cover"
         />
         <div>
-          <h2 className="text-2xl font-bold">{fullName}</h2>
-          <p className="text-sm text-muted-foreground">{draft.position}</p>
+          <h2 className="text-2xl font-bold">{draft.firstName} {draft.lastName}</h2>
+          <p className="text-sm text-muted-foreground">{draft.position ?? 'Employee'}</p>
         </div>
+        <Badge className={draft.isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}>
+          {draft.isActive ? 'Active' : 'Inactive'}
+        </Badge>
       </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Identity and addresses</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="space-y-1"><Label>First Name</Label><Input disabled={!isEditing} value={draft.firstName} onChange={(event) => updateDraft('firstName', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Middle Name</Label><Input disabled={!isEditing} value={draft.middleName} onChange={(event) => updateDraft('middleName', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Last Name</Label><Input disabled={!isEditing} value={draft.lastName} onChange={(event) => updateDraft('lastName', event.target.value)} /></div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Employee Details</CardTitle>
+          <CardDescription>Update employee identity and placement data.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>First Name</Label>
+              <Input disabled={!isEditing} value={draft.firstName} onChange={(event) => updateDraft('firstName', event.target.value)} />
             </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1"><Label>Birth Date</Label><Input type="date" disabled={!isEditing} value={draft.birthDate} onChange={(event) => updateDraft('birthDate', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Phone Number</Label><Input disabled={!isEditing} value={draft.phoneNumber} onChange={(event) => updateDraft('phoneNumber', event.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Last Name</Label>
+              <Input disabled={!isEditing} value={draft.lastName} onChange={(event) => updateDraft('lastName', event.target.value)} />
             </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1"><Label>Present Address</Label><Input disabled={!isEditing} value={draft.presentAddress} onChange={(event) => updateDraft('presentAddress', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Present Zip Code</Label><Input disabled={!isEditing} value={draft.presentAddressZipCode} onChange={(event) => updateDraft('presentAddressZipCode', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Permanent Address</Label><Input disabled={!isEditing} value={draft.permanentAddress} onChange={(event) => updateDraft('permanentAddress', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Permanent Zip Code</Label><Input disabled={!isEditing} value={draft.permanentAddressZipCode} onChange={(event) => updateDraft('permanentAddressZipCode', event.target.value)} /></div>
-            </div>
-          </CardContent>
-        </Card>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Credentials</CardTitle>
-            <CardDescription>Login and temporary password controls</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1"><Label>Username</Label><Input disabled={!isEditing} value={draft.username} onChange={(event) => updateDraft('username', event.target.value)} /></div>
-            <div className="space-y-1"><Label>Email</Label><Input disabled={!isEditing} value={draft.email} onChange={(event) => updateDraft('email', event.target.value)} /></div>
-            <div className="space-y-1">
-              <Label>Temporary Password</Label>
-              <div className="flex gap-2">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input disabled={!isEditing} value={draft.email} onChange={(event) => updateDraft('email', event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Position</Label>
+              <Input disabled={!isEditing} value={draft.position ?? ''} onChange={(event) => updateDraft('position', event.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Employee Type</Label>
+              <Select
+                value={draft.employeeType}
+                onValueChange={(value) => updateDraft('employeeType', value as EmployeeNode['employeeType'])}
+                disabled={!isEditing}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TEACHING">Teaching</SelectItem>
+                  <SelectItem value="NON_TEACHING">Non-Teaching</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={draft.isActive ? 'Active' : 'Inactive'}
+                onValueChange={(value) => updateDraft('isActive', value === 'Active')}
+                disabled={!isEditing}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Campus</Label>
+              <Select
+                value={draft.schoolId ?? ''}
+                onValueChange={(value) => updateDraft('schoolId', value)}
+                disabled={!isEditing}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select campus" /></SelectTrigger>
+                <SelectContent>
+                  {campuses.map((campus) => (
+                    <SelectItem key={campus.id} value={campus.id}>{campus.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {draft.employeeType === 'NON_TEACHING' ? (
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select
+                  value={draft.departmentId ?? ''}
+                  onValueChange={(value) => updateDraft('departmentId', value)}
                   disabled={!isEditing}
-                  value={draft.temporaryPassword}
-                  onChange={(event) => updateDraft('temporaryPassword', event.target.value)}
-                />
-                <Button type="button" variant="outline" size="icon" onClick={() => setShowPassword((current) => !current)}>
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!isEditing}
-                  onClick={() => {
-                    updateDraft('temporaryPassword', DEFAULT_TEMP_PASSWORD);
-                    toast.success('Temporary password reset to default.');
-                  }}
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset
-                </Button>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Select department" /></SelectTrigger>
+                  <SelectContent>
+                    {nonTeachingDepartments.map((department) => (
+                      <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            ) : (
+              <div className="space-y-2">
+                <Label>School</Label>
+                <Select
+                  value={teachingSchoolId}
+                  onValueChange={(value) => setTeachingSchoolId(value)}
+                  disabled={!isEditing}
+                >
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Select school" /></SelectTrigger>
+                  <SelectContent>
+                    {teachingSchools.map((school) => (
+                      <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Employment Details</CardTitle>
-            <CardDescription>Government IDs and employment metadata</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1"><Label>ID Number</Label><Input disabled={!isEditing} value={draft.idNumber} onChange={(event) => updateDraft('idNumber', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Position</Label><Input disabled={!isEditing} value={draft.position} onChange={(event) => updateDraft('position', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Date Hired</Label><Input type="date" disabled={!isEditing} value={draft.dateHired} onChange={(event) => updateDraft('dateHired', event.target.value)} /></div>
-              <div className="space-y-1"><Label>SSS ID</Label><Input disabled={!isEditing} value={draft.sssId} onChange={(event) => updateDraft('sssId', event.target.value)} /></div>
-              <div className="space-y-1"><Label>Pag-IBIG ID</Label><Input disabled={!isEditing} value={draft.pagIbigId} onChange={(event) => updateDraft('pagIbigId', event.target.value)} /></div>
-              <div className="space-y-1"><Label>TIN No</Label><Input disabled={!isEditing} value={draft.tinNo} onChange={(event) => updateDraft('tinNo', event.target.value)} /></div>
-              <div className="space-y-1"><Label>PhilHealth No</Label><Input disabled={!isEditing} value={draft.philhealthNo} onChange={(event) => updateDraft('philhealthNo', event.target.value)} /></div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Teams & Department</CardTitle>
-            <CardDescription>Placement assignment</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <Label>School</Label>
-              <Select value={draft.schoolName || 'N/A'} onValueChange={(value) => updateDraft('schoolName', value)} disabled={!isEditing}>
-                <SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger>
-                <SelectContent>
-                  {schoolOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
+          {draft.employeeType === 'TEACHING' ? (
+            <div className="space-y-2">
               <Label>Department</Label>
-              <Select value={draft.departmentName || 'HR'} onValueChange={(value) => updateDraft('departmentName', value)} disabled={!isEditing}>
-                <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+              <Select
+                value={teachingDepartmentId}
+                onValueChange={(value) => setTeachingDepartmentId(value)}
+                disabled={!isEditing}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select department" /></SelectTrigger>
                 <SelectContent>
-                  {departmentOptions.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                  {teachingDepartments.map((department) => (
+                    <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            {inSchoolContext ? <Badge variant="outline">School context enabled</Badge> : null}
-          </CardContent>
-        </Card>
+          ) : null}
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Employee Privileges</CardTitle>
-            <CardDescription>Payroll and attendance exemptions</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {[
-              ['noLate', 'No Late'],
-              ['noOvertime', 'No Overtime'],
-              ['noNightDifferentialPay', 'No Night Differential Pay'],
-              ['noMinimumHours', 'No Minimum Hours'],
-              ['noHolidayPay', 'No Holiday Pay'],
-              ['noPremiumOnOvertime', 'No Premium on Overtime'],
-            ].map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  disabled={!isEditing}
-                  checked={draft.privileges[key as keyof EmployeeNode['privileges']]}
-                  onCheckedChange={(checked) =>
-                    setDraft((current) => ({
-                      ...current,
-                      privileges: {
-                        ...current.privileges,
-                        [key]: Boolean(checked),
-                      },
-                    }))
-                  }
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle>Bank Details</CardTitle>
-              <CardDescription>Multiple bank accounts</CardDescription>
+      <Card>
+        <CardHeader>
+          <CardTitle>Government Credentials</CardTitle>
+          <CardDescription>Update employee identity and government numbers.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>ID Number</Label>
+              <Input disabled={!isEditing} value={draft.idNumber ?? ''} onChange={(event) => updateDraft('idNumber', event.target.value)} />
             </div>
-            {isEditing ? (
-              <Button type="button" size="sm" variant="outline" onClick={addBankAccount}>
-                <Plus className="h-4 w-4" />
-                Add Bank
-              </Button>
-            ) : null}
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {draft.bankAccounts.map((account, index) => (
-              <div key={account.id} className="grid grid-cols-1 gap-2 rounded-md border p-3 md:grid-cols-[1fr_1fr_auto]">
-                <Input
-                  disabled={!isEditing}
-                  value={account.bankName}
-                  onChange={(event) => updateBankAccount(index, { bankName: event.target.value })}
-                  placeholder="Bank name"
-                />
-                <Input
-                  disabled={!isEditing}
-                  value={account.accountNo}
-                  onChange={(event) => updateBankAccount(index, { accountNo: event.target.value })}
-                  placeholder="Account number"
-                />
-                {isEditing ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeBankAccount(index)}
-                    disabled={draft.bankAccounts.length === 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                ) : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="space-y-3">
-          <CardHeader>
-            <CardTitle>Fund Request</CardTitle>
-            <CardDescription>Fund controls and pending request policy</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <Label>Fund Request Limit</Label>
-              <Input
-                type="number"
-                disabled={!isEditing}
-                value={draft.fundRequestLimit}
-                onChange={(event) => updateDraft('fundRequestLimit', Number(event.target.value) || 0)}
-              />
+            <div className="space-y-2">
+              <Label>SSS ID</Label>
+              <Input disabled={!isEditing} value={draft.sssId ?? ''} onChange={(event) => updateDraft('sssId', event.target.value)} />
             </div>
-            <label className="flex items-center gap-2 text-sm md:mt-7">
-              <Checkbox
-                disabled={!isEditing}
-                checked={draft.allowManyPendingFundRequests}
-                onCheckedChange={(checked) => updateDraft('allowManyPendingFundRequests', Boolean(checked))}
-              />
-              <span>Allow Many Pending Fund Requests</span>
-            </label>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Pag-IBIG ID</Label>
+              <Input disabled={!isEditing} value={draft.pagIbigId ?? ''} onChange={(event) => updateDraft('pagIbigId', event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>TIN No</Label>
+              <Input disabled={!isEditing} value={draft.tinNo ?? ''} onChange={(event) => updateDraft('tinNo', event.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>PhilHealth No</Label>
+              <Input disabled={!isEditing} value={draft.philhealthNo ?? ''} onChange={(event) => updateDraft('philhealthNo', event.target.value)} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

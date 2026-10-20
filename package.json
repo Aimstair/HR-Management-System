@@ -4,8 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
     "dev": "vite",
+    "dev:api": "npm --prefix server run dev",
     "build": "vite build",
+    "build:api": "npm --prefix server run build",
     "lint": "eslint . --ext ts,tsx",
     "preview": "vite preview"
   },

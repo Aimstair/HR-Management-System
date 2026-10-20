@@ -29,8 +29,8 @@ const DepartmentGrid: React.FC<DepartmentGridProps> = ({
       const matchesSearch =
         !query ||
         department.name.toLowerCase().includes(query) ||
-        department.location.toLowerCase().includes(query) ||
-        department.email.toLowerCase().includes(query);
+        (department.location ?? '').toLowerCase().includes(query) ||
+        (department.email ?? '').toLowerCase().includes(query);
 
       const matchesStatus =
         statusFilter === 'all' ||
@@ -60,15 +60,21 @@ const DepartmentGrid: React.FC<DepartmentGridProps> = ({
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{department.name}</CardTitle>
-                    <Badge className={department.status === 'Active' ? 'bg-primary text-primary' : 'bg-muted text-muted-foreground'}>
+                    <Badge
+                      className={
+                        department.status === 'Active'
+                          ? 'border border-primary/20 bg-primary/10 text-primary'
+                          : 'border border-muted/40 bg-muted/40 text-muted-foreground'
+                      }
+                    >
                       {department.status}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{department.location}</p>
-                  <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{department.contact}</p>
-                  <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{department.email}</p>
+                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4" />{department.location ?? 'N/A'}</p>
+                  <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{department.contact ?? 'N/A'}</p>
+                  <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{department.email ?? 'N/A'}</p>
                 </CardContent>
               </Card>
             </button>

@@ -82,14 +82,6 @@ const Header: React.FC = () => {
           title: 'Leave Report',
           description: 'Review leave filings by employee with actions and add-leave workflow.',
         },
-        '/admin/reports/requests/expense': {
-          title: 'Expense Report',
-          description: 'Review employee expense filings with totals and processing status.',
-        },
-        '/admin/reports/requests/fund': {
-          title: 'Fund Request Report',
-          description: 'Track fund requests, payables, deductions, and payment progress.',
-        },
         '/admin/reports/requests/overtime': {
           title: 'Overtime Report',
           description: 'Monitor overtime request trends and processing outcomes.',
@@ -97,10 +89,6 @@ const Header: React.FC = () => {
         '/admin/reports/requests/undertime': {
           title: 'Undertime Report',
           description: 'Monitor undertime request filings and approvals.',
-        },
-        '/admin/reports/requests/wfh': {
-          title: 'Work from Home Report',
-          description: 'Track work-from-home request filings and statuses.',
         },
         '/admin/reports/requests/time-adjustment': {
           title: 'Time Adjustment Report',
@@ -152,16 +140,6 @@ const Header: React.FC = () => {
             description: 'Review leave filings by employee with actions and add-leave workflow.',
           },
           {
-            path: '/admin/reports/requests/expense',
-            title: 'Expense Report',
-            description: 'Review employee expense filings with totals and processing status.',
-          },
-          {
-            path: '/admin/reports/requests/fund',
-            title: 'Fund Request Report',
-            description: 'Track fund requests, payables, deductions, and payment progress.',
-          },
-          {
             path: '/admin/reports/requests/overtime',
             title: 'Overtime Report',
             description: 'Monitor overtime request trends and processing outcomes.',
@@ -170,11 +148,6 @@ const Header: React.FC = () => {
             path: '/admin/reports/requests/undertime',
             title: 'Undertime Report',
             description: 'Monitor undertime request filings and approvals.',
-          },
-          {
-            path: '/admin/reports/requests/wfh',
-            title: 'Work from Home Report',
-            description: 'Track work-from-home request filings and statuses.',
           },
           {
             path: '/admin/reports/requests/time-adjustment',
@@ -203,7 +176,7 @@ const Header: React.FC = () => {
 
         return {
           title: 'Requests Report',
-          description: 'Browse and analyze leave, expense, fund, and schedule-related requests.',
+          description: 'Browse and analyze leave, attendance, and schedule-related requests.',
         };
       }
 

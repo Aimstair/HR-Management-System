@@ -6,24 +6,46 @@ export interface ReportEmployee {
   department: string;
   position: string;
   campus: string;
+  campusId?: string | null;
+  schoolId?: string | null;
+  departmentId?: string | null;
+  employeeType: 'TEACHING' | 'NON_TEACHING';
   avatarUrl?: string;
 }
 
 export interface DtrEntry {
   id: string;
   employeeId: string;
+  classSessionId?: string;
   date: string; // YYYY-MM-DD
   shift: ShiftType;
   timeIn: string; // ISO date time
   timeOut: string; // ISO date time
+  subjectCode?: string;
+  subjectName?: string;
+  semester?: string;
+  remarks?: string;
+  attendanceStatus?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
 }
 
 export interface AddTimeFormValues {
   employeeId: string;
-  start: string;
-  end: string;
-  agenda: string;
+  start?: string;
+  end?: string;
+  classSessionId?: string;
+  status?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
   notes: string;
+}
+
+export interface TeachingClassSessionOption {
+  id: string;
+  label: string;
+  sessionDate: string;
+  startsAt: string;
+  endsAt: string;
+  subjectCode: string;
+  subjectName: string;
+  room?: string | null;
 }
 
 export type DtrFilterMode = 'last30' | 'month' | 'range';

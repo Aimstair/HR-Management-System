@@ -49,6 +49,10 @@ const makeEmployee = (
   fundRequestLimit: 10000,
   allowManyPendingFundRequests: false,
   role,
+  employeeType:
+    role === 'Faculty' || role === 'Chairman' || role === 'Dean'
+      ? 'TEACHING'
+      : 'NON_TEACHING',
   email: `${fullName.toLowerCase().replace(/[^a-z]+/g, '.').replace(/(^\.|\.$)/g, '')}@school.edu`,
   phone: '+63 917 555 0000',
   status,

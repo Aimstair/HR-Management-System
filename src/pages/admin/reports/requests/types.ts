@@ -4,7 +4,6 @@ export type RequestReportType =
   | 'fund'
   | 'overtime'
   | 'undertime'
-  | 'wfh'
   | 'time-adjustment'
   | 'shift-assignment'
   | 'swap-request';
@@ -24,6 +23,8 @@ export interface ReportEmployeeSummary {
   fullName: string;
   position: string;
   department: string;
+  campus: string;
+  campusId: string | null;
   avatarUrl: string;
   leaveFiledCount: number;
   expenseTotal: number;
@@ -110,7 +111,7 @@ export interface GenericRequestRecord {
   type: string;
   filedAt: string;
   details: string;
-  status: 'Approved' | 'Declined' | 'Unprocessed';
+  status: 'Approved' | 'Declined' | 'Unprocessed' | 'Cancelled';
   processedBy: ProcessorInfo;
 }
 
@@ -132,20 +133,7 @@ export interface UndertimeRecord {
   requestedAt: string;
   specifiedDateTime: string;
   notes: string;
-  status: 'Approved' | 'Declined' | 'Unprocessed';
-  processedBy: ProcessorInfo;
-}
-
-export interface WorkFromHomeRecord {
-  id: string;
-  employeeId: string;
-  requestedAt: string;
-  startAt: string;
-  endAt: string;
-  project: string;
-  location: string;
-  notes: string;
-  status: 'Approved' | 'Declined' | 'Unprocessed';
+  status: 'Approved' | 'Declined' | 'Unprocessed' | 'Cancelled';
   processedBy: ProcessorInfo;
 }
 
@@ -157,7 +145,7 @@ export interface TimeAdjustmentRecord {
   specifiedTimeOut: string;
   actualTimeOut: string;
   notes: string;
-  status: 'Approved' | 'Declined' | 'Unprocessed';
+  status: 'Approved' | 'Declined' | 'Unprocessed' | 'Cancelled';
   processedBy: ProcessorInfo;
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../../components/ui/avatar';
 import type { ColumnDefinition, RequestCategory, RequestRecord } from './types';
-import { formatDateTime, formatMoney } from './utils';
+import { formatDateTime } from './utils';
 
 const initials = (name: string): string => {
   const [first, second] = name.split(' ');
@@ -51,7 +51,7 @@ const baseColumns = (): ColumnDefinition[] => [
     sortable: true,
     className: 'min-w-[280px] max-w-[280px]',
     render: (request) => (
-      <p className="truncate text-[12px] leading-tight text-muted-foreground">{request.notes}</p>
+      <p className="truncate text-[12px] leading-tight text-muted-foreground" title={request.notes}>{request.notes}</p>
     ),
     sortValue: (request) => request.notes,
   },
@@ -59,58 +59,6 @@ const baseColumns = (): ColumnDefinition[] => [
 
 export const getColumnsByCategory = (category: RequestCategory): ColumnDefinition[] => {
   if (category === 'leave') {
-    return [
-      ...baseColumns(),
-      {
-        id: 'duration',
-        label: 'Duration',
-        sortable: true,
-        className: 'text-[12px] leading-tight',
-        render: (request) => <span className="truncate">{request.duration || 'N/A'}</span>,
-        sortValue: (request) => request.duration || '',
-      },
-      {
-        id: 'schedule',
-        label: 'Schedule',
-        sortable: true,
-        className: 'min-w-[230px] max-w-[230px]',
-        render: (request) => scheduleCell(request.scheduleFrom, request.scheduleTo),
-        sortValue: (request) => request.scheduleFrom || '',
-      },
-      {
-        id: 'reliever',
-        label: 'Reliever',
-        sortable: true,
-        className: 'max-w-[170px] text-[12px] leading-tight',
-        render: (request) => <span className="truncate">{request.reliever || 'N/A'}</span>,
-        sortValue: (request) => request.reliever || '',
-      },
-    ];
-  }
-
-  if (category === 'expense' || category === 'funds') {
-    return [
-      ...baseColumns(),
-      {
-        id: 'amount',
-        label: 'Amount',
-        sortable: true,
-        className: 'text-[12px] leading-tight',
-        render: (request) => <span className="truncate">{formatMoney(request.amount)}</span>,
-        sortValue: (request) => request.amount || 0,
-      },
-      {
-        id: 'expenseDate',
-        label: 'Expense Date',
-        sortable: true,
-        className: 'text-[12px] leading-tight',
-        render: (request) => <span className="truncate">{formatDateTime(request.expenseDate)}</span>,
-        sortValue: (request) => (request.expenseDate ? new Date(request.expenseDate).getTime() : 0),
-      },
-    ];
-  }
-
-  if (category === 'wfh') {
     return [
       ...baseColumns(),
       {

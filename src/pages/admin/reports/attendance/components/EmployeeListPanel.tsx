@@ -7,11 +7,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../../../../../component
 import { Button } from '../../../../../../components/ui/button';
 import type { ReportEmployee } from '../types';
 import { ScrollArea } from '../../../../../../components/ui/scroll-area';
+import EmployeeTypeSegmentedControl, { type EmployeeTypeFilter } from '../../../../../components/hr/EmployeeTypeSegmentedControl';
+
 
 interface EmployeeListPanelProps {
   employees: ReportEmployee[];
   selectedEmployeeId: string | null;
   onSelectEmployee: (employeeId: string) => void;
+  employeeTypeFilter: EmployeeTypeFilter;
+  onEmployeeTypeChange: (value: EmployeeTypeFilter) => void;
+  departmentFilter: string;
+  onDepartmentChange: (value: string) => void;
 }
 
 const initials = (name: string): string => {
@@ -26,49 +32,71 @@ const EmployeeListPanel: React.FC<EmployeeListPanelProps> = ({
   employees,
   selectedEmployeeId,
   onSelectEmployee,
+  employeeTypeFilter,
+  onEmployeeTypeChange,
+  departmentFilter,
+  onDepartmentChange,
 }) => {
   const [search, setSearch] = useState<string>('');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
 
-  const departments = useMemo(() => {
-    return Array.from(new Set(employees.map((employee) => employee.department))).sort();
-  }, [employees]);
+  const departmentOptions = useMemo(() => {
+    const pool =
+      employeeTypeFilter === 'ALL'
+        ? employees
+        : employees.filter((employee) => employee.employeeType === employeeTypeFilter);
+
+    return Array.from(new Set(pool.map((employee) => employee.department))).sort();
+  }, [employeeTypeFilter, employees]);
+
+  React.useEffect(() => {
+    if (departmentFilter !== 'all' && !departmentOptions.includes(departmentFilter)) {
+      onDepartmentChange('all');
+    }
+  }, [departmentFilter, departmentOptions, onDepartmentChange]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return employees.filter((employee) => {
+      const typeMatch = employeeTypeFilter === 'ALL' || employee.employeeType === employeeTypeFilter;
+      const departmentMatch = departmentFilter === 'all' || employee.department === departmentFilter;
       const searchMatch =
         !q ||
         employee.fullName.toLowerCase().includes(q) ||
         employee.department.toLowerCase().includes(q) ||
         employee.position.toLowerCase().includes(q);
 
-      const departmentMatch = departmentFilter === 'all' || employee.department === departmentFilter;
-      return searchMatch && departmentMatch;
+      return typeMatch && departmentMatch && searchMatch;
     });
-  }, [departmentFilter, employees, search]);
+  }, [departmentFilter, employees, employeeTypeFilter, search]);
 
   return (
     <Card>
       <CardHeader className="space-y-3">
         <CardTitle>Employees</CardTitle>
-        <div className="grid grid-cols-1 gap-2">
-          <div className="relative">
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+          <div className="relative col-span-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, department, position"
-              className="pl-9"
+              className="pl-9 w-full"
             />
           </div>
-          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-            <SelectTrigger>
+
+          <EmployeeTypeSegmentedControl
+            className="w-full"
+            value={employeeTypeFilter}
+            onValueChange={onEmployeeTypeChange}
+          />
+
+          <Select value={departmentFilter} onValueChange={onDepartmentChange}>
+            <SelectTrigger className='w-full'>
               <SelectValue placeholder="Filter department" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Departments</SelectItem>
-              {departments.map((department) => (
+              {departmentOptions.map((department) => (
                 <SelectItem key={department} value={department}>
                   {department}
                 </SelectItem>
